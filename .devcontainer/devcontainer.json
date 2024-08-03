@@ -1,0 +1,26 @@
+{
+    "name": "Ubuntu",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "forwardPorts": [
+        3000, // Node.js
+        6080, // webVNC
+        5901 // remoteVNC
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "tauri-apps.tauri-vscode"
+            ]
+        }
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/node:1.5.0": {},
+        "ghcr.io/devcontainers/features/rust:1.3.1": {},
+        "ghcr.io/devcontainers/features/desktop-lite:1": {}
+    },
+    "mounts": [
+        "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached"
+    ]
+}
