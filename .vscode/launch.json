@@ -13,6 +13,17 @@
             "runtimeArgs": [
                 "dev"
             ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch via Tauri",
+            "runtimeExecutable": "yarn",
+            "cwd": "${workspaceFolder}",
+            "runtimeArgs": [
+                "tauri",
+                "dev"
+            ]
         }
     ]
 }
