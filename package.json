@@ -10,6 +10,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@carbon/icons-react": "^11.48.0",
     "@carbon/react": "^1.63.1",
     "@journeyapps/wa-sqlite": "^0.3.0",
     "@powersync/common": "^1.16.2",

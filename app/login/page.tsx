@@ -1,5 +1,6 @@
 'use client'
 import { Button, Theme } from '@carbon/react'
+import Link from 'next/link'
 import React from 'react'
 
 const Login = () => {
@@ -9,7 +10,9 @@ const Login = () => {
       <div className="col-span-4">
         <div className="flex h-screen">
           <div className="my-auto p-4">
-            <Button> Log In</Button>
+            <Link href="/dash">
+              <Button> Log In</Button>
+            </Link>
           </div>
         </div>
       </div>
