@@ -12,7 +12,8 @@
         "vscode": {
             "extensions": [
                 "tauri-apps.tauri-vscode",
-                "dsznajder.es7-react-js-snippets"
+                "dsznajder.es7-react-js-snippets",
+                "editorconfig.editorconfig"
             ]
         }
     },
