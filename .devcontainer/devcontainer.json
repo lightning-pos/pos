@@ -1,25 +1,25 @@
 {
-    "name": "Ubuntu",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
-    "forwardPorts": [
-        3000, // Node.js
-        6080, // webVNC
-        5901 // remoteVNC
-    ],
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "tauri-apps.tauri-vscode",
-                "dsznajder.es7-react-js-snippets",
-                "editorconfig.editorconfig"
-            ]
-        }
-    },
-    "features": {
-        "ghcr.io/devcontainers/features/node:1.5.0": {},
-        "ghcr.io/devcontainers/features/rust:1.3.1": {},
-        "ghcr.io/devcontainers/features/desktop-lite:1": {}
+  "name": "Ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "forwardPorts": [
+    3000, // Node.js
+    6080, // webVNC
+    5901 // remoteVNC
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "tauri-apps.tauri-vscode",
+        "dsznajder.es7-react-js-snippets",
+        "editorconfig.editorconfig"
+      ]
     }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1.5.0": {},
+    "ghcr.io/devcontainers/features/rust:1.3.1": {},
+    "ghcr.io/devcontainers/features/desktop-lite:1": {}
+  }
 }

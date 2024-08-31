@@ -238,6 +238,11 @@
     wrap-ansi "^8.1.0"
     wrap-ansi-cjs "npm:wrap-ansi@^7.0.0"
 
+"@journeyapps/wa-sqlite@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@journeyapps/wa-sqlite/-/wa-sqlite-0.3.0.tgz#22a22d4251ce3480ec87e2e48a8ccc19ef63781f"
+  integrity sha512-LQMjcMh92myqzq9kpKFJJ+t1zY7owHTq8TvVYG83luCKzaZepNk86jNB/56fb/vCEy1PQBRc/cI7BTt10SfItA==
+
 "@jridgewell/gen-mapping@^0.3.2":
   version "0.3.5"
   resolved "https://registry.yarnpkg.com/@jridgewell/gen-mapping/-/gen-mapping-0.3.5.tgz#dcce6aff74bdf6dad1a95802b69b04a2fcb1fb36"
@@ -352,6 +357,30 @@
   version "0.11.0"
   resolved "https://registry.yarnpkg.com/@pkgjs/parseargs/-/parseargs-0.11.0.tgz#a77ea742fab25775145434eb1d2328cf5013ac33"
   integrity sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==
+
+"@powersync/common@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@powersync/common/-/common-1.16.2.tgz#92fa6cb46f6c85f94f661daf10af008b703e9ebe"
+  integrity sha512-g3yGr1vPqPsQp7YDLYVpGWBXu4V8RFaryNlsDoahPDqkgG4+b26fsCSZyLSZNRsnPrE0BzlZACU+Y+11CIa82g==
+  dependencies:
+    js-logger "^1.6.1"
+
+"@powersync/react@^1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@powersync/react/-/react-1.4.0.tgz#e0bc7e3c8170eae4c77755790c8b3b3f6d39f56a"
+  integrity sha512-eCWgBu+3AHRB+ztCXngu1ONiK6h/+r8Z1JvbEDaL1DUs78PD6Bs6dBWR3yKz9+EqjvBTZHy9R4O43IgYkPrfTg==
+
+"@powersync/web@^1.6.0":
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/@powersync/web/-/web-1.6.0.tgz#b1ee08a1cbc9d5139db3a2c9b7d7a1ccce010940"
+  integrity sha512-6oiv9U6yA2tNokuphF8bj7ZX1XggoDBXq3DGgsP0/SdsRWSTJCyTTnSBa3FR1WU3erkRIIZumTbtjM337vgBxA==
+  dependencies:
+    "@powersync/common" "1.16.2"
+    async-mutex "^0.4.0"
+    bson "^6.6.0"
+    comlink "^4.4.1"
+    js-logger "^1.6.1"
+    lodash "^4.17.21"
 
 "@rushstack/eslint-patch@^1.3.3":
   version "1.10.4"
@@ -696,6 +725,13 @@ ast-types-flow@^0.0.8:
   resolved "https://registry.yarnpkg.com/ast-types-flow/-/ast-types-flow-0.0.8.tgz#0a85e1c92695769ac13a428bb653e7538bea27d6"
   integrity sha512-OH/2E5Fg20h2aPrbe+QL8JZQFko0YZaF+j4mnQ7BGhfavO7OpSLa8a0y9sBwomHdSbkhTS8TQNayBfnW5DwbvQ==
 
+async-mutex@^0.4.0:
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/async-mutex/-/async-mutex-0.4.1.tgz#bccf55b96f2baf8df90ed798cb5544a1f6ee4c2c"
+  integrity sha512-WfoBo4E/TbCX1G95XTjbWTE3X2XLG0m1Xbv2cwOtuPdyH9CZvnaA5nCt1ucjaKEgW2A5IF71hxrRhr83Je5xjA==
+  dependencies:
+    tslib "^2.4.0"
+
 autoprefixer@^10.4.20:
   version "10.4.20"
   resolved "https://registry.yarnpkg.com/autoprefixer/-/autoprefixer-10.4.20.tgz#5caec14d43976ef42e32dcb4bd62878e96be5b3b"
@@ -768,6 +804,11 @@ browserslist@^4.23.3:
     electron-to-chromium "^1.5.4"
     node-releases "^2.0.18"
     update-browserslist-db "^1.1.0"
+
+bson@^6.6.0:
+  version "6.8.0"
+  resolved "https://registry.yarnpkg.com/bson/-/bson-6.8.0.tgz#5063c41ba2437c2b8ff851b50d9e36cb7aaa7525"
+  integrity sha512-iOJg8pr7wq2tg/zSlCCHMi3hMm5JTOxLTagf3zxhcenHsFp+c6uOs6K7W5UE7A4QIJGtqh/ZovFNMP4mOPJynQ==
 
 busboy@1.6.0:
   version "1.6.0"
@@ -862,6 +903,11 @@ color@^4.0.0:
   dependencies:
     color-convert "^2.0.1"
     color-string "^1.9.0"
+
+comlink@^4.4.1:
+  version "4.4.1"
+  resolved "https://registry.yarnpkg.com/comlink/-/comlink-4.4.1.tgz#e568b8e86410b809e8600eb2cf40c189371ef981"
+  integrity sha512-+1dlx0aY5Jo1vHy/tSsIGpSkN4tS9rZSW8FIhG0JH/crs9wwweswIo/POr451r7bZww3hFbPAKnTpimzL/mm4Q==
 
 commander@^4.0.0:
   version "4.1.1"
@@ -1992,6 +2038,11 @@ jiti@^1.21.0:
   resolved "https://registry.yarnpkg.com/jiti/-/jiti-1.21.6.tgz#6c7f7398dd4b3142767f9a168af2f317a428d268"
   integrity sha512-2yTgeWTWzMWkHu6Jp9NKgePDaYHbntiwvYuuJLbbN9vl7DC9DvXKOB2BC3ZZ92D3cvV/aflH0osDfwpHepQ53w==
 
+js-logger@^1.6.1:
+  version "1.6.1"
+  resolved "https://registry.yarnpkg.com/js-logger/-/js-logger-1.6.1.tgz#8f09671b515e4a6f31dced8fdb8923432e2c60af"
+  integrity sha512-yTgMCPXVjhmg28CuUH8CKjU+cIKL/G+zTu4Fn4lQxs8mRFH/03QTNvEFngcxfg/gRDiQAOoyCKmMTOm9ayOzXA==
+
 "js-tokens@^3.0.0 || ^4.0.0":
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
@@ -2109,6 +2160,11 @@ lodash.throttle@^4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/lodash.throttle/-/lodash.throttle-4.1.1.tgz#c23e91b710242ac70c37f1e1cda9274cc39bf2f4"
   integrity sha512-wIkUCfVKpVsWo3JSZlc+8MB5it+2AN5W8J7YVMST30UrvcQNZ1Okbj+rbVniijTWE6FGYy4XJq/rHkas8qJMLQ==
+
+lodash@^4.17.21:
+  version "4.17.21"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
+  integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
 
 loose-envify@^1.0.0, loose-envify@^1.1.0, loose-envify@^1.4.0:
   version "1.4.0"

@@ -1,21 +1,31 @@
 'use client'
 import { Content, Header, HeaderName, Theme } from '@carbon/react'
+import { useQuery } from '@powersync/react'
 
 const Dashboard = () => {
-    return (
-        <Theme theme='g90'>
-            <Header>
-                <HeaderName prefix='MINNAL⚡'>Point of Sale</HeaderName>
-            </Header>
-            <Content className='h-[calc(100dvh-3rem)] p-0'>
-                <div className="grid grid-cols-12 gap-4">
-                    <div className='col-span-2 p-4 border'>Category</div>
-                    <div className='col-span-7 p-4 border'>Item</div>
-                    <div className='col-span-3 p-4 border'>Cart</div>
-                </div>
-            </Content>
-        </Theme>
-    )
+  const { data: categories } = useQuery('select ("steamed") as name;')
+  return (
+    <Theme theme='g90'>
+      <Header>
+        <HeaderName prefix='MINNAL⚡'>Point of Sale</HeaderName>
+      </Header>
+      <Content className='h-[calc(100dvh-3rem)] p-0'>
+        <div className="grid grid-cols-12 gap-4">
+          <div className='col-span-2 p-4 border'>
+            Category
+            <br />
+            {
+              categories.map((category) => (
+                <div key={category.id}>{category.name}</div>
+              ))
+            }
+          </div>
+          <div className='col-span-7 p-4 border'>Item</div>
+          <div className='col-span-3 p-4 border'>Cart</div>
+        </div>
+      </Content>
+    </Theme>
+  )
 }
 
 export default Dashboard
