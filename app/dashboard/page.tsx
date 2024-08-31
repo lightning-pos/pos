@@ -1,9 +1,9 @@
 'use client'
 import { Content, Header, HeaderName, Theme } from '@carbon/react'
-import { useQuery } from '@powersync/react'
+import { usePowerSync, useQuery } from '@powersync/react'
 
 const Dashboard = () => {
-  const { data: categories } = useQuery('select ("steamed") as name;')
+  const { data: categories } = useQuery('select * from categories')
   return (
     <Theme theme='g90'>
       <Header>
@@ -16,7 +16,7 @@ const Dashboard = () => {
             <br />
             {
               categories.map((category) => (
-                <div key={category.id}>{category.name}</div>
+                <div key={category.id}>{category.name}<br /></div>
               ))
             }
           </div>

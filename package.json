@@ -12,6 +12,7 @@
   "dependencies": {
     "@carbon/react": "^1.63.1",
     "@journeyapps/wa-sqlite": "^0.3.0",
+    "@powersync/common": "^1.16.2",
     "@powersync/react": "^1.4.0",
     "@powersync/web": "^1.6.0",
     "@tauri-apps/api": "^1.6.0",

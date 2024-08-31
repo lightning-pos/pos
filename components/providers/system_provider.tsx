@@ -15,13 +15,12 @@ Logger.setLevel(Logger.DEBUG);
 const powerSync = new PowerSyncDatabase({
   database: { dbFilename: 'powersync2.db' },
   schema: AppSchema,
-  flags: {
-    disableSSRWarning: true
-  }
+  flags: { disableSSRWarning: false }
 });
-const connector = new Connector();
 
-powerSync.connect(connector);
+// TODO: Enable once the backend for connector is ready
+// const connector = new Connector();
+// powerSync.connect(connector);
 
 export const SystemProvider = ({ children }: { children: React.ReactNode }) => {
   return (
