@@ -10,7 +10,7 @@ const Login = () => {
       <div className="col-span-4">
         <div className="flex h-screen">
           <div className="my-auto p-4">
-            <Link href="/dash">
+            <Link href="/dash/pos">
               <Button> Log In</Button>
             </Link>
           </div>

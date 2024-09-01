@@ -29,7 +29,7 @@ export default function DashboardLayout({
             <SwitcherIcon />
           </HeaderGlobalAction>
         </HeaderGlobalBar>
-        <HeaderPanel expanded={isSideNavExpanded}>
+        <HeaderPanel expanded={isSideNavExpanded} onHeaderPanelFocus={() => { setIsSideNavExpanded(!isSideNavExpanded) }}>
           <Switcher aria-label="Switcher Container" expanded={isSideNavExpanded}>
             <SwitcherItem aria-label="Point of Sale" onClick={() => { router.push('/dash/pos') }}>
               Point of Sale
@@ -53,9 +53,7 @@ export default function DashboardLayout({
           </Switcher>
         </HeaderPanel>
       </Header>
-      <Content className='p-0'>
-        {children}
-      </Content>
+      {children}
     </Theme >
   );
 }
