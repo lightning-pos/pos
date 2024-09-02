@@ -16,7 +16,7 @@ export default function DashboardLayout({
   const router = useRouter()
 
   return (
-    <Theme theme='g100'>
+    <Theme theme='g90'>
       <Header>
         <HeaderName prefix='MINNAL⚡'></HeaderName>
         <HeaderGlobalBar>
@@ -31,25 +31,17 @@ export default function DashboardLayout({
         </HeaderGlobalBar>
         <HeaderPanel expanded={isSideNavExpanded} onHeaderPanelFocus={() => { setIsSideNavExpanded(!isSideNavExpanded) }}>
           <Switcher aria-label="Switcher Container" expanded={isSideNavExpanded}>
-            <SwitcherItem aria-label="Point of Sale" onClick={() => { router.push('/dash/pos') }}>
-              Point of Sale
-            </SwitcherItem>
-            <SwitcherItem aria-label="Catalog" onClick={() => { router.push('/dash/catalog') }}>
-              Catalog Management
-            </SwitcherItem>
-            <SwitcherItem aria-label="Inventory">
-              Inventory
-            </SwitcherItem>
-            <SwitcherItem aria-label="Customers">
-              Customers
-            </SwitcherItem>
-            <SwitcherItem aria-label="Catalog">
-              Settings
-            </SwitcherItem>
+            <SwitcherItem aria-label="POS" onClick={() => { router.push('/dash/pos') }}>POS</SwitcherItem>
+            <SwitcherItem aria-label="Orders" onClick={() => { router.push('/dash/orders') }}>Orders</SwitcherItem>
+            <SwitcherItem aria-label="Catalog" onClick={() => { router.push('/dash/catalog') }}>Catalog</SwitcherItem>
+            <SwitcherItem aria-label="Inventory" onClick={() => { router.push('/dash/inventory') }}>Inventory</SwitcherItem>
+            <SwitcherItem aria-label="Analytics" onClick={() => { router.push('/dash/analytics') }}>Analytics</SwitcherItem>
             <SwitcherDivider />
-            <SwitcherItem aria-label="Log Out" onClick={() => { router.push('/login') }}>
-              Log Out
-            </SwitcherItem>
+            <SwitcherItem aria-label="Customers" onClick={() => { router.push('/dash/customers') }}>Customers</SwitcherItem>
+            <SwitcherItem aria-label="Users" onClick={() => { router.push('/dash/users') }}>Users</SwitcherItem>
+            <SwitcherDivider />
+            <SwitcherItem aria-label="Settings" onClick={() => router.push('/dash/settings')}>Settings</SwitcherItem>
+            <SwitcherItem aria-label="Log Out" onClick={() => { router.push('/login') }}>Log Out</SwitcherItem>
           </Switcher>
         </HeaderPanel>
       </Header>
