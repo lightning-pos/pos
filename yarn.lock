@@ -291,6 +291,11 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
+"@lukeed/csprng@^1.0.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@lukeed/csprng/-/csprng-1.1.0.tgz#1e3e4bd05c1cc7a0b2ddbd8a03f39f6e4b5e6cfe"
+  integrity sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==
+
 "@next/env@14.2.5":
   version "14.2.5"
   resolved "https://registry.yarnpkg.com/@next/env/-/env-14.2.5.tgz#1d9328ab828711d3517d0a1d505acb55e5ef7ad0"
@@ -380,6 +385,13 @@
   integrity sha512-g3yGr1vPqPsQp7YDLYVpGWBXu4V8RFaryNlsDoahPDqkgG4+b26fsCSZyLSZNRsnPrE0BzlZACU+Y+11CIa82g==
   dependencies:
     js-logger "^1.6.1"
+
+"@powersync/kysely-driver@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@powersync/kysely-driver/-/kysely-driver-0.3.0.tgz#13630b1c5ec3c5ef1580dcb8ba555dd10c7aaa87"
+  integrity sha512-/dpX6oVspnuXXsBDm56mjNJnDuB90dYHehrXmnGUaGYLt3NsDsLDp4UkgfZy5ahDPBmALm6r0w0H2fqWNZ0ByA==
+  dependencies:
+    kysely "^0.27.2"
 
 "@powersync/react@^1.4.0":
   version "1.4.0"
@@ -2110,6 +2122,11 @@ keyv@^4.5.3:
   dependencies:
     json-buffer "3.0.1"
 
+kysely@^0.27.2:
+  version "0.27.4"
+  resolved "https://registry.yarnpkg.com/kysely/-/kysely-0.27.4.tgz#96a0285467b380948b4de03b20d87e82d797449b"
+  integrity sha512-dyNKv2KRvYOQPLCAOCjjQuCk4YFd33BvGdf/o5bC7FiW+BB6snA81Zt+2wT9QDFzKqxKa5rrOmvlK/anehCcgA==
+
 language-subtag-registry@^0.3.20:
   version "0.3.23"
   resolved "https://registry.yarnpkg.com/language-subtag-registry/-/language-subtag-registry-0.3.23.tgz#23529e04d9e3b74679d70142df3fd2eb6ec572e7"
@@ -3127,6 +3144,13 @@ typescript@^5:
   version "5.5.4"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.5.4.tgz#d9852d6c82bad2d2eda4fd74a5762a8f5909e9ba"
   integrity sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q==
+
+uid@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/uid/-/uid-2.0.2.tgz#4b5782abf0f2feeefc00fa88006b2b3b7af3e3b9"
+  integrity sha512-u3xV3X7uzvi5b1MncmZo3i2Aw222Zk1keqLA1YkHldREkAhAqi65wuPfe7lHx8H/Wzy+8CE7S7uS3jekIM5s8g==
+  dependencies:
+    "@lukeed/csprng" "^1.0.0"
 
 unbox-primitive@^1.0.2:
   version "1.0.2"
