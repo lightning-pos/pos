@@ -6,14 +6,24 @@ import {
 import { Switcher as SwitcherIcon } from '@carbon/icons-react'
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [isSideNavExpanded, setIsSideNavExpanded] = useState(false)
   const router = useRouter()
+  const [isSideNavExpanded, setIsSideNavExpanded] = useState(false)
+
+  useHotkeys('f1', () => {
+    setIsSideNavExpanded(false)
+    router.push('/dash/pos')
+  })
+
+  useHotkeys('esc', () => {
+    setIsSideNavExpanded(false)
+  })
 
   return (
     <Theme theme='g90'>
