@@ -1,13 +1,9 @@
 'use client'
 import { db } from '@/components/providers/system_provider'
 import { Content } from '@carbon/react'
-import { useQuery } from '@powersync/react'
 import { use } from 'react'
-import { uid } from 'uid'
 
 const POS = () => {
-  // use(db.insertInto('item_categories').values({ id: uid(), name: 'Steamed - ' + uid() }).execute())
-  // use(db.deleteFrom('item_categories').execute())
   const categories = use(db.selectFrom('item_categories').selectAll().execute())
 
   return (

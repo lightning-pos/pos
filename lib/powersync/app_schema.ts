@@ -3,6 +3,7 @@ import { column, Schema, TableV2 } from "@powersync/web";
 const item_categories = new TableV2({
   name: column.text,
   description: column.text,
+  status: column.text,
 });
 
 const items = new TableV2({
@@ -23,5 +24,5 @@ export const AppSchema = new Schema({
 });
 
 export type Database = (typeof AppSchema)["types"];
-export type Categories = Database["item_categories"];
-export type Items = Database["items"];
+export type Category = Database["item_categories"];
+export type Item = Database["items"];
