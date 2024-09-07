@@ -12,6 +12,7 @@ const items = new TableV2({
   code: column.text,
   sku: column.text,
   nature: column.text,
+  price: column.integer,
   uom: column.text,
   mrp: column.integer,
   price_includes_tax: column.integer,
