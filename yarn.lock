@@ -82,6 +82,15 @@
   dependencies:
     "@ibm/telemetry-js" "^1.5.0"
 
+"@carbon/pictograms-react@^11.65.0":
+  version "11.65.0"
+  resolved "https://registry.yarnpkg.com/@carbon/pictograms-react/-/pictograms-react-11.65.0.tgz#c8ca4378869b5a3de1e1af57975a2d61c70785cf"
+  integrity sha512-DkM95WBNrn0zxOMNAuo5dLg7JAwldHH8thx0LAEq19JZCe5Plrjv3ooBA+WMMOFYE/TeO6ba3o1xNxLs/o0NYQ==
+  dependencies:
+    "@carbon/icon-helpers" "^10.51.0"
+    "@ibm/telemetry-js" "^1.5.0"
+    prop-types "^15.7.2"
+
 "@carbon/react@^1.63.1":
   version "1.64.1"
   resolved "https://registry.yarnpkg.com/@carbon/react/-/react-1.64.1.tgz#b0bb29498d1be1990466cd54e8e058227b3d824c"
