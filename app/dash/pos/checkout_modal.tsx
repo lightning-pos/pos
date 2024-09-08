@@ -57,7 +57,20 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, cart, on
       total_amount: totalAmount,
       payment_method: paymentMethod,
       created_at: new Date().getTime(),
+      status: 'completed',
     }).execute();
+
+    // Insert order items
+    const orderItems = cart.map(item => ({
+      id: uid(), // Add a unique id for each order item
+      order_id: orderId,
+      item_id: item.id,
+      item_name: item.name, // Add this line
+      quantity: item.quantity,
+      price: item.price || 0,
+    }));
+
+    await db.insertInto('order_items').values(orderItems).execute();
 
     console.log('Order created:', { id: orderId, cart, payments });
     onCheckoutComplete();

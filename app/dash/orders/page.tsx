@@ -3,30 +3,53 @@ import { Receipt } from '@carbon/icons-react'
 import { Content, SideNav, SideNavItems, SideNavLink, DataTable, TableContainer, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination } from '@carbon/react'
 import React, { useEffect, useState } from 'react'
 import { db } from '@/components/providers/system_provider'
-import { Order } from '@/lib/powersync/app_schema'
+import { Order, OrderItem } from '@/lib/powersync/app_schema'
+import OrderDetailsModal from './order_details_modal'
 
 const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([])
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      const result = await db
-        .selectFrom('orders')
-        .selectAll()
-        .orderBy('created_at', 'desc')
-        .execute()
-      setOrders(result)
-    }
     fetchOrders()
   }, [])
+
+  const fetchOrders = async () => {
+    const result = await db
+      .selectFrom('orders')
+      .selectAll()
+      .orderBy('created_at', 'desc')
+      .execute()
+    setOrders(result)
+  }
+
+  const handleOrderClick = async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId)
+    if (order) {
+      setSelectedOrder(order)
+      const items = await db.selectFrom('order_items')
+        .selectAll()
+        .where('order_id', '=', order.id)
+        .execute()
+      setOrderItems(items)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setSelectedOrder(null)
+    setOrderItems([])
+    fetchOrders() // Refresh the order list to reflect any changes
+  }
 
   const headers = [
     { key: 'id', header: 'Order ID' },
     { key: 'total_amount', header: 'Total Amount' },
     { key: 'payment_method', header: 'Payment Method' },
     { key: 'created_at', header: 'Created At' },
+    { key: 'status', header: 'Status' },
   ]
 
   const rows = orders.map(order => ({
@@ -34,6 +57,7 @@ const Orders = () => {
     total_amount: `Rs. ${(order.total_amount ?? 0).toFixed(2)}`,
     payment_method: order.payment_method,
     created_at: new Date(order.created_at ?? 0).toLocaleString(),
+    status: order.status,
   }))
 
   const paginatedRows = rows.slice((page - 1) * pageSize, page * pageSize)
@@ -55,7 +79,7 @@ const Orders = () => {
                   <TableHead>
                     <TableRow>
                       {headers.map((header) => (
-                        <TableHeader {...getHeaderProps({ header })}>
+                        <TableHeader key={header.key} {...getHeaderProps({ header })}>
                           {header.header}
                         </TableHeader>
                       ))}
@@ -63,7 +87,7 @@ const Orders = () => {
                   </TableHead>
                   <TableBody>
                     {rows.map((row) => (
-                      <TableRow {...getRowProps({ row })}>
+                      <TableRow key={row.id} {...getRowProps({ row })} onClick={() => handleOrderClick(row.id as string)}>
                         {row.cells.map((cell) => (
                           <TableCell key={cell.id}>{cell.value}</TableCell>
                         ))}
@@ -90,6 +114,15 @@ const Orders = () => {
           />
         </div>
       </Content>
+
+      {selectedOrder && (
+        <OrderDetailsModal
+          isOpen={!!selectedOrder}
+          onClose={handleCloseModal}
+          order={selectedOrder}
+          orderItems={orderItems}
+        />
+      )}
     </>
   )
 }

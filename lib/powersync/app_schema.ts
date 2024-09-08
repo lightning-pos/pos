@@ -24,15 +24,27 @@ const orders = new TableV2({
   total_amount: column.integer,
   payment_method: column.text,
   created_at: column.integer,
+  status: column.text, // Add this line
+});
+
+const order_items = new TableV2({
+  id: column.text, // Add this line
+  order_id: column.text,
+  item_id: column.text,
+  item_name: column.text,
+  quantity: column.integer,
+  price: column.integer,
 });
 
 export const AppSchema = new Schema({
   item_categories,
   items,
-  orders
+  orders,
+  order_items, // Add this line
 });
 
 export type Database = (typeof AppSchema)["types"];
 export type Category = Database["item_categories"];
 export type Item = Database["items"];
 export type Order = Database["orders"];
+export type OrderItem = Database["order_items"]; // Add this line
