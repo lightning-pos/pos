@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
-  Modal,
-  NumberInput,
-  Tile,
-  Grid,
-  Column,
-  DismissibleTag,
-} from '@carbon/react'
+import { Modal, NumberInput, Button } from '@carbon/react'
 import { CartItem } from './cart_section'
 import { db } from '@/components/providers/system_provider'
 import { uid } from 'uid'
@@ -16,126 +9,97 @@ interface CheckoutModalProps {
   onClose: () => void
   cart: CartItem[]
   onCheckoutComplete: () => void
+  subtotal: number
+  tax: number
+  total: number
 }
 
-const paymentMethods = ['Cash', 'UPI', 'Card']
+interface PaymentMethod {
+  method: string
+  amount: number
+}
 
-const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, cart, onCheckoutComplete }) => {
-  const [payments, setPayments] = useState<{ [method: string]: number }>({})
+const paymentMethods = ['Cash', 'Card', 'UPI']
 
-  // Reset payments when the modal is opened
+const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, cart, onCheckoutComplete, subtotal, tax, total }) => {
+  const [payments, setPayments] = useState<PaymentMethod[]>(paymentMethods.map(method => ({ method, amount: 0 })))
+
   useEffect(() => {
     if (isOpen) {
-      setPayments({})
+      setPayments(paymentMethods.map(method => ({ method, amount: method === 'Cash' ? total : 0 })))
     }
-  }, [isOpen])
+  }, [isOpen, total])
 
-  const totalAmount = cart.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0)
-  const remainingAmount = totalAmount - Object.values(payments).reduce((sum, amount) => sum + amount, 0)
+  const remainingAmount = total - payments.reduce((sum, payment) => sum + payment.amount, 0)
 
-  const updatePayment = (method: string, amount: number) => {
-    if (amount > 0 && amount <= totalAmount) {
-      setPayments(prevPayments => ({
-        ...prevPayments,
-        [method]: amount
-      }))
-    } else if (amount === 0) {
-      setPayments(prevPayments => {
-        const { [method]: _, ...rest } = prevPayments
-        return rest
-      })
-    }
+  const handlePaymentChange = (method: string, amount: number) => {
+    setPayments(prevPayments =>
+      prevPayments.map(payment =>
+        payment.method === method ? { ...payment, amount } : payment
+      )
+    )
   }
 
   const handleCheckout = async () => {
-    const orderId = uid();
-    const totalAmount = cart.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
-    const paymentMethod = Object.keys(payments).join(', ');
+    try {
+      const orderId = uid()
+      await db.insertInto('orders').values({
+        id: orderId,
+        total_amount: total,
+        payment_method: JSON.stringify(payments.filter(p => p.amount > 0)),
+        created_at: Date.now(),
+        status: 'completed',
+        subtotal: subtotal,
+        tax: tax,
+      }).execute()
 
-    await db.insertInto('orders').values({
-      id: orderId,
-      total_amount: totalAmount,
-      payment_method: paymentMethod,
-      created_at: new Date().getTime(),
-      status: 'completed',
-    }).execute();
+      for (const item of cart) {
+        await db.insertInto('order_items').values({
+          id: uid(),
+          order_id: orderId,
+          item_id: item.id,
+          item_name: item.name,
+          quantity: item.quantity,
+          price: item.price || 0,
+          tax: item.taxes?.reduce((sum, tax) => sum + (item.price || 0) * item.quantity * (tax.rate / 100), 0) || 0,
+        }).execute()
+      }
 
-    // Insert order items
-    const orderItems = cart.map(item => ({
-      id: uid(), // Add a unique id for each order item
-      order_id: orderId,
-      item_id: item.id,
-      item_name: item.name, // Add this line
-      quantity: item.quantity,
-      price: item.price || 0,
-    }));
-
-    await db.insertInto('order_items').values(orderItems).execute();
-
-    console.log('Order created:', { id: orderId, cart, payments });
-    onCheckoutComplete();
-    onClose();
+      onCheckoutComplete()
+    } catch (error) {
+      console.error('Error during checkout:', error)
+    }
   }
 
   return (
     <Modal
-      modalHeading="Checkout"
       open={isOpen}
-      size="md"
-      primaryButtonText="Complete Checkout"
-      primaryButtonDisabled={remainingAmount > 0}
-      onRequestSubmit={handleCheckout}
       onRequestClose={onClose}
+      modalHeading="Checkout"
+      primaryButtonText="Complete Order"
       secondaryButtonText="Cancel"
-      onSecondarySubmit={onClose}
+      onRequestSubmit={handleCheckout}
+      primaryButtonDisabled={remainingAmount > 0}
     >
       <div className="mb-4">
-        <h3 className="text-md font-bold mb-2">Order Summary</h3>
-        {cart.map((item) => (
-          <div key={item.id} className="flex justify-between">
-            <span>{item.name} x {item.quantity}</span>
-            <span>Rs. {((item.price || 0) * item.quantity).toFixed(2)}</span>
-          </div>
-        ))}
-        <div className="flex justify-between font-bold mt-2">
-          <span>Total:</span>
-          <span>Rs. {totalAmount.toFixed(2)}</span>
-        </div>
+        <p>Subtotal: Rs. {subtotal.toFixed(2)}</p>
+        <p>Tax: Rs. {tax.toFixed(2)}</p>
+        <p className="font-bold">Total: Rs. {total.toFixed(2)}</p>
+        <p className="mt-2">Remaining: Rs. {remainingAmount.toFixed(2)}</p>
       </div>
-
-      <div className="mb-4">
-        <h3 className="text-lg font-bold mb-2">Payments</h3>
-        <Grid className="mb-2">
-          {paymentMethods.map((method) => (
-            <Column key={method}>
-              <Tile>
-                <h4>{method}</h4>
-                <NumberInput
-                  id={`payment-amount-${method}`}
-                  label="Amount"
-                  value={payments[method] || 0}
-                  onChange={(e, { value }) => updatePayment(method, Number(value))}
-                  min={0}
-                  max={remainingAmount + (payments[method] || 0)}
-                />
-              </Tile>
-            </Column>
-          ))}
-        </Grid>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(payments).map(([method, amount]) => (
-            <DismissibleTag
-              key={method}
-              type="blue"
-              onClose={() => updatePayment(method, 0)}
-              title={'Remove Payment'}
-              text={`${method}: Rs. ${amount.toFixed(2)}`}
-            />
-          ))}
-        </div>
-        <div className="font-bold mt-4">
-          Remaining: Rs. {remainingAmount.toFixed(2)}
-        </div>
+      <div className="flex flex-col gap-4">
+        {payments.map((payment) => (
+          <NumberInput
+            key={payment.method}
+            id={`payment-${payment.method.toLowerCase()}`}
+            label={payment.method}
+            value={payment.amount}
+            onChange={(e) => handlePaymentChange(payment.method, Number((e.target as HTMLInputElement).value))}
+            step={0.01}
+            min={0}
+            max={total}
+          />
+        ))}
       </div>
     </Modal>
   )

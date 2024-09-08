@@ -6,6 +6,11 @@ import { db } from '@/components/providers/system_provider'
 import { Order, OrderItem } from '@/lib/powersync/app_schema'
 import OrderDetailsModal from './order_details_modal'
 
+interface PaymentMethod {
+  method: string;
+  amount: number;
+}
+
 const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([])
   const [page, setPage] = useState(1)
@@ -44,6 +49,19 @@ const Orders = () => {
     fetchOrders() // Refresh the order list to reflect any changes
   }
 
+  const formatPaymentMethods = (paymentMethodJson: string): string => {
+    try {
+      const paymentMethods: PaymentMethod[] = JSON.parse(paymentMethodJson);
+      return paymentMethods
+        .filter(pm => pm.amount > 0)
+        .map(pm => `${pm.method} (Rs. ${pm.amount.toFixed(2)})`)
+        .join(', ');
+    } catch (error) {
+      console.error('Error parsing payment method JSON:', error);
+      return paymentMethodJson; // Return the original string if parsing fails
+    }
+  }
+
   const headers = [
     { key: 'id', header: 'Order ID' },
     { key: 'total_amount', header: 'Total Amount' },
@@ -55,7 +73,7 @@ const Orders = () => {
   const rows = orders.map(order => ({
     id: order.id,
     total_amount: `Rs. ${(order.total_amount ?? 0).toFixed(2)}`,
-    payment_method: order.payment_method,
+    payment_method: formatPaymentMethods(order.payment_method || ''),
     created_at: new Date(order.created_at ?? 0).toLocaleString(),
     status: order.status,
   }))

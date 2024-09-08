@@ -25,16 +25,19 @@ const orders = new TableV2({
   total_amount: column.integer,
   payment_method: column.text,
   created_at: column.integer,
-  status: column.text, // Add this line
+  status: column.text,
+  subtotal: column.integer,
+  tax: column.integer,
 });
 
 const order_items = new TableV2({
-  id: column.text, // Add this line
+  id: column.text,
   order_id: column.text,
   item_id: column.text,
   item_name: column.text,
   quantity: column.integer,
   price: column.integer,
+  tax: column.integer,
 });
 
 const taxes = new TableV2({

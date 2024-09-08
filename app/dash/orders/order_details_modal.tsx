@@ -3,6 +3,11 @@ import { Modal, Button } from '@carbon/react';
 import { db } from '@/components/providers/system_provider';
 import { Order, OrderItem } from '@/lib/powersync/app_schema';
 
+interface PaymentMethod {
+  method: string;
+  amount: number;
+}
+
 interface OrderDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,6 +16,19 @@ interface OrderDetailsModalProps {
 }
 
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, onClose, order, orderItems }) => {
+  const formatPaymentMethods = (paymentMethodJson: string): string => {
+    try {
+      const paymentMethods: PaymentMethod[] = JSON.parse(paymentMethodJson);
+      return paymentMethods
+        .filter(pm => pm.amount > 0)
+        .map(pm => `${pm.method}: Rs. ${pm.amount.toFixed(2)}`)
+        .join(', ');
+    } catch (error) {
+      console.error('Error parsing payment method JSON:', error);
+      return paymentMethodJson;
+    }
+  };
+
   const handleCancelOrder = async () => {
     await db.updateTable('orders')
       .set({ status: 'cancelled' })
@@ -30,7 +48,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, onClose, 
         <h3 className="text-md font-bold mb-2">Order Summary</h3>
         <p>Order ID: {order.id}</p>
         <p>Total Amount: Rs. {(order.total_amount ?? 0).toFixed(2)}</p>
-        <p>Payment Method: {order.payment_method}</p>
+        <p>Payment Method: {formatPaymentMethods(order.payment_method || '')}</p>
         <p>Status: {order.status}</p>
         <p>Created At: {new Date(order.created_at ?? 0).toLocaleString()}</p>
       </div>
