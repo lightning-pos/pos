@@ -36,11 +36,19 @@ const order_items = new TableV2({
   price: column.integer,
 });
 
+const taxes = new TableV2({
+  id: column.text,
+  name: column.text,
+  rate: column.integer,
+  description: column.text,
+});
+
 export const AppSchema = new Schema({
   item_categories,
   items,
   orders,
   order_items, // Add this line
+  taxes,
 });
 
 export type Database = (typeof AppSchema)["types"];
@@ -48,3 +56,10 @@ export type Category = Database["item_categories"];
 export type Item = Database["items"];
 export type Order = Database["orders"];
 export type OrderItem = Database["order_items"]; // Add this line
+
+export interface Tax {
+  id: string;
+  name: string;
+  rate: number;
+  description: string;
+}
