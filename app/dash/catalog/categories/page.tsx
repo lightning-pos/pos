@@ -60,7 +60,7 @@ const Categories = () => {
           .where('id', '=', editingCategory.id)
           .execute()
       } else {
-        await db.insertInto('item_categories').values({ id: uid(), ...editingCategory }).execute()
+        await db.insertInto('item_categories').values({ ...editingCategory, id: uid() }).execute()
       }
       setIsModalOpen(false)
       setEditingCategory(null)
@@ -99,7 +99,7 @@ const Categories = () => {
                 <Button
                   renderIcon={Add}
                   onClick={() => {
-                    setEditingCategory({ name: '', description: '' })
+                    setEditingCategory({ id: '', name: '', description: '', status: 'active' })
                     setIsModalOpen(true)
                   }}
                 >

@@ -79,7 +79,10 @@ const Orders = () => {
                   <TableHead>
                     <TableRow>
                       {headers.map((header) => (
-                        <TableHeader key={header.key} {...getHeaderProps({ header })}>
+                        <TableHeader
+                          {...getHeaderProps({ header })}
+                          key={header.key}
+                          onClick={(e: React.MouseEvent) => getHeaderProps({ header }).onClick(e as any)}>
                           {header.header}
                         </TableHeader>
                       ))}
@@ -87,7 +90,7 @@ const Orders = () => {
                   </TableHead>
                   <TableBody>
                     {rows.map((row) => (
-                      <TableRow key={row.id} {...getRowProps({ row })} onClick={() => handleOrderClick(row.id as string)}>
+                      <TableRow {...getRowProps({ row })} key={row.id} onClick={() => handleOrderClick(row.id as string)}>
                         {row.cells.map((cell) => (
                           <TableCell key={cell.id}>{cell.value}</TableCell>
                         ))}
