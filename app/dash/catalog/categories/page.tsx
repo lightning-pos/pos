@@ -1,6 +1,6 @@
 'use client'
-import React, { useState, useEffect } from 'react'
-import { Add, Delete, Edit } from '@carbon/icons-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Add } from '@carbon/icons-react'
 import { Content, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination, DataTableSkeleton, Button, Modal, TextInput, Form, TableToolbar, TableToolbarContent, TableContainer, TextArea, OverflowMenu, OverflowMenuItem } from '@carbon/react'
 import { db } from '@/components/providers/system_provider'
 import { Category as CategorySchema } from '@/lib/powersync/app_schema'
@@ -12,7 +12,8 @@ const Categories = () => {
   const [categories, setCategories] = useState<CategorySchema[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [newCategory, setNewCategory] = useState({ name: '', description: '' })
+  const [editingCategory, setEditingCategory] = useState<CategorySchema | null>(null)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -40,19 +41,48 @@ const Categories = () => {
   const endIndex = startIndex + pageSize
   const paginatedCategories = categories.slice(startIndex, endIndex)
 
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const fetchCategories = useCallback(async () => {
     try {
-      await db.insertInto('item_categories').values({ id: uid(), ...newCategory }).execute()
-      setIsModalOpen(false)
-      setNewCategory({ name: '', description: '' })
-      // Refetch categories
       const result: CategorySchema[] = await db.selectFrom('item_categories').selectAll().execute()
       setCategories(result)
     } catch (error) {
-      console.error('Error adding category:', error)
+      console.error('Error fetching categories:', error)
     }
-  }
+  }, [])
+
+  const handleSaveCategory = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingCategory) return
+    try {
+      if (editingCategory.id) {
+        await db.updateTable('item_categories')
+          .set({ name: editingCategory.name, description: editingCategory.description })
+          .where('id', '=', editingCategory.id)
+          .execute()
+      } else {
+        await db.insertInto('item_categories').values({ id: uid(), ...editingCategory }).execute()
+      }
+      setIsModalOpen(false)
+      setEditingCategory(null)
+      fetchCategories()
+    } catch (error) {
+      console.error('Error saving category:', error)
+    }
+  }, [editingCategory, fetchCategories])
+
+  const handleDeleteCategory = useCallback(async () => {
+    if (!editingCategory?.id) return
+    try {
+      await db.deleteFrom('item_categories')
+        .where('id', '=', editingCategory.id)
+        .execute()
+      setIsDeleteModalOpen(false)
+      setEditingCategory(null)
+      fetchCategories()
+    } catch (error) {
+      console.error('Error deleting category:', error)
+    }
+  }, [editingCategory, fetchCategories])
 
   return (
     <Content className='min-h-[calc(100dvh-3rem)] p-0 flex flex-col'>
@@ -66,43 +96,61 @@ const Categories = () => {
           >
             <TableToolbar>
               <TableToolbarContent>
-                <Button renderIcon={Add} onClick={() => setIsModalOpen(true)}>Add Category</Button>
+                <Button
+                  renderIcon={Add}
+                  onClick={() => {
+                    setEditingCategory({ name: '', description: '' })
+                    setIsModalOpen(true)
+                  }}
+                >
+                  Add Category
+                </Button>
               </TableToolbarContent>
             </TableToolbar>
             <DataTable rows={paginatedCategories} headers={headers}>
-              {({ rows, headers, getTableProps }) => {
-                return (
-                  <Table {...getTableProps()}>
-                    <TableHead>
-                      <TableRow>
-                        {headers.map((header) => (
-                          <TableHeader key={header.key}>
-                            {header.header}
-                          </TableHeader>
-                        ))}
-                        <TableHeader key="actions" style={{ width: '8rem' }}>
-                          Actions
-                        </TableHeader>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rows.map((row) => (
-                        <TableRow key={row.id}>
-                          {row.cells.map((cell) => (
-                            <TableCell key={cell.id}>{cell.value}</TableCell>
-                          ))}
-                          <TableCell>
-                            <OverflowMenu label="Actions">
-                              <OverflowMenuItem itemText="Edit" />
-                              <OverflowMenuItem itemText="Delete" hasDivider isDelete />
-                            </OverflowMenu>
-                          </TableCell>
-                        </TableRow>
+              {({ rows, headers, getTableProps }) => (
+                <Table {...getTableProps()}>
+                  <TableHead>
+                    <TableRow>
+                      {headers.map((header) => (
+                        <TableHeader key={header.key}>{header.header}</TableHeader>
                       ))}
-                    </TableBody>
-                  </Table>
-                );
-              }}
+                      <TableHeader key="actions" style={{ width: '8rem' }}>Actions</TableHeader>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.cells.map((cell) => (
+                          <TableCell key={cell.id}>{cell.value}</TableCell>
+                        ))}
+                        <TableCell>
+                          <OverflowMenu label="Actions">
+                            <OverflowMenuItem
+                              itemText="Edit"
+                              onClick={() => {
+                                const category = categories.find(c => c.id === row.id)
+                                setEditingCategory(category || null)
+                                setIsModalOpen(true)
+                              }}
+                            />
+                            <OverflowMenuItem
+                              itemText="Delete"
+                              hasDivider
+                              isDelete
+                              onClick={() => {
+                                const category = categories.find(c => c.id === row.id)
+                                setEditingCategory(category || null)
+                                setIsDeleteModalOpen(true)
+                              }}
+                            />
+                          </OverflowMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </DataTable>
             <Pagination
               totalItems={categories.length}
@@ -122,26 +170,44 @@ const Categories = () => {
 
       <Modal
         open={isModalOpen}
-        onRequestClose={() => setIsModalOpen(false)}
-        modalHeading="Add New Category"
-        primaryButtonText="Add"
-        onRequestSubmit={handleAddCategory}
+        onRequestClose={() => {
+          setIsModalOpen(false)
+          setEditingCategory(null)
+        }}
+        modalHeading={editingCategory?.id ? "Edit Category" : "Add New Category"}
+        primaryButtonText="Save"
+        onRequestSubmit={handleSaveCategory}
       >
-        <Form onSubmit={handleAddCategory} className='flex flex-col gap-4'>
+        <Form onSubmit={handleSaveCategory} className='flex flex-col gap-4'>
           <TextInput
             id="category-name"
             labelText="Category Name"
-            value={newCategory.name}
-            onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+            value={editingCategory?.name || ''}
+            onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
             required
           />
           <TextArea
             id="category-description"
             labelText="Description"
-            value={newCategory.description}
-            onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+            value={editingCategory?.description || ''}
+            onChange={(e) => setEditingCategory(prev => prev ? { ...prev, description: e.target.value } : null)}
           />
         </Form>
+      </Modal>
+
+      <Modal
+        open={isDeleteModalOpen}
+        onRequestClose={() => {
+          setIsDeleteModalOpen(false)
+          setEditingCategory(null)
+        }}
+        modalHeading="Delete Category"
+        primaryButtonText="Delete"
+        secondaryButtonText="Cancel"
+        danger
+        onRequestSubmit={handleDeleteCategory}
+      >
+        <p>Are you sure you want to delete the category &quot;{editingCategory?.name}&quot;? This action cannot be undone.</p>
       </Modal>
     </Content>
   )
