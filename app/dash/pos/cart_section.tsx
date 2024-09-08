@@ -43,7 +43,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
   const calculateItemTax = (item: CartItem) => {
     if (!item.tax_ids) return 0
     const itemTaxes = taxes.filter(tax => item.tax_ids?.includes(tax.id))
-    return itemTaxes.reduce((sum, tax) => sum + (item.price || 0) * item.quantity * (tax.rate ?? 0 / 100), 0)
+    return itemTaxes.reduce((sum, tax) => sum + (item.price || 0) * item.quantity * ((tax.rate || 0) / 100), 0)
   }
 
   const calculateTotalTax = () => {
