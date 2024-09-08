@@ -16,7 +16,8 @@ const items = new TableV2({
   uom: column.text,
   mrp: column.integer,
   price_includes_tax: column.integer,
-  item_category_id: column.text
+  item_category_id: column.text,
+  tax_ids: column.text, // Changed from json to text
 });
 
 const orders = new TableV2({
@@ -56,10 +57,4 @@ export type Category = Database["item_categories"];
 export type Item = Database["items"];
 export type Order = Database["orders"];
 export type OrderItem = Database["order_items"]; // Add this line
-
-export interface Tax {
-  id: string;
-  name: string;
-  rate: number;
-  description: string;
-}
+export type Tax = Database["taxes"];

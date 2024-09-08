@@ -3,13 +3,13 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Add } from '@carbon/icons-react'
 import { Content, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination, DataTableSkeleton, Button, Modal, TextInput, Form, TableToolbar, TableToolbarContent, TableContainer, OverflowMenu, OverflowMenuItem } from '@carbon/react'
 import { db } from '@/components/providers/system_provider'
-import { Tax as TaxSchema } from '@/lib/powersync/app_schema'
+import { Tax, Tax as TaxSchema } from '@/lib/powersync/app_schema'
 import { uid } from 'uid'
 
 const Taxes = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [taxes, setTaxes] = useState<TaxSchema[]>([])
+  const [taxes, setTaxes] = useState<Tax[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTax, setEditingTax] = useState<TaxSchema | null>(null)

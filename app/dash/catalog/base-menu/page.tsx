@@ -1,9 +1,9 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
-import { Add } from '@carbon/icons-react'
-import { Content, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination, DataTableSkeleton, Button, Modal, TextInput, Form, TableToolbar, TableToolbarContent, TableContainer, TextArea, OverflowMenu, OverflowMenuItem, Select, SelectItem, NumberInput } from '@carbon/react'
+import { Add, Label } from '@carbon/icons-react'
+import { Content, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination, DataTableSkeleton, Button, Modal, TextInput, Form, TableToolbar, TableToolbarContent, TableContainer, TextArea, OverflowMenu, OverflowMenuItem, Select, SelectItem, NumberInput, MultiSelect } from '@carbon/react'
 import { db } from '@/components/providers/system_provider'
-import { Item as ItemSchema, Category as CategorySchema } from '@/lib/powersync/app_schema'
+import { Item as ItemSchema, Category as CategorySchema, Tax as TaxSchema } from '@/lib/powersync/app_schema'
 import { uid } from 'uid'
 
 const BaseMenu = () => {
@@ -15,6 +15,7 @@ const BaseMenu = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<Partial<ItemSchema> | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [taxes, setTaxes] = useState<TaxSchema[]>([])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -23,6 +24,9 @@ const BaseMenu = () => {
       setItems(itemsResult)
       const categoriesResult: CategorySchema[] = await db.selectFrom('item_categories').selectAll().execute()
       setCategories(categoriesResult)
+      const taxesResult: TaxSchema[] = await db.selectFrom('taxes').selectAll().execute()
+      console.log(taxesResult)
+      setTaxes(taxesResult)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -39,26 +43,32 @@ const BaseMenu = () => {
     { key: 'description', header: 'Description' },
     { key: 'price', header: 'Price' },
     { key: 'category', header: 'Category' },
+    { key: 'taxes', header: 'Taxes' },
   ]
 
   const startIndex = (currentPage - 1) * pageSize
   const endIndex = startIndex + pageSize
   const paginatedItems = items.slice(startIndex, endIndex).map(item => ({
     ...item,
-    category: categories.find(cat => cat.id === item.item_category_id)?.name || 'Unknown'
+    category: categories.find(cat => cat.id === item.item_category_id)?.name || 'Unknown',
+    taxes: item.tax_ids ? taxes.filter(tax => item.tax_ids?.split(',').includes(tax.id)).map(tax => tax.name).join(', ') : ''
   }))
 
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingItem) return
     try {
-      if (editingItem.id) {
+      const itemData = {
+        ...editingItem,
+        tax_ids: Array.isArray(editingItem.tax_ids) ? editingItem.tax_ids.join(',') : editingItem.tax_ids || ''
+      }
+      if (itemData.id) {
         await db.updateTable('items')
-          .set(editingItem)
-          .where('id', '=', editingItem.id)
+          .set(itemData)
+          .where('id', '=', itemData.id)
           .execute()
       } else {
-        await db.insertInto('items').values({ ...editingItem, id: uid() }).execute()
+        await db.insertInto('items').values({ ...itemData, id: uid() }).execute()
       }
       setIsModalOpen(false)
       setEditingItem(null)
@@ -97,7 +107,7 @@ const BaseMenu = () => {
                 <Button
                   renderIcon={Add}
                   onClick={() => {
-                    setEditingItem({ name: '', description: '', price: 0, item_category_id: '' })
+                    setEditingItem({ name: '', description: '', price: 0, item_category_id: '', tax_ids: '' }) // Changed tax_ids to empty string
                     setIsModalOpen(true)
                   }}
                 >
@@ -210,6 +220,24 @@ const BaseMenu = () => {
               <SelectItem key={category.id} value={category.id} text={category.name || ''} />
             ))}
           </Select>
+          <MultiSelect
+            id="item-taxes"
+            titleText="Taxes"
+            label="Select taxes"
+            items={taxes.map(tax => ({ id: tax.id, label: `${tax.name} (${tax.rate}%)` }))}
+            selectedItems={
+              editingItem?.tax_ids
+                ? editingItem.tax_ids.split(',').map(id => ({
+                  id,
+                  label: taxes.find(tax => tax.id === id)?.name || ''
+                }))
+                : []
+            }
+            onChange={(e) => {
+              const selectedTaxIds = e.selectedItems?.map(item => item.id).join(',') || ''
+              setEditingItem(prev => prev ? { ...prev, tax_ids: selectedTaxIds } : null)
+            }}
+          />
         </Form>
       </Modal>
 
