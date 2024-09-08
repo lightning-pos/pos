@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Add } from '@carbon/icons-react'
 import { Content, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination, DataTableSkeleton, Button, Modal, TextInput, Form, TableToolbar, TableToolbarContent, TableContainer, TextArea, OverflowMenu, OverflowMenuItem, Select, SelectItem, NumberInput } from '@carbon/react'
 import { db } from '@/components/providers/system_provider'
@@ -13,25 +13,26 @@ const BaseMenu = () => {
   const [categories, setCategories] = useState<CategorySchema[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [newItem, setNewItem] = useState({ name: '', description: '', price: 0, item_category_id: '' })
+  const [editingItem, setEditingItem] = useState<Partial<ItemSchema> | null>(null)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const itemsResult: ItemSchema[] = await db.selectFrom('items').selectAll().execute()
+      setItems(itemsResult)
+      const categoriesResult: CategorySchema[] = await db.selectFrom('item_categories').selectAll().execute()
+      setCategories(categoriesResult)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        const itemsResult: ItemSchema[] = await db.selectFrom('items').selectAll().execute()
-        setItems(itemsResult)
-        const categoriesResult: CategorySchema[] = await db.selectFrom('item_categories').selectAll().execute()
-        setCategories(categoriesResult)
-      } catch (error) {
-        console.error('Error fetching data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchData()
-  }, [])
+  }, [fetchData])
 
   const headers = [
     { key: 'name', header: 'Name' },
@@ -47,17 +48,37 @@ const BaseMenu = () => {
     category: categories.find(cat => cat.id === item.item_category_id)?.name || 'Unknown'
   }))
 
-  const handleAddItem = async (e: React.FormEvent) => {
+  const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!editingItem) return
     try {
-      await db.insertInto('items').values({ id: uid(), ...newItem }).execute()
+      if (editingItem.id) {
+        await db.updateTable('items')
+          .set(editingItem)
+          .where('id', '=', editingItem.id)
+          .execute()
+      } else {
+        await db.insertInto('items').values({ ...editingItem, id: uid() }).execute()
+      }
       setIsModalOpen(false)
-      setNewItem({ name: '', description: '', price: 0, item_category_id: '' })
-      // Refetch items
-      const result: ItemSchema[] = await db.selectFrom('items').selectAll().execute()
-      setItems(result)
+      setEditingItem(null)
+      fetchData()
     } catch (error) {
-      console.error('Error adding item:', error)
+      console.error('Error saving item:', error)
+    }
+  }
+
+  const handleDeleteItem = async () => {
+    if (!editingItem?.id) return
+    try {
+      await db.deleteFrom('items')
+        .where('id', '=', editingItem.id)
+        .execute()
+      setIsDeleteModalOpen(false)
+      setEditingItem(null)
+      fetchData()
+    } catch (error) {
+      console.error('Error deleting item:', error)
     }
   }
 
@@ -73,7 +94,15 @@ const BaseMenu = () => {
           >
             <TableToolbar>
               <TableToolbarContent>
-                <Button renderIcon={Add} onClick={() => setIsModalOpen(true)}>Add Item</Button>
+                <Button
+                  renderIcon={Add}
+                  onClick={() => {
+                    setEditingItem({ name: '', description: '', price: 0, item_category_id: '' })
+                    setIsModalOpen(true)
+                  }}
+                >
+                  Add Item
+                </Button>
               </TableToolbarContent>
             </TableToolbar>
             <DataTable rows={paginatedItems} headers={headers}>
@@ -95,8 +124,24 @@ const BaseMenu = () => {
                         ))}
                         <TableCell>
                           <OverflowMenu label="Actions">
-                            <OverflowMenuItem itemText="Edit" />
-                            <OverflowMenuItem itemText="Delete" hasDivider isDelete />
+                            <OverflowMenuItem
+                              itemText="Edit"
+                              onClick={() => {
+                                const item = items.find(i => i.id === row.id)
+                                setEditingItem(item || null)
+                                setIsModalOpen(true)
+                              }}
+                            />
+                            <OverflowMenuItem
+                              itemText="Delete"
+                              hasDivider
+                              isDelete
+                              onClick={() => {
+                                const item = items.find(i => i.id === row.id)
+                                setEditingItem(item || null)
+                                setIsDeleteModalOpen(true)
+                              }}
+                            />
                           </OverflowMenu>
                         </TableCell>
                       </TableRow>
@@ -123,46 +168,64 @@ const BaseMenu = () => {
 
       <Modal
         open={isModalOpen}
-        onRequestClose={() => setIsModalOpen(false)}
-        modalHeading="Add New Item"
-        primaryButtonText="Add"
-        onRequestSubmit={handleAddItem}
+        onRequestClose={() => {
+          setIsModalOpen(false)
+          setEditingItem(null)
+        }}
+        modalHeading={editingItem?.id ? "Edit Item" : "Add New Item"}
+        primaryButtonText="Save"
+        onRequestSubmit={handleSaveItem}
       >
-        <Form onSubmit={handleAddItem} className='flex flex-col gap-4'>
+        <Form onSubmit={handleSaveItem} className='flex flex-col gap-4'>
           <TextInput
             id="item-name"
             labelText="Item Name"
-            value={newItem.name}
-            onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+            value={editingItem?.name || ''}
+            onChange={(e) => setEditingItem(prev => prev ? { ...prev, name: e.target.value } : null)}
             required
           />
           <TextArea
             id="item-description"
             labelText="Description"
-            value={newItem.description}
-            onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+            value={editingItem?.description || ''}
+            onChange={(e) => setEditingItem(prev => prev ? { ...prev, description: e.target.value } : null)}
           />
           <NumberInput
             id="item-price"
             label="Price"
-            value={newItem.price}
-            onChange={(e) => setNewItem({ ...newItem, price: Number((e.target as HTMLInputElement).value) })}
-            step={1}
+            value={editingItem?.price || 0}
+            onChange={(e) => setEditingItem(prev => prev ? { ...prev, price: Number((e.target as HTMLInputElement).value) } : null)}
+            step={0.01}
             min={0}
           />
           <Select
             id="item-category"
             labelText="Category"
-            value={newItem.item_category_id}
-            onChange={(e) => setNewItem({ ...newItem, item_category_id: e.target.value })}
+            value={editingItem?.item_category_id || ''}
+            onChange={(e) => setEditingItem(prev => prev ? { ...prev, item_category_id: e.target.value } : null)}
             required
           >
             <SelectItem disabled hidden value="" text="Choose a category" />
             {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id} text={category.name ? category.name : ''} />
+              <SelectItem key={category.id} value={category.id} text={category.name || ''} />
             ))}
           </Select>
         </Form>
+      </Modal>
+
+      <Modal
+        open={isDeleteModalOpen}
+        onRequestClose={() => {
+          setIsDeleteModalOpen(false)
+          setEditingItem(null)
+        }}
+        modalHeading="Delete Item"
+        primaryButtonText="Delete"
+        secondaryButtonText="Cancel"
+        danger
+        onRequestSubmit={handleDeleteItem}
+      >
+        <p>Are you sure you want to delete the item &quot;{editingItem?.name}&quot;? This action cannot be undone.</p>
       </Modal>
     </Content>
   )
