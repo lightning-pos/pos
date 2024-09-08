@@ -8,6 +8,8 @@ import {
   DismissibleTag,
 } from '@carbon/react'
 import { CartItem } from './cart_section'
+import { db } from '@/components/providers/system_provider'
+import { uid } from 'uid'
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -45,10 +47,21 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, cart, on
     }
   }
 
-  const handleCheckout = () => {
-    console.log('Creating order:', { cart, payments })
-    onCheckoutComplete()
-    onClose()
+  const handleCheckout = async () => {
+    const orderId = uid();
+    const totalAmount = cart.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+    const paymentMethod = Object.keys(payments).join(', ');
+
+    await db.insertInto('orders').values({
+      id: orderId,
+      total_amount: totalAmount,
+      payment_method: paymentMethod,
+      created_at: new Date().getTime(),
+    }).execute();
+
+    console.log('Order created:', { id: orderId, cart, payments });
+    onCheckoutComplete();
+    onClose();
   }
 
   return (
