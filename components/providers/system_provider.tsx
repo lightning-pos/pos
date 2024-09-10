@@ -13,7 +13,7 @@ import { wrapPowerSyncWithKysely } from '@powersync/kysely-driver';
 Logger.useDefaults();
 Logger.setLevel(Logger.DEBUG);
 
-const powerSyncDb = new PowerSyncDatabase({
+export const powerSyncDb = new PowerSyncDatabase({
   database: { dbFilename: 'powersync2.db' },
   schema: AppSchema,
   flags: { disableSSRWarning: false }
