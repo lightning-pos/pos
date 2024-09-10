@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Button, IconButton } from '@carbon/react'
+import { Button, IconButton, Search } from '@carbon/react'
 import { Add, Subtract, ShoppingCart, Close } from '@carbon/icons-react'
-import { Item, Tax } from '@/lib/powersync/app_schema'
+import { Item, Tax, Customer } from '@/lib/powersync/app_schema'
 import { db } from '@/components/providers/system_provider'
 import CheckoutModal from './checkout_modal'
 
@@ -19,6 +19,9 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
   const [checkoutModalKey, setCheckoutModalKey] = useState(0)
   const [taxes, setTaxes] = useState<Tax[]>([])
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<Customer[]>([])
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   useEffect(() => {
     const fetchTaxes = async () => {
@@ -27,6 +30,26 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     }
     fetchTaxes()
   }, [])
+
+  useEffect(() => {
+    const searchCustomers = async () => {
+      if (customerSearch.length > 2) {
+        const results = await db
+          .selectFrom('customers')
+          .selectAll()
+          .where((eb) => eb.or([
+            eb('name', 'like', `%${customerSearch}%`),
+            eb('phone_number', 'like', `%${customerSearch}%`),
+          ]))
+          .limit(3)
+          .execute()
+        setSearchResults(results)
+      } else {
+        setSearchResults([])
+      }
+    }
+    searchCustomers()
+  }, [customerSearch])
 
   const updateQuantity = (itemId: string, change: number) => {
     setCart(prevCart => {
@@ -55,18 +78,54 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
   const totalAmount = subtotal + totalTax
 
   const handleCheckout = () => {
-    setCheckoutModalKey(prev => prev + 1) // Increment the key
+    if (!selectedCustomer) {
+      alert('Please select a customer before checkout')
+      return
+    }
+    setCheckoutModalKey(prev => prev + 1)
     setIsCheckoutModalOpen(true)
   }
 
   const handleCheckoutComplete = () => {
-    // Clear the cart after successful checkout
     setCart([])
     setIsCheckoutModalOpen(false)
+    setSelectedCustomer(null)
+    setCustomerSearch('')
   }
 
   return (
     <div className='flex flex-col h-[calc(100dvh-4rem)]'>
+      <div className='mb-4'>
+        <Search
+          labelText="Search customers"
+          placeholder="Search by name or phone"
+          value={customerSearch}
+          onChange={(e) => setCustomerSearch(e.target.value)}
+        />
+        {searchResults.length > 0 && (
+          <ul className="mt-2 border border-gray-300 rounded">
+            {searchResults.map((customer) => (
+              <li
+                key={customer.id}
+                className="p-2 cursor-pointer"
+                onClick={() => {
+                  setSelectedCustomer(customer)
+                  setCustomerSearch('')
+                  setSearchResults([])
+                }}
+              >
+                {customer.name} - {customer.phone_number}
+              </li>
+            ))}
+          </ul>
+        )}
+        {selectedCustomer && (
+          <div className='mt-2'>
+            <strong>Selected Customer:</strong> {selectedCustomer.name} ({selectedCustomer.phone_number})
+          </div>
+        )}
+      </div>
+
       <div className='flex-grow overflow-y-auto py-4'>
         {cart.map((item) => (
           <div key={item.id} className='flex flex-col mb-4'>
@@ -107,8 +166,14 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
         <Button renderIcon={Close} onClick={() => setCart([])} kind='secondary' className='flex-1 mr-0'>
           Clear
         </Button>
-        <Button renderIcon={ShoppingCart} onClick={handleCheckout} kind='primary' className='flex-1 ml-0' disabled={cart.length === 0}>
-          Checkout
+        <Button
+          renderIcon={ShoppingCart}
+          onClick={handleCheckout}
+          kind='primary'
+          className='flex-1 ml-0'
+          disabled={cart.length === 0 || !selectedCustomer}
+        >
+          Checkout ({cart.length})
         </Button>
       </div>
       <CheckoutModal
@@ -120,6 +185,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
         subtotal={subtotal}
         tax={totalTax}
         total={totalAmount}
+        customer={selectedCustomer}
       />
     </div>
   )

@@ -28,6 +28,9 @@ const orders = new TableV2({
   status: column.text,
   subtotal: column.integer,
   tax: column.integer,
+  customer_id: column.text,
+  customer_name: column.text,
+  customer_phone_number: column.text,
 });
 
 const order_items = new TableV2({

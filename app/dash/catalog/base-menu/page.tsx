@@ -25,7 +25,6 @@ const BaseMenu = () => {
       const categoriesResult: CategorySchema[] = await db.selectFrom('item_categories').selectAll().execute()
       setCategories(categoriesResult)
       const taxesResult: TaxSchema[] = await db.selectFrom('taxes').selectAll().execute()
-      console.log(taxesResult)
       setTaxes(taxesResult)
     } catch (error) {
       console.error('Error fetching data:', error)

@@ -1,72 +1,89 @@
 import React from 'react';
-import { Modal, Button } from '@carbon/react';
-import { db } from '@/components/providers/system_provider';
+import { Modal, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell } from '@carbon/react';
 import { Order, OrderItem } from '@/lib/powersync/app_schema';
-
-interface PaymentMethod {
-  method: string;
-  amount: number;
-}
+import { db } from '@/components/providers/system_provider';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  order: Order;
-  orderItems: OrderItem[];
+  order: Order | null;
 }
 
-const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, onClose, order, orderItems }) => {
-  const formatPaymentMethods = (paymentMethodJson: string): string => {
-    try {
-      const paymentMethods: PaymentMethod[] = JSON.parse(paymentMethodJson);
-      return paymentMethods
-        .filter(pm => pm.amount > 0)
-        .map(pm => `${pm.method}: Rs. ${pm.amount.toFixed(2)}`)
-        .join(', ');
-    } catch (error) {
-      console.error('Error parsing payment method JSON:', error);
-      return paymentMethodJson;
-    }
-  };
+const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, onClose, order }) => {
+  const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
 
-  const handleCancelOrder = async () => {
-    await db.updateTable('orders')
-      .set({ status: 'cancelled' })
-      .where('id', '=', order.id)
-      .execute();
-    onClose();
-  };
+  React.useEffect(() => {
+    const fetchOrderItems = async () => {
+      if (order) {
+        const items = await db
+          .selectFrom('order_items')
+          .selectAll()
+          .where('order_id', '=', order.id)
+          .execute();
+        setOrderItems(items);
+      }
+    };
+    fetchOrderItems();
+  }, [order]);
+
+  const headers = [
+    { key: 'item_name', header: 'Item' },
+    { key: 'quantity', header: 'Quantity' },
+    { key: 'price', header: 'Price' },
+    { key: 'tax', header: 'Tax' },
+  ];
 
   return (
     <Modal
-      modalHeading="Order Details"
       open={isOpen}
       onRequestClose={onClose}
-      passiveModal
+      modalHeading={`Order Details - ${order?.id}`}
+      primaryButtonText="Close"
+      onRequestSubmit={onClose}
     >
-      <div className="mb-4">
-        <h3 className="text-md font-bold mb-2">Order Summary</h3>
-        <p>Order ID: {order.id}</p>
-        <p>Total Amount: Rs. {(order.total_amount ?? 0).toFixed(2)}</p>
-        <p>Payment Method: {formatPaymentMethods(order.payment_method || '')}</p>
-        <p>Status: {order.status}</p>
-        <p>Created At: {new Date(order.created_at ?? 0).toLocaleString()}</p>
-      </div>
-
-      <div className="mb-4">
-        <h3 className="text-md font-bold mb-2">Order Items</h3>
-        {orderItems.map((item) => (
-          <div key={item.id} className="flex justify-between">
-            <span>{item.item_name} x {item.quantity}</span>
-            <span>Rs. {(item.price ?? 0).toFixed(2)}</span>
+      {order && (
+        <>
+          <div className="mb-4">
+            <p><strong>Customer:</strong> {order.customer_name}</p>
+            <p><strong>Phone:</strong> {order.customer_phone_number}</p>
+            <p><strong>Date:</strong> {new Date(order.created_at).toLocaleString()}</p>
+            <p><strong>Status:</strong> {order.status}</p>
+            <p><strong>Payment Method:</strong> {order.payment_method}</p>
           </div>
-        ))}
-      </div>
-
-      {order.status !== 'cancelled' && (
-        <Button kind="danger" onClick={handleCancelOrder}>
-          Cancel Order
-        </Button>
+          <DataTable rows={orderItems} headers={headers}>
+            {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
+              <Table {...getTableProps()}>
+                <TableHead>
+                  <TableRow>
+                    {headers.map((header) => (
+                      <TableHeader {...getHeaderProps({ header })} key={header.key}>
+                        {header.header}
+                      </TableHeader>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {rows.map((row) => (
+                    <TableRow {...getRowProps({ row })} key={row.id}>
+                      {row.cells.map((cell) => (
+                        <TableCell key={cell.id}>
+                          {cell.info.header === 'price' || cell.info.header === 'tax'
+                            ? `Rs. ${Number(cell.value).toFixed(2)}`
+                            : cell.value}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </DataTable>
+          <div className="mt-4">
+            <p><strong>Subtotal:</strong> Rs. {order.subtotal.toFixed(2)}</p>
+            <p><strong>Tax:</strong> Rs. {order.tax.toFixed(2)}</p>
+            <p><strong>Total:</strong> Rs. {order.total_amount.toFixed(2)}</p>
+          </div>
+        </>
       )}
     </Modal>
   );
