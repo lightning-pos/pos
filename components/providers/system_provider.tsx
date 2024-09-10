@@ -8,6 +8,7 @@ import { Loading } from '@carbon/react';
 import Logger from 'js-logger';
 import React, { Suspense } from 'react';
 import { wrapPowerSyncWithKysely } from '@powersync/kysely-driver';
+import { runMigrations } from '@/lib/powersync/migrations';
 
 // eslint-disable-next-line react-hooks/rules-of-hooks
 Logger.useDefaults();
@@ -20,6 +21,11 @@ export const powerSyncDb = new PowerSyncDatabase({
 });
 
 export const db = wrapPowerSyncWithKysely<Database>(powerSyncDb);
+
+(async () => {
+  await runMigrations();
+  console.log('Migrations completed');
+})()
 
 // TODO: Enable once the backend for connector is ready
 // const connector = new Connector();

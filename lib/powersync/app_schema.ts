@@ -17,7 +17,7 @@ const items = new TableV2({
   mrp: column.integer,
   price_includes_tax: column.integer,
   item_category_id: column.text,
-  tax_ids: column.text, // Changed from json to text
+  tax_ids: column.text,
 });
 
 const orders = new TableV2({
@@ -57,11 +57,17 @@ const customers = new TableV2({
   country_code: column.text,
 });
 
+const app_metadata = new TableV2({
+  key: column.text,
+  value: column.text,
+});
+
 export const AppSchema = new Schema({
+  app_metadata,
   item_categories,
   items,
   orders,
-  order_items, // Add this line
+  order_items,
   taxes,
   customers,
 });
@@ -70,6 +76,8 @@ export type Database = (typeof AppSchema)["types"];
 export type Category = Database["item_categories"];
 export type Item = Database["items"];
 export type Order = Database["orders"];
-export type OrderItem = Database["order_items"]; // Add this line
+export type OrderItem = Database["order_items"];
 export type Tax = Database["taxes"];
 export type Customer = Database["customers"];
+export type AppMetadata = Database["app_metadata"];
+
