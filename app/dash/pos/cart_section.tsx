@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { Button, IconButton, Search } from '@carbon/react'
-import { Add, Subtract, ShoppingCart, Close } from '@carbon/icons-react'
+import { Button, IconButton, Search, Modal, TextInput } from '@carbon/react'
+import { Add, Subtract, ShoppingCart, Close, UserAdd } from '@carbon/icons-react'
 import { Item, Tax, Customer } from '@/lib/powersync/app_schema'
 import { db } from '@/components/providers/system_provider'
 import CheckoutModal from './checkout_modal'
+import { uid } from 'uid'
 
 export interface CartItem extends Item {
   quantity: number;
@@ -22,6 +23,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
   const [customerSearch, setCustomerSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [customerInput, setCustomerInput] = useState('')
 
   useEffect(() => {
     const fetchTaxes = async () => {
@@ -38,7 +40,6 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
           .selectFrom('customers')
           .selectAll()
           .where((eb) => eb.or([
-            eb('name', 'like', `%${customerSearch}%`),
             eb('phone_number', 'like', `%${customerSearch}%`),
           ]))
           .limit(3)
@@ -93,35 +94,73 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     setCustomerSearch('')
   }
 
+  const handleCustomerInput = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const phoneNumber = customerInput.trim()
+      if (!phoneNumber) return
+      if (phoneNumber.length !== 10) return
+
+      try {
+        // Check if customer already exists
+        const existingCustomer = await db
+          .selectFrom('customers')
+          .selectAll()
+          .where('phone_number', '=', phoneNumber)
+          .executeTakeFirst()
+
+        if (existingCustomer) {
+          setSelectedCustomer(existingCustomer)
+        } else {
+          // Add new customer
+          const newCustomerId = await db
+            .insertInto('customers')
+            .values({ id: uid(), phone_number: phoneNumber })
+            .returning('id')
+            .executeTakeFirstOrThrow()
+
+          const newCustomer = {
+            id: newCustomerId.id,
+            phone_number: phoneNumber,
+            name: null,
+            email: null,
+            country_code: null
+          }
+          setSelectedCustomer(newCustomer)
+        }
+
+        setCustomerInput('')
+        setSearchResults([])
+      } catch (error) {
+        console.error('Error processing customer:', error)
+        alert('Failed to process customer. Please try again.')
+      }
+    } else {
+      setCustomerSearch(e.currentTarget.value)
+    }
+  }
+
   return (
     <div className='flex flex-col h-[calc(100dvh-4rem)]'>
       <div className='mb-4'>
-        <Search
-          labelText="Search customers"
-          placeholder="Search by name or phone"
-          value={customerSearch}
-          onChange={(e) => setCustomerSearch(e.target.value)}
+        <TextInput
+          id="customer-input"
+          labelText="Customer Phone Number"
+          placeholder="Enter phone number and press Enter"
+          value={customerInput}
+          onChange={(e) => setCustomerInput(e.target.value)}
+          onKeyUp={handleCustomerInput}
         />
-        {searchResults.length > 0 && (
-          <ul className="mt-2 border border-gray-300 rounded">
-            {searchResults.map((customer) => (
-              <li
-                key={customer.id}
-                className="p-2 cursor-pointer"
-                onClick={() => {
-                  setSelectedCustomer(customer)
-                  setCustomerSearch('')
-                  setSearchResults([])
-                }}
-              >
-                {customer.name} - {customer.phone_number}
-              </li>
-            ))}
-          </ul>
-        )}
+        <ul>
+          {searchResults.map(customer => (
+            <li key={customer.id} onClick={() => setSelectedCustomer(customer)} className='px-2 cursor-pointer'>
+              {customer.phone_number}
+            </li>
+          ))}
+        </ul>
         {selectedCustomer && (
           <div className='mt-2'>
-            <strong>Selected Customer:</strong> {selectedCustomer.name} ({selectedCustomer.phone_number})
+            <strong>Selected Customer:</strong> {selectedCustomer.name || 'New Customer'} ({selectedCustomer.phone_number})
           </div>
         )}
       </div>
