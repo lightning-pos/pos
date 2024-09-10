@@ -13,6 +13,7 @@ const Console = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'console' | 'tables'>('console');
+  const [searchId, setSearchId] = useState('');
 
   useEffect(() => {
     fetchTables();
@@ -58,7 +59,6 @@ const Console = () => {
 
       setResult(rows);
       if (!customQuery) {
-        // Only reset these for manual queries, not for table data fetches
         setSelectedTable(null);
         setTotalCount(rows.length);
         setPage(1);
@@ -73,6 +73,7 @@ const Console = () => {
   const handleTableClick = async (table: string) => {
     const fullTableName = `ps_data__${table}`;
     setSelectedTable(table);
+    setSearchId('');
     const countQuery = `SELECT COUNT(*) as count FROM ${fullTableName}`;
     const countResult = await powerSyncDb.execute(countQuery);
     if (countResult.rows && countResult.rows.length > 0) {
@@ -93,7 +94,13 @@ const Console = () => {
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     if (selectedTable) {
-      fetchTableData(selectedTable, newPage);
+      fetchTableData(`${selectedTable}`, newPage);
+    }
+  };
+
+  const handleSearch = () => {
+    if (selectedTable && searchId) {
+      executeQuery(`SELECT * FROM ${selectedTable} WHERE id = '${searchId}'`);
     }
   };
 
@@ -153,7 +160,26 @@ const Console = () => {
       </aside>
       <main className="md:col-span-3 lg:col-span-4 flex flex-col p-4 overflow-auto">
         <h1 className="text-2xl font-bold mb-4">Database Explorer</h1>
-        {selectedTable && <h2 className="text-xl font-bold mb-2">{selectedTable}</h2>}
+        {selectedTable && (
+          <>
+            <h2 className="text-xl font-bold mb-2">{selectedTable}</h2>
+            <div className="flex mb-4">
+              <input
+                type="text"
+                value={searchId}
+                onChange={(e) => setSearchId(e.target.value)}
+                placeholder="Search by ID"
+                className="p-2 bg-gray-700 text-white border border-gray-600 rounded-l"
+              />
+              <button
+                onClick={handleSearch}
+                className="px-4 py-2 bg-blue-500 text-white rounded-r hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Search
+              </button>
+            </div>
+          </>
+        )}
         {renderResultTable()}
       </main>
     </div>
