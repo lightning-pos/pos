@@ -47,12 +47,20 @@ const taxes = new TableV2({
   description: column.text,
 });
 
+const customers = new TableV2({
+  name: column.text,
+  email: column.text,
+  phone_number: column.text,
+  country_code: column.text,
+});
+
 export const AppSchema = new Schema({
   item_categories,
   items,
   orders,
   order_items, // Add this line
   taxes,
+  customers,
 });
 
 export type Database = (typeof AppSchema)["types"];
@@ -61,3 +69,4 @@ export type Item = Database["items"];
 export type Order = Database["orders"];
 export type OrderItem = Database["order_items"]; // Add this line
 export type Tax = Database["taxes"];
+export type Customer = Database["customers"];
