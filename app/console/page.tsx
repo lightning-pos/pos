@@ -20,17 +20,21 @@ const Console = () => {
 
   const fetchTables = async () => {
     try {
-      const tablesResult = await powerSyncDb.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+      const tablesResult = await powerSyncDb.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'ps_data__%'");
       if (tablesResult.rows) {
+        let tableNames: string[] = [];
         if (Array.isArray(tablesResult.rows)) {
-          setTables(tablesResult.rows.map((row: any) => row.name));
+          tableNames = tablesResult.rows.map((row: any) => row.name);
         } else if (typeof tablesResult.rows.item === 'function') {
-          const tableNames = [];
           for (let i = 0; i < tablesResult.rows.length; i++) {
             tableNames.push(tablesResult.rows.item(i).name);
           }
-          setTables(tableNames);
         }
+        // Process table names to remove "ps_data__" prefix
+        const processedTableNames = tableNames.map(name =>
+          name.replace('ps_data__', '')
+        );
+        setTables(processedTableNames);
       }
     } catch (err) {
       console.error('Error fetching tables:', err);
@@ -48,14 +52,17 @@ const Console = () => {
         if (Array.isArray(queryResult.rows)) {
           rows = queryResult.rows;
         } else if (typeof queryResult.rows === 'object' && 'length' in queryResult.rows && typeof queryResult.rows.item === 'function') {
-          rows = Array.from({ length: queryResult.rows.length }, (_, i) => queryResult.rows.item(i));
+          rows = Array.from({ length: queryResult.rows.length }, (_, i) => queryResult.rows!.item(i));
         }
       }
 
       setResult(rows);
-      setSelectedTable(null);
-      setTotalCount(rows.length);
-      setPage(1);
+      if (!customQuery) {
+        // Only reset these for manual queries, not for table data fetches
+        setSelectedTable(null);
+        setTotalCount(rows.length);
+        setPage(1);
+      }
     } catch (err) {
       console.error('Query execution error:', err);
       setError(err instanceof Error ? err.message : String(err));
@@ -64,8 +71,9 @@ const Console = () => {
   };
 
   const handleTableClick = async (table: string) => {
+    const fullTableName = `ps_data__${table}`;
     setSelectedTable(table);
-    const countQuery = `SELECT COUNT(*) as count FROM ${table}`;
+    const countQuery = `SELECT COUNT(*) as count FROM ${fullTableName}`;
     const countResult = await powerSyncDb.execute(countQuery);
     if (countResult.rows && countResult.rows.length > 0) {
       const firstRow = Array.isArray(countResult.rows)
