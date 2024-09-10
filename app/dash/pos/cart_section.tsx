@@ -99,7 +99,13 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
       e.preventDefault()
       const phoneNumber = customerInput.trim()
       if (!phoneNumber) return
-      if (phoneNumber.length !== 10) return
+
+      if (phoneNumber.length !== 10) {
+        if (searchResults.length > 0) {
+          setSelectedCustomer(searchResults[0])
+        }
+        return
+      }
 
       try {
         // Check if customer already exists
@@ -140,28 +146,38 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     }
   }
 
+  const clearSelectedCustomer = () => {
+    setSelectedCustomer(null);
+    setCustomerInput('');
+    setSearchResults([]);
+  };
+
   return (
     <div className='flex flex-col h-[calc(100dvh-4rem)]'>
       <div className='mb-4'>
-        <TextInput
-          id="customer-input"
-          labelText="Customer Phone Number"
-          placeholder="Enter phone number and press Enter"
-          value={customerInput}
-          onChange={(e) => setCustomerInput(e.target.value)}
-          onKeyUp={handleCustomerInput}
-        />
-        <ul>
-          {searchResults.map(customer => (
-            <li key={customer.id} onClick={() => setSelectedCustomer(customer)} className='px-2 cursor-pointer'>
-              {customer.phone_number}
-            </li>
-          ))}
-        </ul>
-        {selectedCustomer && (
-          <div className='mt-2'>
-            <strong>Selected Customer:</strong> {selectedCustomer.name || 'New Customer'} ({selectedCustomer.phone_number})
+        {!selectedCustomer ? (
+          <TextInput
+            id="customer-input"
+            labelText="Customer Phone Number"
+            placeholder="Enter phone number and press Enter"
+            value={customerInput}
+            onChange={(e) => setCustomerInput(e.target.value)}
+            onKeyUp={handleCustomerInput}
+          />
+        ) : (
+          <div className='flex items-center gap-2 mt-2 p-2'>
+            <span>Customer: {selectedCustomer.name || 'No Name'} ({selectedCustomer.phone_number})</span>
+            <span className='mr-2 cursor-pointer text-blue-500' onClick={clearSelectedCustomer}>Clear</span>
           </div>
+        )}
+        {!selectedCustomer && (
+          <ul>
+            {searchResults.map(customer => (
+              <li key={customer.id} onClick={() => setSelectedCustomer(customer)} className='px-2 cursor-pointer'>
+                {customer.phone_number}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
