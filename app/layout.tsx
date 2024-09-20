@@ -18,19 +18,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  useEffect(() => {
-    const initializeDatabases = async () => {
-      try {
-        Logger.info('Running migrations');
-        // await migrate(drizzleDb, { migrationsFolder: './lib/pglite/migrations' });
-        Logger.info('Migrations completed');
-      } catch (error) {
-        Logger.error('Migration failed:', error);
-      }
-    };
-
-    initializeDatabases();
-  }, []);
   return (
     <html lang="en">
       <body className={ibmPlexSans.className}>
