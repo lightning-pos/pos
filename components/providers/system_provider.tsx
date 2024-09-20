@@ -1,5 +1,8 @@
 'use client';
 
+import { drizzle } from 'drizzle-orm/pglite';
+import { PGlite } from '@electric-sql/pglite';
+// import { migrate } from 'drizzle-orm/pglite/migrator';
 import { AppSchema, Database } from '@/lib/powersync/app_schema';
 import { Connector } from '@/lib/powersync/connector';
 import { PowerSyncContext } from '@powersync/react';
@@ -8,7 +11,6 @@ import { Loading } from '@carbon/react';
 import Logger from 'js-logger';
 import React, { Suspense } from 'react';
 import { wrapPowerSyncWithKysely } from '@powersync/kysely-driver';
-import { runMigrations } from '@/lib/powersync/migrations';
 
 // eslint-disable-next-line react-hooks/rules-of-hooks
 Logger.useDefaults();
@@ -22,14 +24,8 @@ export const powerSyncDb = new PowerSyncDatabase({
 
 export const db = wrapPowerSyncWithKysely<Database>(powerSyncDb);
 
-(async () => {
-  await runMigrations();
-  console.log('Migrations completed');
-})()
-
-// TODO: Enable once the backend for connector is ready
-// const connector = new Connector();
-// powerSync.connect(connector);
+export const pgliteDb = new PGlite('idb://minnal');
+export const drizzleDb = drizzle(pgliteDb);
 
 export const SystemProvider = ({ children }: { children: React.ReactNode }) => {
   return (
