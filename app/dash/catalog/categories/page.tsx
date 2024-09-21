@@ -2,9 +2,11 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Add } from '@carbon/icons-react'
 import { Content, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination, DataTableSkeleton, Button, Modal, TextInput, Form, TableToolbar, TableToolbarContent, TableContainer, TextArea, OverflowMenu, OverflowMenuItem } from '@carbon/react'
-import { db } from '@/components/providers/system_provider'
+import { drizzleDb } from '@/components/providers/system_provider'
 import { Category as CategorySchema } from '@/lib/powersync/app_schema'
 import { uid } from 'uid'
+import { eq } from 'drizzle-orm'
+import { itemCategories } from '@/lib/pglite/schema'
 
 const Categories = () => {
   const [currentPage, setCurrentPage] = useState(1)
@@ -16,25 +18,13 @@ const Categories = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      setLoading(true)
-      try {
-        const result: CategorySchema[] = await db.selectFrom('item_categories').selectAll().execute()
-        setCategories(result)
-      } catch (error) {
-        console.error('Error fetching categories:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchCategories()
   }, [])
 
   const headers = [
     { key: 'name', header: 'Name' },
     { key: 'description', header: 'Description' },
-    { key: 'status', header: 'Status' }
+    { key: 'state', header: 'State' }
   ]
 
   const startIndex = (currentPage - 1) * pageSize
@@ -42,11 +32,14 @@ const Categories = () => {
   const paginatedCategories = categories.slice(startIndex, endIndex)
 
   const fetchCategories = useCallback(async () => {
+    setLoading(true)
     try {
-      const result: CategorySchema[] = await db.selectFrom('item_categories').selectAll().execute()
-      setCategories(result)
+      const result = await drizzleDb.select().from(itemCategories)
+      setCategories(result as unknown as CategorySchema[]) // Cast to 'unknown' first
     } catch (error) {
       console.error('Error fetching categories:', error)
+    } finally {
+      setLoading(false)
     }
   }, [])
 
@@ -55,12 +48,19 @@ const Categories = () => {
     if (!editingCategory) return
     try {
       if (editingCategory.id) {
-        await db.updateTable('item_categories')
-          .set({ name: editingCategory.name, description: editingCategory.description })
-          .where('id', '=', editingCategory.id)
-          .execute()
+        await drizzleDb.update(itemCategories)
+          .set({
+            name: editingCategory.name || '',
+            description: editingCategory.description || null
+          })
+          .where(eq(itemCategories.id, editingCategory.id))
       } else {
-        await db.insertInto('item_categories').values({ ...editingCategory, id: uid() }).execute()
+        await drizzleDb.insert(itemCategories).values({
+          id: uid(),
+          name: editingCategory.name || '',
+          description: editingCategory.description || null,
+          state: editingCategory.status || null
+        })
       }
       setIsModalOpen(false)
       setEditingCategory(null)
@@ -73,9 +73,8 @@ const Categories = () => {
   const handleDeleteCategory = useCallback(async () => {
     if (!editingCategory?.id) return
     try {
-      await db.deleteFrom('item_categories')
-        .where('id', '=', editingCategory.id)
-        .execute()
+      await drizzleDb.delete(itemCategories)
+        .where(eq(itemCategories.id, editingCategory.id))
       setIsDeleteModalOpen(false)
       setEditingCategory(null)
       fetchCategories()
@@ -99,7 +98,7 @@ const Categories = () => {
                 <Button
                   renderIcon={Add}
                   onClick={() => {
-                    setEditingCategory({ id: '', name: '', description: '', status: 'active' })
+                    setEditingCategory({ id: '', name: '', description: '', status: 'active' } as CategorySchema)
                     setIsModalOpen(true)
                   }}
                 >

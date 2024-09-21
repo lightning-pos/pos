@@ -1,9 +1,7 @@
 'use client';
 
 import { drizzle } from 'drizzle-orm/pglite';
-import { PGlite } from '@electric-sql/pglite';
 import { AppSchema, Database } from '@/lib/powersync/app_schema';
-import { Connector } from '@/lib/powersync/connector';
 import { PowerSyncContext } from '@powersync/react';
 import { PowerSyncDatabase } from '@powersync/web';
 import { Loading } from '@carbon/react';
@@ -11,6 +9,7 @@ import Logger from 'js-logger';
 import React, { Suspense, useEffect } from 'react';
 import { wrapPowerSyncWithKysely } from '@powersync/kysely-driver';
 import { migrate } from '@/lib/pglite/migrator';
+import { PGliteWorker } from '@electric-sql/pglite/worker';
 
 // eslint-disable-next-line react-hooks/rules-of-hooks
 Logger.useDefaults();
@@ -24,8 +23,12 @@ export const powerSyncDb = new PowerSyncDatabase({
 
 export const db = wrapPowerSyncWithKysely<Database>(powerSyncDb);
 
-export const pgliteDb = new PGlite('idb://minnal');
-export const drizzleDb = drizzle(pgliteDb);
+export const pgliteWorker = new PGliteWorker(
+  new Worker(new URL('@/lib/pglite/worker.ts', import.meta.url), { type: 'module' })
+);
+
+// @ts-ignore
+export const drizzleDb = drizzle(pgliteWorker);
 
 export const SystemProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
