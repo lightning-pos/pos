@@ -2,7 +2,6 @@
 
 import { drizzle } from 'drizzle-orm/pglite';
 import { PGlite } from '@electric-sql/pglite';
-// import { migrate } from 'drizzle-orm/pglite/migrator';
 import { AppSchema, Database } from '@/lib/powersync/app_schema';
 import { Connector } from '@/lib/powersync/connector';
 import { PowerSyncContext } from '@powersync/react';
@@ -11,6 +10,7 @@ import { Loading } from '@carbon/react';
 import Logger from 'js-logger';
 import React, { Suspense, useEffect } from 'react';
 import { wrapPowerSyncWithKysely } from '@powersync/kysely-driver';
+import { migrate } from '@/lib/pglite/migrator';
 
 // eslint-disable-next-line react-hooks/rules-of-hooks
 Logger.useDefaults();
@@ -28,12 +28,10 @@ export const pgliteDb = new PGlite('idb://minnal');
 export const drizzleDb = drizzle(pgliteDb);
 
 export const SystemProvider = ({ children }: { children: React.ReactNode }) => {
-  // Run migrations on the PGLite database
   useEffect(() => {
     const initializeDatabases = async () => {
       try {
-        Logger.info('Running migrations');
-        // await migrate(drizzleDb, { migrationsFolder: './lib/pglite/migrations' });
+        await migrate(drizzleDb);
         Logger.info('Migrations completed');
       } catch (error) {
         Logger.error('Migration failed:', error);
@@ -42,8 +40,6 @@ export const SystemProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeDatabases();
   }, []);
-
-
   return (
     <Suspense fallback={<Loading />}>
       <PowerSyncContext.Provider value={powerSyncDb}>{children}</PowerSyncContext.Provider>

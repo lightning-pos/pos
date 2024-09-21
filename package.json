@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "db:generate": "drizzle-kit generate --schema=./lib/pglite/schema.ts --out=./lib/pglite/migrations --dialect=postgresql",
+    "db:generate": "drizzle-kit generate --schema=./lib/pglite/schema.ts --out=./lib/pglite/migrations --dialect=postgresql && node ./lib/pglite/migration_compiler.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -15,6 +15,7 @@
     "@carbon/pictograms-react": "^11.65.0",
     "@carbon/react": "^1.65.0",
     "@electric-sql/pglite": "^0.2.7",
+    "@electric-sql/pglite-repl": "^0.2.7",
     "@journeyapps/wa-sqlite": "^0.3.0",
     "@powersync/common": "^1.16.2",
     "@powersync/kysely-driver": "^0.3.0",
