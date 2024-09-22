@@ -1,26 +1,88 @@
 'use client'
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Content } from '@carbon/react'
-import { CategoriesProvider, useCategories } from './categories_context'
 import DataTable from '@/components/ui/DataTable'
 import SaveCategoryModal from './save_category_modal'
 import DeleteCategoryModal from './delete_category_modal'
-import { itemCategoriesTable } from '@/lib/pglite/schema'
+import { itemCategoriesTable, ItemCategory, NewItemCategory } from '@/lib/pglite/schema'
+import { drizzleDb } from '@/components/providers/system_provider'
+import { eq } from 'drizzle-orm'
+import { uid } from 'uid'
 
-type CategorySchema = typeof itemCategoriesTable.$inferSelect
+const Categories = () => {
+  const [categories, setCategories] = useState<ItemCategory[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editingCategory, setEditingCategory] = useState<NewItemCategory | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
-const CategoriesContent = () => {
-  const {
-    categories,
-    loading,
-    currentPage,
-    pageSize,
-    setCurrentPage,
-    setPageSize,
-    setEditingCategory,
-    setIsModalOpen,
-    setIsDeleteModalOpen
-  } = useCategories()
+  const fetchCategories = useCallback(async () => {
+    setLoading(true)
+    try {
+      const result = await drizzleDb.select().from(itemCategoriesTable)
+      setCategories(result)
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchCategories()
+  }, [fetchCategories])
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingCategory) return
+    try {
+      await drizzleDb.insert(itemCategoriesTable).values({
+        id: uid(),
+        name: editingCategory.name,
+        description: editingCategory.description,
+        state: editingCategory.state
+      })
+      setIsModalOpen(false)
+      setEditingCategory(null)
+      fetchCategories()
+    } catch (error) {
+      console.error('Error adding category:', error)
+    }
+  }
+
+  const handleEditCategory = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingCategory || !editingCategory.id) return
+    try {
+      await drizzleDb.update(itemCategoriesTable)
+        .set({
+          name: editingCategory.name,
+          description: editingCategory.description,
+          state: editingCategory.state
+        })
+        .where(eq(itemCategoriesTable.id, editingCategory.id))
+      setIsModalOpen(false)
+      setEditingCategory(null)
+      fetchCategories()
+    } catch (error) {
+      console.error('Error editing category:', error)
+    }
+  }
+
+  const handleDeleteCategory = async () => {
+    if (!editingCategory?.id) return
+    try {
+      await drizzleDb.delete(itemCategoriesTable)
+        .where(eq(itemCategoriesTable.id, editingCategory.id))
+      setIsDeleteModalOpen(false)
+      setEditingCategory(null)
+      fetchCategories()
+    } catch (error) {
+      console.error('Error deleting category:', error)
+    }
+  }
 
   const headers = [
     { key: 'name', header: 'Name' },
@@ -28,18 +90,17 @@ const CategoriesContent = () => {
     { key: 'state', header: 'State' }
   ]
 
-  const handleAddCategory = () => {
-    setEditingCategory({ id: '', name: '', description: '', state: 'active' } as CategorySchema)
+  const handleOpenAddModal = () => {
+    setEditingCategory({} as NewItemCategory)
     setIsModalOpen(true)
   }
 
-  const handleEditCategory = (category: CategorySchema) => {
-    console.log('category', category)
+  const handleOpenEditModal = (category: NewItemCategory) => {
     setEditingCategory(category)
     setIsModalOpen(true)
   }
 
-  const handleDeleteCategory = (category: CategorySchema) => {
+  const handleOpenDeleteModal = (category: ItemCategory) => {
     setEditingCategory(category)
     setIsDeleteModalOpen(true)
   }
@@ -47,7 +108,7 @@ const CategoriesContent = () => {
   return (
     <Content className='min-h-[calc(100dvh-3rem)] p-0 flex flex-col'>
       <div className="p-4 flex-grow flex flex-col" style={{ height: 'calc(100vh - 12rem)' }}>
-        <DataTable<CategorySchema>
+        <DataTable<ItemCategory>
           title="Category"
           description="Manage your categories here. You can add, edit, or delete categories as needed."
           headers={headers}
@@ -61,22 +122,25 @@ const CategoriesContent = () => {
             setCurrentPage(page)
             setPageSize(pageSize)
           }}
-          onAddClick={handleAddCategory}
-          onEditClick={handleEditCategory}
-          onDeleteClick={handleDeleteCategory}
+          onAddClick={handleOpenAddModal}
+          onEditClick={handleOpenEditModal}
+          onDeleteClick={handleOpenDeleteModal}
         />
       </div>
-      <SaveCategoryModal />
-      <DeleteCategoryModal />
+      <SaveCategoryModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={editingCategory?.id ? handleEditCategory : handleAddCategory}
+        category={editingCategory}
+        setCategory={setEditingCategory}
+      />
+      <DeleteCategoryModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onDelete={handleDeleteCategory}
+        categoryName={editingCategory?.name || ''}
+      />
     </Content>
-  )
-}
-
-const Categories = () => {
-  return (
-    <CategoriesProvider>
-      <CategoriesContent />
-    </CategoriesProvider>
   )
 }
 
