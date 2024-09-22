@@ -1,12 +1,12 @@
 'use client'
 import React, { createContext, useState, useEffect, useCallback, useContext } from 'react'
 import { drizzleDb } from '@/components/providers/system_provider'
-import { itemCategories } from '@/lib/pglite/schema'
+import { itemCategoriesTable } from '@/lib/pglite/schema'
 import { eq } from 'drizzle-orm'
 import { uid } from 'uid'
 
 // Define CategorySchema based on the itemCategories schema
-type CategorySchema = typeof itemCategories.$inferSelect
+type CategorySchema = typeof itemCategoriesTable.$inferSelect
 
 interface CategoriesContextType {
   categories: CategorySchema[]
@@ -40,7 +40,7 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const fetchCategories = useCallback(async () => {
     setLoading(true)
     try {
-      const result = await drizzleDb.select().from(itemCategories)
+      const result = await drizzleDb.select().from(itemCategoriesTable)
       setCategories(result)
     } catch (error) {
       console.error('Error fetching categories:', error)
@@ -58,15 +58,15 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!editingCategory) return
     try {
       if (editingCategory.id) {
-        await drizzleDb.update(itemCategories)
+        await drizzleDb.update(itemCategoriesTable)
           .set({
             name: editingCategory.name,
             description: editingCategory.description,
             state: editingCategory.state
           })
-          .where(eq(itemCategories.id, editingCategory.id))
+          .where(eq(itemCategoriesTable.id, editingCategory.id))
       } else {
-        await drizzleDb.insert(itemCategories).values({
+        await drizzleDb.insert(itemCategoriesTable).values({
           id: uid(),
           name: editingCategory.name,
           description: editingCategory.description,
@@ -84,8 +84,8 @@ export const CategoriesProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const handleDeleteCategory = useCallback(async () => {
     if (!editingCategory?.id) return
     try {
-      await drizzleDb.delete(itemCategories)
-        .where(eq(itemCategories.id, editingCategory.id))
+      await drizzleDb.delete(itemCategoriesTable)
+        .where(eq(itemCategoriesTable.id, editingCategory.id))
       setIsDeleteModalOpen(false)
       setEditingCategory(null)
       fetchCategories()

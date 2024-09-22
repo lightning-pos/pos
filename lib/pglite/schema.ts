@@ -1,6 +1,6 @@
 import { pgTable, integer, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
 
-export const customers = pgTable('customers', {
+export const customersTable = pgTable('customers', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email'),
@@ -10,7 +10,7 @@ export const customers = pgTable('customers', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export const itemCategories = pgTable('item_categories', {
+export const itemCategoriesTable = pgTable('item_categories', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
@@ -19,9 +19,9 @@ export const itemCategories = pgTable('item_categories', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export const items = pgTable('items', {
+export const itemsTable = pgTable('items', {
   id: text('id').primaryKey(),
-  categoryId: text('category_id').references(() => itemCategories.id, { onDelete: 'restrict' }),
+  categoryId: text('category_id').references(() => itemCategoriesTable.id, { onDelete: 'restrict' }),
   name: text('name').notNull(),
   description: text('description'),
   price: integer('price'),
@@ -29,18 +29,18 @@ export const items = pgTable('items', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export const itemTaxes = pgTable('item_taxes', {
+export const itemTaxesTable = pgTable('item_taxes', {
   id: text('id').primaryKey(),
-  itemId: text('item_id').references(() => items.id, { onDelete: 'cascade' }),
-  taxId: text('tax_id').references(() => taxes.id, { onDelete: 'restrict' }),
+  itemId: text('item_id').references(() => itemsTable.id, { onDelete: 'cascade' }),
+  taxId: text('tax_id').references(() => taxesTable.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export const orderState = pgEnum('order_state', ['open', 'closed', 'cancelled']);
-export const orders = pgTable('orders', {
+export const orderStateEnum = pgEnum('order_state', ['open', 'closed', 'cancelled']);
+export const ordersTable = pgTable('orders', {
   id: text('id').primaryKey(),
-  customerId: text('customer_id').references(() => customers.id, { onDelete: 'restrict' }),
+  customerId: text('customer_id').references(() => customersTable.id, { onDelete: 'restrict' }),
   customerName: text('customer_name'),
   customerPhoneNumber: text('customer_phone_number'),
   orderDate: timestamp('order_date').defaultNow(),
@@ -48,15 +48,15 @@ export const orders = pgTable('orders', {
   discAmount: integer('disc_amount'),
   taxAmount: integer('tax_amount'),
   totalAmount: integer('total_amount'),
-  state: orderState('order_state'),
+  state: orderStateEnum('order_state'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export const orderItems = pgTable('order_items', {
+export const orderItemsTable = pgTable('order_items', {
   id: text('id').primaryKey(),
-  orderId: text('order_id').references(() => orders.id, { onDelete: 'cascade' }),
-  itemId: text('item_id').references(() => items.id, { onDelete: 'restrict' }),
+  orderId: text('order_id').references(() => ordersTable.id, { onDelete: 'cascade' }),
+  itemId: text('item_id').references(() => itemsTable.id, { onDelete: 'restrict' }),
   itemName: text('item_name'),
   quantity: integer('quantity'),
   priceAmount: integer('price_amount'),
@@ -65,7 +65,7 @@ export const orderItems = pgTable('order_items', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-export const taxes = pgTable('taxes', {
+export const taxesTable = pgTable('taxes', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   rate: integer('rate').notNull(),
@@ -75,23 +75,23 @@ export const taxes = pgTable('taxes', {
 });
 
 // Add these type definitions at the end of the file
-export type Customer = typeof customers.$inferSelect;
-export type NewCustomer = typeof customers.$inferInsert;
+export type Customer = typeof customersTable.$inferSelect;
+export type NewCustomer = typeof customersTable.$inferInsert;
 
-export type ItemCategory = typeof itemCategories.$inferSelect;
-export type NewItemCategory = typeof itemCategories.$inferInsert;
+export type ItemCategory = typeof itemCategoriesTable.$inferSelect;
+export type NewItemCategory = typeof itemCategoriesTable.$inferInsert;
 
-export type Item = typeof items.$inferSelect;
-export type NewItem = typeof items.$inferInsert;
+export type Item = typeof itemsTable.$inferSelect;
+export type NewItem = typeof itemsTable.$inferInsert;
 
-export type Order = typeof orders.$inferSelect;
-export type NewOrder = typeof orders.$inferInsert;
+export type Order = typeof ordersTable.$inferSelect;
+export type NewOrder = typeof ordersTable.$inferInsert;
 
-export type OrderItem = typeof orderItems.$inferSelect;
-export type NewOrderItem = typeof orderItems.$inferInsert;
+export type OrderItem = typeof orderItemsTable.$inferSelect;
+export type NewOrderItem = typeof orderItemsTable.$inferInsert;
 
-export type Tax = typeof taxes.$inferSelect;
-export type NewTax = typeof taxes.$inferInsert;
+export type Tax = typeof taxesTable.$inferSelect;
+export type NewTax = typeof taxesTable.$inferInsert;
 
-export type ItemTax = typeof itemTaxes.$inferSelect;
-export type NewItemTax = typeof itemTaxes.$inferInsert;
+export type ItemTax = typeof itemTaxesTable.$inferSelect;
+export type NewItemTax = typeof itemTaxesTable.$inferInsert;

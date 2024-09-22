@@ -5,9 +5,9 @@ import { CategoriesProvider, useCategories } from './categories_context'
 import DataTable from '@/components/ui/DataTable'
 import SaveCategoryModal from './save_category_modal'
 import DeleteCategoryModal from './delete_category_modal'
-import { itemCategories } from '@/lib/pglite/schema'
+import { itemCategoriesTable } from '@/lib/pglite/schema'
 
-type CategorySchema = typeof itemCategories.$inferSelect
+type CategorySchema = typeof itemCategoriesTable.$inferSelect
 
 const CategoriesContent = () => {
   const {

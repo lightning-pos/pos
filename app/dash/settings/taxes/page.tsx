@@ -5,9 +5,9 @@ import { TaxesProvider, useTaxes } from './taxes_context'
 import DataTable from '@/components/ui/DataTable'
 import SaveTaxModal from './save_tax_modal'
 import DeleteTaxModal from './delete_tax_modal'
-import { taxes } from '@/lib/pglite/schema'
+import { taxesTable } from '@/lib/pglite/schema'
 
-type TaxSchema = typeof taxes.$inferSelect
+type TaxSchema = typeof taxesTable.$inferSelect
 
 const TaxesContent = () => {
   const {

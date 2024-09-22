@@ -1,7 +1,7 @@
 'use client'
 import React, { createContext, useState, useEffect, useCallback, useContext } from 'react'
 import { drizzleDb } from '@/components/providers/system_provider'
-import { taxes as taxesTable } from '@/lib/pglite/schema'
+import { taxesTable as taxesTable } from '@/lib/pglite/schema'
 import { eq } from 'drizzle-orm'
 import { uid } from 'uid'
 

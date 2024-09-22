@@ -47,7 +47,7 @@ export default function DashboardLayout({
             <SwitcherItem aria-label="Inventory" onClick={() => { router.push('/dash/inventory') }}>Inventory</SwitcherItem>
             <SwitcherItem aria-label="Analytics" onClick={() => { router.push('/dash/analytics') }}>Analytics</SwitcherItem>
             <SwitcherDivider />
-            <SwitcherItem aria-label="Customers" onClick={() => { router.push('/dash/customers') }}>Customers</SwitcherItem>
+            <SwitcherItem aria-label="Customers" onClick={() => { router.push('/dash/customers/overview') }}>Customers</SwitcherItem>
             <SwitcherItem aria-label="Users" onClick={() => { router.push('/dash/users') }}>Users</SwitcherItem>
             <SwitcherDivider />
             <SwitcherItem aria-label="Settings" onClick={() => router.push('/dash/settings')}>Settings</SwitcherItem>

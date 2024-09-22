@@ -1,9 +1,9 @@
 import React from 'react'
 import { Modal, TextInput, Form } from '@carbon/react'
 import { useTaxes } from './taxes_context'
-import { taxes } from '@/lib/pglite/schema'
+import { taxesTable } from '@/lib/pglite/schema'
 
-type TaxSchema = typeof taxes.$inferSelect
+type TaxSchema = typeof taxesTable.$inferSelect
 
 const SaveTaxModal = () => {
   const {

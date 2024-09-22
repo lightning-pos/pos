@@ -15,7 +15,7 @@ export default function CustomersLayout({
     <>
       <SideNav isFixedNav expanded={true} isChildOfHeader={false} aria-label="Customer navigation">
         <SideNavItems>
-          <SideNavLink renderIcon={Dashboard} large onClick={() => { router.push('/dash/customers') }}>
+          <SideNavLink renderIcon={Dashboard} large onClick={() => { router.push('/dash/customers/overview') }}>
             Overview
           </SideNavLink>
           <SideNavLink renderIcon={UserProfile} large onClick={() => { router.push('/dash/customers/segmentation') }}>
