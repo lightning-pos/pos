@@ -34,5 +34,16 @@
     "sql": [
       "ALTER TABLE \"orders\" ADD COLUMN \"total_amount\" integer;"
     ]
+  },
+  {
+    "idx": 3,
+    "when": 1726985684545,
+    "tag": "0003_overrated_radioactive_man",
+    "hash": "c3b53d957467bd9f2aa51cbdeb377250c5dc296434fcae3acf77b5f657a00320",
+    "sql": [
+      "CREATE TABLE IF NOT EXISTS \"item_taxes\" (\"id\" text PRIMARY KEY NOT NULL,\"item_id\" text,\"tax_id\" text,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
+      "DO $$ BEGIN ALTER TABLE \"item_taxes\" ADD CONSTRAINT \"item_taxes_item_id_items_id_fk\" FOREIGN KEY (\"item_id\") REFERENCES \"public\".\"items\"(\"id\") ON DELETE cascade ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;",
+      "DO $$ BEGIN ALTER TABLE \"item_taxes\" ADD CONSTRAINT \"item_taxes_tax_id_taxes_id_fk\" FOREIGN KEY (\"tax_id\") REFERENCES \"public\".\"taxes\"(\"id\") ON DELETE restrict ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;"
+    ]
   }
 ]
