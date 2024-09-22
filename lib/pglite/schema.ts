@@ -19,7 +19,6 @@ export const itemCategories = pgTable('item_categories', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-
 export const items = pgTable('items', {
   id: text('id').primaryKey(),
   categoryId: text('category_id').references(() => itemCategories.id, { onDelete: 'restrict' }),
@@ -29,7 +28,6 @@ export const items = pgTable('items', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
-
 
 export const orderState = pgEnum('order_state', ['open', 'closed', 'cancelled']);
 export const orders = pgTable('orders', {
@@ -54,6 +52,15 @@ export const orderItems = pgTable('order_items', {
   quantity: integer('quantity'),
   priceAmount: integer('price_amount'),
   taxAmount: integer('tax_amount'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const taxes = pgTable('taxes', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  rate: integer('rate').notNull(),
+  description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
