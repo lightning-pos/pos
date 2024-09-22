@@ -1,27 +1,30 @@
 import React from 'react'
 import { Modal, TextInput, Form } from '@carbon/react'
-import { useCustomers } from './customers_context'
+import { Customer } from '@/lib/pglite/schema'
 
-const SaveCustomerModal: React.FC = () => {
-  const {
-    isModalOpen,
-    editingCustomer,
-    setIsModalOpen,
-    setEditingCustomer,
-    handleAddOrUpdateCustomer
-  } = useCustomers()
+interface SaveCustomerModalProps {
+  isOpen: boolean
+  editingCustomer: Partial<Customer> | null
+  onClose: () => void
+  onSave: () => void
+  setEditingCustomer: React.Dispatch<React.SetStateAction<Partial<Customer> | null>>
+}
 
+const SaveCustomerModal: React.FC<SaveCustomerModalProps> = ({
+  isOpen,
+  editingCustomer,
+  onClose,
+  onSave,
+  setEditingCustomer
+}) => {
   return (
     <Modal
-      open={isModalOpen}
+      open={isOpen}
       modalHeading={editingCustomer?.id ? "Edit Customer" : "Add New Customer"}
       primaryButtonText={editingCustomer?.id ? "Update" : "Add"}
       secondaryButtonText="Cancel"
-      onRequestSubmit={handleAddOrUpdateCustomer}
-      onRequestClose={() => {
-        setIsModalOpen(false)
-        setEditingCustomer(null)
-      }}
+      onRequestSubmit={onSave}
+      onRequestClose={onClose}
     >
       <Form>
         <TextInput
