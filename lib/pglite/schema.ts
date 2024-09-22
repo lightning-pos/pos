@@ -29,6 +29,14 @@ export const items = pgTable('items', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+export const itemTaxes = pgTable('item_taxes', {
+  id: text('id').primaryKey(),
+  itemId: text('item_id').references(() => items.id, { onDelete: 'cascade' }),
+  taxId: text('tax_id').references(() => taxes.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 export const orderState = pgEnum('order_state', ['open', 'closed', 'cancelled']);
 export const orders = pgTable('orders', {
   id: text('id').primaryKey(),
@@ -65,3 +73,25 @@ export const taxes = pgTable('taxes', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+
+// Add these type definitions at the end of the file
+export type Customer = typeof customers.$inferSelect;
+export type NewCustomer = typeof customers.$inferInsert;
+
+export type ItemCategory = typeof itemCategories.$inferSelect;
+export type NewItemCategory = typeof itemCategories.$inferInsert;
+
+export type Item = typeof items.$inferSelect;
+export type NewItem = typeof items.$inferInsert;
+
+export type Order = typeof orders.$inferSelect;
+export type NewOrder = typeof orders.$inferInsert;
+
+export type OrderItem = typeof orderItems.$inferSelect;
+export type NewOrderItem = typeof orderItems.$inferInsert;
+
+export type Tax = typeof taxes.$inferSelect;
+export type NewTax = typeof taxes.$inferInsert;
+
+export type ItemTax = typeof itemTaxes.$inferSelect;
+export type NewItemTax = typeof itemTaxes.$inferInsert;

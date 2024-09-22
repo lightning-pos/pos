@@ -1,31 +1,47 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
-import { Add, Label } from '@carbon/icons-react'
+import { Add } from '@carbon/icons-react'
 import { Content, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination, DataTableSkeleton, Button, Modal, TextInput, Form, TableToolbar, TableToolbarContent, TableContainer, TextArea, OverflowMenu, OverflowMenuItem, Select, SelectItem, NumberInput, MultiSelect } from '@carbon/react'
-import { db } from '@/components/providers/system_provider'
-import { Item as ItemSchema, Category as CategorySchema, Tax as TaxSchema } from '@/lib/powersync/app_schema'
+import { drizzleDb } from '@/components/providers/system_provider'
+import { Item, ItemCategory, Tax, ItemTax, items, itemCategories, taxes, itemTaxes } from '@/lib/pglite/schema'
+import { eq, inArray } from 'drizzle-orm'
 import { uid } from 'uid'
+
+// Define a new interface that extends Item and includes taxIds
+interface ItemWithTaxIds extends Item {
+  taxIds: string;
+}
 
 const BaseMenu = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [items, setItems] = useState<ItemSchema[]>([])
-  const [categories, setCategories] = useState<CategorySchema[]>([])
+  const [itemsList, setItemsList] = useState<ItemWithTaxIds[]>([])
+  const [categories, setCategories] = useState<ItemCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<Partial<ItemSchema> | null>(null)
+  const [editingItem, setEditingItem] = useState<Partial<ItemWithTaxIds> | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [taxes, setTaxes] = useState<TaxSchema[]>([])
+  const [taxesList, setTaxesList] = useState<Tax[]>([])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const itemsResult: ItemSchema[] = await db.selectFrom('items').selectAll().execute()
-      setItems(itemsResult)
-      const categoriesResult: CategorySchema[] = await db.selectFrom('item_categories').selectAll().execute()
-      setCategories(categoriesResult)
-      const taxesResult: TaxSchema[] = await db.selectFrom('taxes').selectAll().execute()
-      setTaxes(taxesResult)
+      const itemsResult = await drizzleDb.select().from(items)
+      const itemTaxesResult = await drizzleDb.select().from(itemTaxes)
+
+      const itemsWithTaxIds: ItemWithTaxIds[] = itemsResult.map(item => ({
+        ...item,
+        taxIds: itemTaxesResult
+          .filter(it => it.itemId === item.id)
+          .map(it => it.taxId)
+          .join(',')
+      }))
+
+      setItemsList(itemsWithTaxIds)
+      const categoriesResult = await drizzleDb.select().from(itemCategories)
+      setCategories(categoriesResult as ItemCategory[])
+      const taxesResult = await drizzleDb.select().from(taxes)
+      setTaxesList(taxesResult)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -34,7 +50,7 @@ const BaseMenu = () => {
   }, [])
 
   useEffect(() => {
-    fetchData()
+    void fetchData()
   }, [fetchData])
 
   const headers = [
@@ -47,31 +63,54 @@ const BaseMenu = () => {
 
   const startIndex = (currentPage - 1) * pageSize
   const endIndex = startIndex + pageSize
-  const paginatedItems = items.slice(startIndex, endIndex).map(item => ({
+  const paginatedItems = itemsList.slice(startIndex, endIndex).map(item => ({
     ...item,
-    category: categories.find(cat => cat.id === item.item_category_id)?.name || 'Unknown',
-    taxes: item.tax_ids ? taxes.filter(tax => item.tax_ids?.split(',').includes(tax.id)).map(tax => tax.name).join(', ') : ''
+    category: categories.find(cat => cat.id === item.categoryId)?.name || 'Unknown',
+    taxes: item.taxIds ? taxesList.filter(tax => item.taxIds?.split(',').includes(tax.id)).map(tax => tax.name).join(', ') : ''
   }))
 
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingItem) return
     try {
-      const itemData = {
-        ...editingItem,
-        tax_ids: Array.isArray(editingItem.tax_ids) ? editingItem.tax_ids.join(',') : editingItem.tax_ids || ''
+      const itemData: Partial<Item> = {
+        name: editingItem.name,
+        description: editingItem.description,
+        price: Number(editingItem.price) * 100, // Convert to cents
+        categoryId: editingItem.categoryId,
       }
-      if (itemData.id) {
-        await db.updateTable('items')
+
+      if (editingItem.id) {
+        await drizzleDb.update(items)
           .set(itemData)
-          .where('id', '=', itemData.id)
+          .where(eq(items.id, editingItem.id))
+          .execute()
+
+        // Delete existing item_taxes
+        await drizzleDb.delete(itemTaxes)
+          .where(eq(itemTaxes.itemId, editingItem.id))
           .execute()
       } else {
-        await db.insertInto('items').values({ ...itemData, id: uid() }).execute()
+        const newItemId = uid()
+        await drizzleDb.insert(items).values({ ...itemData, id: newItemId } as Item).execute()
+        itemData.id = newItemId
       }
+
+      // Insert new item_taxes
+      if (editingItem.taxIds) {
+        const taxIdsArray = editingItem.taxIds.split(',')
+        for (const taxId of taxIdsArray) {
+          await drizzleDb.insert(itemTaxes).values({
+            id: uid(),
+            itemId: itemData.id!,
+            taxId: taxId,
+          } as ItemTax).execute()
+        }
+      }
+
       setIsModalOpen(false)
       setEditingItem(null)
-      fetchData()
+      void fetchData()
     } catch (error) {
       console.error('Error saving item:', error)
     }
@@ -80,12 +119,15 @@ const BaseMenu = () => {
   const handleDeleteItem = async () => {
     if (!editingItem?.id) return
     try {
-      await db.deleteFrom('items')
-        .where('id', '=', editingItem.id)
+      await drizzleDb.delete(itemTaxes)
+        .where(eq(itemTaxes.itemId, editingItem.id))
+        .execute()
+      await drizzleDb.delete(items)
+        .where(eq(items.id, editingItem.id))
         .execute()
       setIsDeleteModalOpen(false)
       setEditingItem(null)
-      fetchData()
+      void fetchData()
     } catch (error) {
       console.error('Error deleting item:', error)
     }
@@ -106,7 +148,7 @@ const BaseMenu = () => {
                 <Button
                   renderIcon={Add}
                   onClick={() => {
-                    setEditingItem({ name: '', description: '', price: 0, item_category_id: '', tax_ids: '' }) // Changed tax_ids to empty string
+                    setEditingItem({ name: '', description: '', price: 0, categoryId: '', taxIds: '' })
                     setIsModalOpen(true)
                   }}
                 >
@@ -132,11 +174,11 @@ const BaseMenu = () => {
                           <TableCell key={cell.id}>{cell.value}</TableCell>
                         ))}
                         <TableCell>
-                          <OverflowMenu label="Actions">
+                          <OverflowMenu aria-label="Actions">
                             <OverflowMenuItem
                               itemText="Edit"
                               onClick={() => {
-                                const item = items.find(i => i.id === row.id)
+                                const item = itemsList.find(i => i.id === row.id)
                                 setEditingItem(item || null)
                                 setIsModalOpen(true)
                               }}
@@ -146,7 +188,7 @@ const BaseMenu = () => {
                               hasDivider
                               isDelete
                               onClick={() => {
-                                const item = items.find(i => i.id === row.id)
+                                const item = itemsList.find(i => i.id === row.id)
                                 setEditingItem(item || null)
                                 setIsDeleteModalOpen(true)
                               }}
@@ -160,7 +202,7 @@ const BaseMenu = () => {
               )}
             </DataTable>
             <Pagination
-              totalItems={items.length}
+              totalItems={itemsList.length}
               backwardText="Previous page"
               forwardText="Next page"
               pageSize={pageSize}
@@ -202,16 +244,16 @@ const BaseMenu = () => {
           <NumberInput
             id="item-price"
             label="Price"
-            value={editingItem?.price || 0}
-            onChange={(e) => setEditingItem(prev => prev ? { ...prev, price: Number((e.target as HTMLInputElement).value) } : null)}
+            value={(editingItem?.price || 0) / 100} // Convert from cents to dollars
+            onChange={(e) => setEditingItem(prev => prev ? { ...prev, price: Number((e.target as HTMLInputElement).value) * 100 } : null)}
             step={0.01}
             min={0}
           />
           <Select
             id="item-category"
             labelText="Category"
-            value={editingItem?.item_category_id || ''}
-            onChange={(e) => setEditingItem(prev => prev ? { ...prev, item_category_id: e.target.value } : null)}
+            value={editingItem?.categoryId || ''}
+            onChange={(e) => setEditingItem(prev => prev ? { ...prev, categoryId: e.target.value } : null)}
             required
           >
             <SelectItem disabled hidden value="" text="Choose a category" />
@@ -223,18 +265,18 @@ const BaseMenu = () => {
             id="item-taxes"
             titleText="Taxes"
             label="Select taxes"
-            items={taxes.map(tax => ({ id: tax.id, label: `${tax.name} (${tax.rate}%)` }))}
+            items={taxesList.map(tax => ({ id: tax.id, label: `${tax.name} (${tax.rate / 100}%)` }))}
             selectedItems={
-              editingItem?.tax_ids
-                ? editingItem.tax_ids.split(',').map(id => ({
+              editingItem?.taxIds
+                ? editingItem.taxIds.split(',').map(id => ({
                   id,
-                  label: taxes.find(tax => tax.id === id)?.name || ''
+                  label: taxesList.find(tax => tax.id === id)?.name || ''
                 }))
                 : []
             }
             onChange={(e) => {
-              const selectedTaxIds = e.selectedItems?.map(item => item.id).join(',') || ''
-              setEditingItem(prev => prev ? { ...prev, tax_ids: selectedTaxIds } : null)
+              const selectedTaxIds = e.selectedItems?.map(item => (item as { id: string }).id).join(',') || ''
+              setEditingItem(prev => prev ? { ...prev, taxIds: selectedTaxIds } : null)
             }}
           />
         </Form>
