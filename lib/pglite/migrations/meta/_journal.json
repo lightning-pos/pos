@@ -15,6 +15,13 @@
       "when": 1726979882949,
       "tag": "0001_dizzy_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1726981535695,
+      "tag": "0002_complex_colleen_wing",
+      "breakpoints": true
     }
   ]
 }

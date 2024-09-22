@@ -39,6 +39,7 @@ export const orders = pgTable('orders', {
   netAmount: integer('net_amount'),
   discAmount: integer('disc_amount'),
   taxAmount: integer('tax_amount'),
+  totalAmount: integer('total_amount'),
   state: orderState('order_state'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

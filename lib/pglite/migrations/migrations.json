@@ -25,5 +25,14 @@
     "sql": [
       "CREATE TABLE IF NOT EXISTS \"taxes\" (\"id\" text PRIMARY KEY NOT NULL,\"name\" text NOT NULL,\"rate\" integer NOT NULL,\"description\" text,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());"
     ]
+  },
+  {
+    "idx": 2,
+    "when": 1726981535695,
+    "tag": "0002_complex_colleen_wing",
+    "hash": "0e555129f7df14a907b25469b825a1c1f7505de3c93e35eb5b5f51e1b89901af",
+    "sql": [
+      "ALTER TABLE \"orders\" ADD COLUMN \"total_amount\" integer;"
+    ]
   }
 ]
