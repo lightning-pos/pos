@@ -62,7 +62,7 @@ const ItemsContent = () => {
           title="Menu Items"
           description="Manage your menu items here. You can add, edit, or delete items as needed."
           headers={headers}
-          rows={rows}
+          tableRows={rows}
           loading={loading}
           totalItems={itemsList.length}
           currentPage={currentPage}

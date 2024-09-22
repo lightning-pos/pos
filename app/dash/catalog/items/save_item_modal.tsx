@@ -62,7 +62,7 @@ const SaveItemModal = () => {
           id="item-taxes"
           titleText="Taxes"
           label="Select taxes"
-          items={taxesList.map(tax => ({ id: tax.id, label: `${tax.name} (${tax.rate / 100}%)` }))}
+          items={taxesList.map(tax => ({ id: tax.id, label: `${tax.name}` }))}
           selectedItems={
             editingItem?.taxIds
               ? Array.from(new Set(editingItem.taxIds.split(','))).map(id => ({

@@ -53,7 +53,7 @@ const TaxesContent = () => {
           title="Tax"
           description="Manage your taxes here. You can add, edit, or delete taxes as needed."
           headers={headers}
-          rows={taxes}
+          tableRows={taxes}
           loading={loading}
           totalItems={taxes.length}
           currentPage={currentPage}

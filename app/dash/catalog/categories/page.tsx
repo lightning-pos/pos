@@ -34,6 +34,7 @@ const CategoriesContent = () => {
   }
 
   const handleEditCategory = (category: CategorySchema) => {
+    console.log('category', category)
     setEditingCategory(category)
     setIsModalOpen(true)
   }
@@ -50,7 +51,7 @@ const CategoriesContent = () => {
           title="Category"
           description="Manage your categories here. You can add, edit, or delete categories as needed."
           headers={headers}
-          rows={categories}
+          tableRows={categories}
           loading={loading}
           totalItems={categories.length}
           currentPage={currentPage}

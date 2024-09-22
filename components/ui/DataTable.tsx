@@ -6,7 +6,7 @@ interface DataTableProps<T> {
   title: string
   description: string
   headers: { key: string; header: string }[]
-  rows: T[]
+  tableRows: T[]
   loading: boolean
   totalItems: number
   currentPage: number
@@ -22,7 +22,7 @@ function DataTable<T extends { id: string }>({
   title,
   description,
   headers,
-  rows,
+  tableRows,
   loading,
   totalItems,
   currentPage,
@@ -46,7 +46,7 @@ function DataTable<T extends { id: string }>({
           </Button>
         </TableToolbarContent>
       </TableToolbar>
-      <CarbonDataTable rows={rows} headers={headers}>
+      <CarbonDataTable rows={tableRows} headers={headers}>
         {({ rows, headers, getTableProps }) => (
           <Table {...getTableProps()}>
             <TableHead>
@@ -67,13 +67,17 @@ function DataTable<T extends { id: string }>({
                     <OverflowMenu label="Actions">
                       <OverflowMenuItem
                         itemText="Edit"
-                        onClick={() => onEditClick(row as unknown as T)}
+                        onClick={() => {
+                          onEditClick(tableRows.find((r) => r.id === row.id) as T);
+                        }}
                       />
                       <OverflowMenuItem
                         itemText="Delete"
                         hasDivider
                         isDelete
-                        onClick={() => onDeleteClick(row as unknown as T)}
+                        onClick={() => {
+                          onDeleteClick(tableRows.find((r) => r.id === row.id) as T);
+                        }}
                       />
                     </OverflowMenu>
                   </TableCell>
