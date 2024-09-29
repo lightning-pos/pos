@@ -6,7 +6,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && apt-get -y instal
     libnss3 \
     libasound2 \
     libatk-adaptor \
-    libwebkit2gtk-4.0-dev \
+    libwebkit2gtk-4.1-dev \
     build-essential \
     curl \
     wget \
