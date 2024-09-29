@@ -1,56 +1,89 @@
-import React from 'react'
-import { Modal, TextInput, Form, TextArea, NumberInput, Select, SelectItem, MultiSelect } from '@carbon/react'
-import { useItems } from './items_context'
+import React, { useEffect, useState } from "react";
+import { Modal, TextInput, Form, TextArea, NumberInput, Select, SelectItem, MultiSelect, Button } from '@carbon/react'
+import { Item, ItemCategory, NewItem, Tax } from '@/lib/pglite/schema'
 
-const SaveItemModal = () => {
-  const {
-    editingItem,
-    isModalOpen,
-    handleSaveItem,
-    setEditingItem,
-    setIsModalOpen,
-    categories,
-    taxesList
-  } = useItems()
+interface SaveItemModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (item: Item | NewItem) => Promise<void>;
+  item: Item | NewItem | null;
+  categories: ItemCategory[];
+  taxesList: Tax[];
+  selectedTaxes: string[];
+}
+
+const SaveItemModal: React.FC<SaveItemModalProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  item,
+  categories,
+  taxesList,
+  selectedTaxes,
+}) => {
+  const [localItem, setLocalItem] = useState<Item | NewItem | null>(null);
+
+  useEffect(() => {
+    setLocalItem(item);
+  }, [item]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setLocalItem((prev) => prev ? { ...prev, [name]: value } : null);
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    setLocalItem((prev) => prev ? { ...prev, price: isNaN(value) ? 0 : value * 100 } : null);
+  };
+
+  const handleTaxChange = ({ selectedItems }: { selectedItems: { id: string }[] }) => {
+    const selectedTaxIds = selectedItems.map(item => item.id).join(',');
+    setLocalItem((prev) => prev ? { ...prev, taxIds: selectedTaxIds } : null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (localItem) {
+      onSave(localItem);
+    }
+  };
+
+  if (!isOpen || !localItem) return null;
 
   return (
-    <Modal
-      open={isModalOpen}
-      onRequestClose={() => {
-        setIsModalOpen(false)
-        setEditingItem(null)
-      }}
-      modalHeading={editingItem?.id ? "Edit Item" : "Add New Item"}
-      primaryButtonText="Save"
-      onRequestSubmit={handleSaveItem}
-    >
-      <Form onSubmit={handleSaveItem} className='flex flex-col gap-4'>
+    <Modal open={isOpen} onRequestClose={onClose} modalHeading={item?.id ? "Edit Item" : "Add New Item"} primaryButtonText={item?.id ? "Save Changes" : "Add Item"}>
+      <Form onSubmit={handleSubmit}>
         <TextInput
           id="item-name"
+          name="name"
           labelText="Item Name"
-          value={editingItem?.name || ''}
-          onChange={(e) => setEditingItem(prev => prev ? { ...prev, name: e.target.value } : null)}
+          value={localItem.name || ''}
+          onChange={handleInputChange}
           required
         />
         <TextArea
           id="item-description"
+          name="description"
           labelText="Description"
-          value={editingItem?.description || ''}
-          onChange={(e) => setEditingItem(prev => prev ? { ...prev, description: e.target.value } : null)}
+          value={localItem.description || ''}
+          onChange={handleInputChange}
         />
         <NumberInput
           id="item-price"
+          name="price"
           label="Price"
-          value={(editingItem?.price || 0) / 100}
-          onChange={(e, { value }) => setEditingItem(prev => prev ? { ...prev, price: Number(value) * 100 } : null)}
-          step={1}
+          value={(localItem.price || 0) / 100}
+          onChange={(event, state) => handlePriceChange(event as unknown as React.ChangeEvent<HTMLInputElement>)}
+          step={0.01}
           min={0}
         />
         <Select
           id="item-category"
+          name="categoryId"
           labelText="Category"
-          value={editingItem?.categoryId || ''}
-          onChange={(e) => setEditingItem(prev => prev ? { ...prev, categoryId: e.target.value } : null)}
+          value={localItem.categoryId || ''}
+          onChange={handleInputChange}
           required
         >
           <SelectItem disabled hidden value="" text="Choose a category" />
@@ -62,23 +95,17 @@ const SaveItemModal = () => {
           id="item-taxes"
           titleText="Taxes"
           label="Select taxes"
-          items={taxesList.map(tax => ({ id: tax.id, label: `${tax.name}` }))}
-          selectedItems={
-            editingItem?.taxIds
-              ? Array.from(new Set(editingItem.taxIds.split(','))).map(id => ({
-                id,
-                label: taxesList.find(tax => tax.id === id)?.name || ''
-              }))
+          items={taxesList.map(tax => ({ id: tax.id, label: tax.name }))}
+          initialSelectedItems={
+            selectedTaxes
+              ? selectedTaxes.map(tax => ({ id: tax }))
               : []
           }
-          onChange={(e) => {
-            const selectedTaxIds = Array.from(new Set(e.selectedItems?.map(item => (item as { id: string }).id) || [])).join(',')
-            setEditingItem(prev => prev ? { ...prev, taxIds: selectedTaxIds } : null)
-          }}
+          onChange={handleTaxChange}
         />
       </Form>
     </Modal>
-  )
-}
+  );
+};
 
-export default SaveItemModal
+export default SaveItemModal;

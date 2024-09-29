@@ -10,6 +10,7 @@ import React, { Suspense, useEffect } from 'react';
 import { wrapPowerSyncWithKysely } from '@powersync/kysely-driver';
 import { migrate } from '@/lib/pglite/migrator';
 import { PGliteWorker } from '@electric-sql/pglite/worker';
+import * as schema from '@/lib/pglite/schema';
 
 // eslint-disable-next-line react-hooks/rules-of-hooks
 Logger.useDefaults();
@@ -28,7 +29,7 @@ export const pgliteWorker = new PGliteWorker(
 );
 
 // @ts-ignore
-export const drizzleDb = drizzle(pgliteWorker);
+export const drizzleDb = drizzle(pgliteWorker, { schema });
 
 export const SystemProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {

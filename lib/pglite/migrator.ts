@@ -2,8 +2,9 @@ import migrations from '@/lib/pglite/migrations/migrations.json' assert { type: 
 import { column } from '@powersync/common';
 import { sql } from 'drizzle-orm';
 import { PgliteDatabase } from 'drizzle-orm/pglite';
+import * as schema from '@/lib/pglite/schema';
 
-export const migrate = async (drizzle: PgliteDatabase) => {
+export const migrate = async (drizzle: PgliteDatabase<typeof schema>) => {
   const migrationsTable = '__drizzle_migrations';
 
   // Create migrations table if it doesn't exist

@@ -1,49 +1,24 @@
 [
   {
     "idx": 0,
-    "when": 1726887512635,
-    "tag": "0000_woozy_bloodscream",
-    "hash": "9ea7b8f946160807ce1e4ba8dd97915d6ef3d4210b5661fa1efb7fb256123826",
+    "when": 1727595016367,
+    "tag": "0000_living_nitro",
+    "hash": "06fe6b829430615f7cc8bdbed6a22b51608cf2d855e5468f08bb78da890f950a",
     "sql": [
       "DO $$ BEGIN CREATE TYPE \"public\".\"order_state\" AS ENUM('open', 'closed', 'cancelled');EXCEPTION WHEN duplicate_object THEN null;END $$;",
       "CREATE TABLE IF NOT EXISTS \"customers\" (\"id\" text PRIMARY KEY NOT NULL,\"name\" text NOT NULL,\"email\" text,\"phone_number\" text,\"country_code\" text,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
       "CREATE TABLE IF NOT EXISTS \"item_categories\" (\"id\" text PRIMARY KEY NOT NULL,\"name\" text NOT NULL,\"description\" text,\"state\" text,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
-      "CREATE TABLE IF NOT EXISTS \"items\" (\"id\" text PRIMARY KEY NOT NULL,\"category_id\" text,\"name\" text NOT NULL,\"description\" text,\"price\" integer,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
+      "CREATE TABLE IF NOT EXISTS \"item_taxes\" (\"item_id\" text NOT NULL,\"tax_id\" text NOT NULL,CONSTRAINT \"item_taxes_item_id_tax_id_pk\" PRIMARY KEY(\"item_id\",\"tax_id\"));",
+      "CREATE TABLE IF NOT EXISTS \"items\" (\"id\" text PRIMARY KEY NOT NULL,\"category_id\" text NOT NULL,\"name\" text NOT NULL,\"description\" text,\"price\" integer DEFAULT 0 NOT NULL,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
       "CREATE TABLE IF NOT EXISTS \"order_items\" (\"id\" text PRIMARY KEY NOT NULL,\"order_id\" text,\"item_id\" text,\"item_name\" text,\"quantity\" integer,\"price_amount\" integer,\"tax_amount\" integer,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
-      "CREATE TABLE IF NOT EXISTS \"orders\" (\"id\" text PRIMARY KEY NOT NULL,\"customer_id\" text,\"customer_name\" text,\"customer_phone_number\" text,\"order_date\" timestamp DEFAULT now(),\"net_amount\" integer,\"disc_amount\" integer,\"tax_amount\" integer,\"order_state\" \"order_state\",\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
+      "CREATE TABLE IF NOT EXISTS \"orders\" (\"id\" text PRIMARY KEY NOT NULL,\"customer_id\" text,\"customer_name\" text,\"customer_phone_number\" text,\"order_date\" timestamp DEFAULT now(),\"net_amount\" integer,\"disc_amount\" integer,\"taxable_amount\" integer,\"tax_amount\" integer,\"total_amount\" integer,\"order_state\" \"order_state\",\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
+      "CREATE TABLE IF NOT EXISTS \"taxes\" (\"id\" text PRIMARY KEY NOT NULL,\"name\" text NOT NULL,\"rate\" integer NOT NULL,\"description\" text,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
+      "DO $$ BEGIN ALTER TABLE \"item_taxes\" ADD CONSTRAINT \"item_taxes_item_id_items_id_fk\" FOREIGN KEY (\"item_id\") REFERENCES \"public\".\"items\"(\"id\") ON DELETE cascade ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;",
+      "DO $$ BEGIN ALTER TABLE \"item_taxes\" ADD CONSTRAINT \"item_taxes_tax_id_taxes_id_fk\" FOREIGN KEY (\"tax_id\") REFERENCES \"public\".\"taxes\"(\"id\") ON DELETE restrict ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;",
       "DO $$ BEGIN ALTER TABLE \"items\" ADD CONSTRAINT \"items_category_id_item_categories_id_fk\" FOREIGN KEY (\"category_id\") REFERENCES \"public\".\"item_categories\"(\"id\") ON DELETE restrict ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;",
       "DO $$ BEGIN ALTER TABLE \"order_items\" ADD CONSTRAINT \"order_items_order_id_orders_id_fk\" FOREIGN KEY (\"order_id\") REFERENCES \"public\".\"orders\"(\"id\") ON DELETE cascade ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;",
       "DO $$ BEGIN ALTER TABLE \"order_items\" ADD CONSTRAINT \"order_items_item_id_items_id_fk\" FOREIGN KEY (\"item_id\") REFERENCES \"public\".\"items\"(\"id\") ON DELETE restrict ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;",
       "DO $$ BEGIN ALTER TABLE \"orders\" ADD CONSTRAINT \"orders_customer_id_customers_id_fk\" FOREIGN KEY (\"customer_id\") REFERENCES \"public\".\"customers\"(\"id\") ON DELETE restrict ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;"
-    ]
-  },
-  {
-    "idx": 1,
-    "when": 1726979882949,
-    "tag": "0001_dizzy_ghost_rider",
-    "hash": "44f6e5c86d6c1c26f1eef8095b3ab5a4475b7758afadf68f73e3f3d64f22978a",
-    "sql": [
-      "CREATE TABLE IF NOT EXISTS \"taxes\" (\"id\" text PRIMARY KEY NOT NULL,\"name\" text NOT NULL,\"rate\" integer NOT NULL,\"description\" text,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());"
-    ]
-  },
-  {
-    "idx": 2,
-    "when": 1726981535695,
-    "tag": "0002_complex_colleen_wing",
-    "hash": "0e555129f7df14a907b25469b825a1c1f7505de3c93e35eb5b5f51e1b89901af",
-    "sql": [
-      "ALTER TABLE \"orders\" ADD COLUMN \"total_amount\" integer;"
-    ]
-  },
-  {
-    "idx": 3,
-    "when": 1726985684545,
-    "tag": "0003_overrated_radioactive_man",
-    "hash": "c3b53d957467bd9f2aa51cbdeb377250c5dc296434fcae3acf77b5f657a00320",
-    "sql": [
-      "CREATE TABLE IF NOT EXISTS \"item_taxes\" (\"id\" text PRIMARY KEY NOT NULL,\"item_id\" text,\"tax_id\" text,\"created_at\" timestamp DEFAULT now(),\"updated_at\" timestamp DEFAULT now());",
-      "DO $$ BEGIN ALTER TABLE \"item_taxes\" ADD CONSTRAINT \"item_taxes_item_id_items_id_fk\" FOREIGN KEY (\"item_id\") REFERENCES \"public\".\"items\"(\"id\") ON DELETE cascade ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;",
-      "DO $$ BEGIN ALTER TABLE \"item_taxes\" ADD CONSTRAINT \"item_taxes_tax_id_taxes_id_fk\" FOREIGN KEY (\"tax_id\") REFERENCES \"public\".\"taxes\"(\"id\") ON DELETE restrict ON UPDATE no action;EXCEPTION WHEN duplicate_object THEN null;END $$;"
     ]
   }
 ]

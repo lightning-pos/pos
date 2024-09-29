@@ -1,4 +1,5 @@
-import { pgTable, integer, text, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { pgTable, integer, text, timestamp, pgEnum, pgSchema, primaryKey } from "drizzle-orm/pg-core";
 
 export const customersTable = pgTable('customers', {
   id: text('id').primaryKey(),
@@ -9,6 +10,8 @@ export const customersTable = pgTable('customers', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+export type Customer = typeof customersTable.$inferSelect;
+export type NewCustomer = typeof customersTable.$inferInsert;
 
 export const itemCategoriesTable = pgTable('item_categories', {
   id: text('id').primaryKey(),
@@ -18,24 +21,52 @@ export const itemCategoriesTable = pgTable('item_categories', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+export type ItemCategory = typeof itemCategoriesTable.$inferSelect;
+export type NewItemCategory = typeof itemCategoriesTable.$inferInsert;
+
+export const itemCategoryRelations = relations(itemCategoriesTable, ({ many }) => ({
+  items: many(itemsTable),
+}));
 
 export const itemsTable = pgTable('items', {
   id: text('id').primaryKey(),
-  categoryId: text('category_id').references(() => itemCategoriesTable.id, { onDelete: 'restrict' }),
+  categoryId: text('category_id').notNull().references(() => itemCategoriesTable.id, { onDelete: 'restrict' }),
   name: text('name').notNull(),
   description: text('description'),
-  price: integer('price'),
+  price: integer('price').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+export type Item = typeof itemsTable.$inferSelect;
+export type NewItem = typeof itemsTable.$inferInsert;
+
+export const itemRelations = relations(itemsTable, ({ one, many }) => ({
+  category: one(itemCategoriesTable, {
+    fields: [itemsTable.categoryId],
+    references: [itemCategoriesTable.id],
+  }),
+  taxes: many(itemTaxesTable),
+}));
 
 export const itemTaxesTable = pgTable('item_taxes', {
-  id: text('id').primaryKey(),
-  itemId: text('item_id').references(() => itemsTable.id, { onDelete: 'cascade' }),
-  taxId: text('tax_id').references(() => taxesTable.id, { onDelete: 'restrict' }),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
+  itemId: text('item_id').notNull().references(() => itemsTable.id, { onDelete: 'cascade' }),
+  taxId: text('tax_id').notNull().references(() => taxesTable.id, { onDelete: 'restrict' }),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.itemId, t.taxId] }),
+}));
+export type ItemTax = typeof itemTaxesTable.$inferSelect;
+export type NewItemTax = typeof itemTaxesTable.$inferInsert;
+
+export const itemTaxRelations = relations(itemTaxesTable, ({ one }) => ({
+  item: one(itemsTable, {
+    fields: [itemTaxesTable.itemId],
+    references: [itemsTable.id],
+  }),
+  tax: one(taxesTable, {
+    fields: [itemTaxesTable.taxId],
+    references: [taxesTable.id],
+  }),
+}));
 
 export const orderStateEnum = pgEnum('order_state', ['open', 'closed', 'cancelled']);
 export const ordersTable = pgTable('orders', {
@@ -46,12 +77,15 @@ export const ordersTable = pgTable('orders', {
   orderDate: timestamp('order_date').defaultNow(),
   netAmount: integer('net_amount'),
   discAmount: integer('disc_amount'),
+  taxableAmount: integer('taxable_amount'),
   taxAmount: integer('tax_amount'),
   totalAmount: integer('total_amount'),
   state: orderStateEnum('order_state'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+export type Order = typeof ordersTable.$inferSelect;
+export type NewOrder = typeof ordersTable.$inferInsert;
 
 export const orderItemsTable = pgTable('order_items', {
   id: text('id').primaryKey(),
@@ -64,6 +98,8 @@ export const orderItemsTable = pgTable('order_items', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+export type OrderItem = typeof orderItemsTable.$inferSelect;
+export type NewOrderItem = typeof orderItemsTable.$inferInsert;
 
 export const taxesTable = pgTable('taxes', {
   id: text('id').primaryKey(),
@@ -73,25 +109,9 @@ export const taxesTable = pgTable('taxes', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
-
-// Add these type definitions at the end of the file
-export type Customer = typeof customersTable.$inferSelect;
-export type NewCustomer = typeof customersTable.$inferInsert;
-
-export type ItemCategory = typeof itemCategoriesTable.$inferSelect;
-export type NewItemCategory = typeof itemCategoriesTable.$inferInsert;
-
-export type Item = typeof itemsTable.$inferSelect;
-export type NewItem = typeof itemsTable.$inferInsert;
-
-export type Order = typeof ordersTable.$inferSelect;
-export type NewOrder = typeof ordersTable.$inferInsert;
-
-export type OrderItem = typeof orderItemsTable.$inferSelect;
-export type NewOrderItem = typeof orderItemsTable.$inferInsert;
-
 export type Tax = typeof taxesTable.$inferSelect;
 export type NewTax = typeof taxesTable.$inferInsert;
 
-export type ItemTax = typeof itemTaxesTable.$inferSelect;
-export type NewItemTax = typeof itemTaxesTable.$inferInsert;
+export const taxRelations = relations(taxesTable, ({ many }) => ({
+  items: many(itemTaxesTable),
+}));
