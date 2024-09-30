@@ -1,10 +1,8 @@
 'use client';
-// @ts-ignore
-import { DrizzleContext } from "@drizzle/react-plugin";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import Database from "@tauri-apps/plugin-sql";
 import * as schema from "@/lib/db/sqlite/schema";
-import { Suspense, useEffect } from "react";
+import { createContext, Suspense } from "react";
 import { Loading } from "@carbon/react";
 import { migrate } from "@/lib/db/sqlite/migrator";
 
@@ -65,6 +63,8 @@ function isSelectQuery(sql: string): boolean {
   const selectRegex = /^\s*SELECT\b/i;
   return selectRegex.test(sql);
 }
+
+export const DrizzleContext = createContext<typeof db | null>(null);
 
 export const DrizzleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
