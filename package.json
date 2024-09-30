@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -36,6 +37,7 @@
     "uid": "^2.0.2"
   },
   "devDependencies": {
+    "@libsql/client": "^0.14.0",
     "@tauri-apps/cli": ">=2.0.0-rc.0",
     "@types/node": "^20",
     "@types/react": "^18",
