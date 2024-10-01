@@ -14,7 +14,7 @@ import {
   itemCategoriesTable,
   taxesTable,
 } from "@/lib/pglite/schema";
-import { drizzleDb } from "@/components/providers/system_provider";
+import { useDb } from "@/components/providers/drizzle_provider";
 
 interface TableRow extends Item {
   price_transformed: string;
@@ -25,9 +25,10 @@ interface TableRow extends Item {
 }
 
 const Items = () => {
+  const db = useDb()
+
   // Model States
   const [itemsList, setItemsList] = useState<TableRow[]>([]);
-  const [newItem, setNewItem] = useState<NewItem | null>(null);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [taxesList, setTaxesList] = useState<Tax[]>([]);
@@ -44,7 +45,7 @@ const Items = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     // Fetch items with category and taxes
-    const itemsResult = await drizzleDb.query.itemsTable.findMany({
+    const itemsResult = await db.query.itemsTable.findMany({
       with: {
         category: true,
         taxes: {
@@ -66,11 +67,11 @@ const Items = () => {
     setItemsList(tableRows);
 
     // Fetch categories
-    const categoriesResult = await drizzleDb.select().from(itemCategoriesTable);
+    const categoriesResult = await db.select().from(itemCategoriesTable);
     setCategories(categoriesResult);
 
     // Fetch taxes
-    const taxesResult = await drizzleDb.select().from(taxesTable);
+    const taxesResult = await db.select().from(taxesTable);
     setTaxesList(taxesResult);
 
     setLoading(false);

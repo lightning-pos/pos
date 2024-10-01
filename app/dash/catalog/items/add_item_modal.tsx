@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Modal, TextInput, TextArea, NumberInput, Select, SelectItem, MultiSelect, ModalProps } from '@carbon/react'
 import { NewItem, ItemCategory, Tax, itemsTable, itemTaxesTable } from '@/lib/pglite/schema'
-import { drizzleDb } from "@/components/providers/system_provider";
 import { uid } from "uid";
+import { useDb } from "@/components/providers/drizzle_provider";
 
 interface AddItemModalProps extends ModalProps {
   categories: ItemCategory[];
@@ -16,12 +16,15 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
   categories,
   taxesList,
 }) => {
+  const db = useDb()
   const [newItem, setNewItem] = useState<NewItem>({
     id: "",
     name: "",
     description: "",
     price: 0,
     categoryId: "",
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
   const [selectedTaxIds, setSelectedTaxIds] = useState<string[]>([]);
 
@@ -40,8 +43,9 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
   };
 
   const addItem = async (e: React.FormEvent) => {
-    await drizzleDb.transaction(async (tx) => {
-      await tx.insert(itemsTable).values({ ...newItem, id: uid() }).execute();
+    await db.transaction(async (tx) => {
+      newItem.id = uid()
+      await tx.insert(itemsTable).values(newItem).execute();
       for (const taxId of selectedTaxIds || []) {
         await tx.insert(itemTaxesTable).values({
           itemId: newItem.id,

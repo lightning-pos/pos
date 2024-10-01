@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Modal, TextInput, Form, TextArea, NumberInput, Select, SelectItem, MultiSelect, ModalProps } from '@carbon/react'
 import { Item, ItemCategory, itemsTable, itemTaxesTable, Tax } from '@/lib/pglite/schema'
-import { drizzleDb } from "@/components/providers/system_provider";
+import { useDb } from "@/components/providers/drizzle_provider";
 import { eq } from "drizzle-orm";
 
 interface EditItemModalProps extends ModalProps {
@@ -20,6 +20,7 @@ const EditItemModal: React.FC<EditItemModalProps> = ({
   categories,
   taxesList,
 }) => {
+  const db = useDb()
   const [localItem, setLocalItem] = useState<Item | null>(null);
   const [localSelectedTaxes, setLocalSelectedTaxes] = useState<string[]>([]);
 
@@ -45,12 +46,15 @@ const EditItemModal: React.FC<EditItemModalProps> = ({
   const editItem = async (e: React.FormEvent) => {
     if (!localItem) return;
 
-    await drizzleDb.transaction(async (tx) => {
+    await db.transaction(async (tx) => {
+      const currentUtcTime = new Date()
+      const currentLocalTime = new Date(currentUtcTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }))
       await tx.update(itemsTable).set({
         name: localItem.name,
         description: localItem.description,
         price: Number(localItem.price),
         categoryId: localItem.categoryId,
+        updatedAt: currentLocalTime,
       }).where(eq(itemsTable.id, localItem.id)).execute();
 
       await tx.delete(itemTaxesTable).where(eq(itemTaxesTable.itemId, localItem.id)).execute();

@@ -13,4 +13,5 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && apt-get -y instal
     libssl-dev \
     libgtk-3-dev \
     libayatana-appindicator3-dev \
-    librsvg2-dev
+    librsvg2-dev \
+    sqlite3

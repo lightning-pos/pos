@@ -49,8 +49,8 @@ export const itemRelations = relations(itemsTable, ({ one, many }) => ({
 }));
 
 export const itemTaxesTable = sqliteTable('item_taxes', {
-  itemId: text('item_id').notNull().references(() => itemsTable.id),
-  taxId: text('tax_id').notNull().references(() => taxesTable.id),
+  itemId: text('item_id').notNull().references(() => itemsTable.id, { onDelete: 'cascade' }),
+  taxId: text('tax_id').notNull().references(() => taxesTable.id, { onDelete: 'restrict' }),
 }, (t) => ({
   pk: primaryKey({ columns: [t.itemId, t.taxId] }),
 }));

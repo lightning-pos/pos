@@ -2,7 +2,7 @@ import React from 'react'
 import { Modal, ModalProps } from '@carbon/react'
 import { itemsTable } from '@/lib/pglite/schema'
 import { eq } from 'drizzle-orm'
-import { drizzleDb } from '@/components/providers/system_provider';
+import { useDb } from '@/components/providers/drizzle_provider';
 
 interface DeleteItemModalProps extends ModalProps {
   itemId: string;
@@ -16,14 +16,15 @@ const DeleteItemModal: React.FC<DeleteItemModalProps> = ({
   itemId,
   itemName
 }) => {
+  const db = useDb()
+
   const deleteItem = async (e: React.FormEvent<HTMLFormElement>) => {
-    await drizzleDb.delete(itemsTable)
+    await db.delete(itemsTable)
       .where(eq(itemsTable.id, itemId))
       .execute();
 
     onRequestSubmit?.(e);
   }
-
 
   return (
     <Modal
