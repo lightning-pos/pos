@@ -1,10 +1,8 @@
 'use client';
-import { drizzle } from "drizzle-orm/sqlite-proxy";
 import Database from "@tauri-apps/plugin-sql";
+import { drizzle, SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 import * as schema from "@/lib/db/sqlite/schema";
-import { createContext, Suspense } from "react";
-import { Loading } from "@carbon/react";
-import { migrate } from "@/lib/db/sqlite/migrator";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
 /**
  * Represents the result of a SELECT query.
@@ -12,47 +10,6 @@ import { migrate } from "@/lib/db/sqlite/migrator";
 export type SelectQueryResult = {
   [key: string]: any;
 };
-
-/**
- * Loads the sqlite database via the Tauri Proxy.
- */
-export const sqlite = await Database.load("sqlite:minnal.db");
-
-/**
- * The drizzle database instance.
- */
-export const db = drizzle<typeof schema>(
-  async (sql, params, method) => {
-    let rows: any = [];
-    let results = [];
-
-    // If the query is a SELECT, use the select method
-    if (isSelectQuery(sql)) {
-      rows = await sqlite.select(sql, params).catch((e: any) => {
-        console.error("SQL Error:", e);
-        return [];
-      });
-    } else {
-      // Otherwise, use the execute method
-      rows = await sqlite.execute(sql, params).catch((e: any) => {
-        console.error("SQL Error:", e);
-        return [];
-      });
-      return { rows: [] };
-    }
-
-    rows = rows.map((row: any) => {
-      return Object.values(row);
-    });
-
-    // If the method is "all", return all rows
-    results = method === "all" ? rows : rows[0];
-
-    return { rows: results };
-  },
-  // Pass the schema to the drizzle instance
-  { schema: schema, logger: true }
-);
 
 /**
  * Checks if the given SQL query is a SELECT query.
@@ -64,13 +21,79 @@ function isSelectQuery(sql: string): boolean {
   return selectRegex.test(sql);
 }
 
-export const DrizzleContext = createContext<typeof db | null>(null);
+export const DrizzleContext = createContext<SqliteRemoteDatabase<typeof schema> | null>(null);
 
-export const DrizzleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const DrizzleProvider = ({ children }: { children: React.ReactNode }) => {
+  const [sqlite, setSqlite] = useState<Database>()
+  const [db, setDb] = useState<SqliteRemoteDatabase<typeof schema>>()
+  useEffect(() => {
+    const loadDb = async () => {
+      // Load sqlite using tauri proxy
+      const sqlite = await Database.load("sqlite:minnal.db");
+      setSqlite(sqlite)
+    }
+    loadDb()
+  }, [])
+
+  useEffect(() => {
+    const loadDrizzle = async () => {
+      if (!sqlite) { return }
+      let db = drizzle<typeof schema>(
+        async (sql, params, method) => {
+          let rows: any = [];
+          let results = [];
+
+          // If the query is a SELECT, use the select method
+          if (isSelectQuery(sql)) {
+            rows = await sqlite.select(sql, params).catch((e: any) => {
+              console.error("SQL Error:", e);
+              return [];
+            });
+          } else {
+            // Otherwise, use the execute method
+            rows = await sqlite.execute(sql, params).catch((e: any) => {
+              console.error("SQL Error:", e);
+              return [];
+            });
+            return { rows: [] };
+          }
+
+          rows = rows.map((row: any) => {
+            return Object.values(row);
+          });
+
+          // If the method is "all", return all rows
+          results = method === "all" ? rows : rows[0];
+
+          return { rows: results };
+        },
+        // Pass the schema to the drizzle instance
+        { schema: schema, logger: true }
+      )
+      setDb(db)
+    }
+    loadDrizzle()
+  }, [sqlite])
+
   return (
-    <Suspense fallback={<Loading />}>
-      <DrizzleContext.Provider value={db}>{children}</DrizzleContext.Provider>
-    </Suspense>);
+    <>
+      {db ? (
+        <DrizzleContext.Provider value={db}>{children}</DrizzleContext.Provider>
+      ) : (
+        <div>DB connection failed...</div>
+      )}
+    </>
+  );
 };
-export default DrizzleProvider;
 
+export const useDb = () => {
+  const db = useContext(DrizzleContext)
+
+  if (!db) {
+    throw new Error('useDb must be used within a DrizzleProvider')
+  }
+
+  return db
+}
+
+export default DrizzleProvider;

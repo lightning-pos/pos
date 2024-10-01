@@ -1,6 +1,6 @@
 import React from 'react'
 import { Modal, TextInput, Form, TextArea } from '@carbon/react'
-import { NewItemCategory } from '@/lib/pglite/schema'
+import { NewItemCategory } from '@/lib/db/sqlite/schema'
 
 interface SaveCategoryModalProps {
   isOpen: boolean

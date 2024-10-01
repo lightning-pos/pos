@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Button, IconButton, Search, Modal, TextInput } from '@carbon/react'
-import { Add, Subtract, ShoppingCart, Close, UserAdd } from '@carbon/icons-react'
+import { Add, Subtract, ShoppingCart, Close } from '@carbon/icons-react'
 import { Item, Tax, Customer } from '@/lib/powersync/app_schema'
 import { db } from '@/components/providers/system_provider'
 import CheckoutModal from './checkout_modal'

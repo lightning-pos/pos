@@ -4,12 +4,14 @@ import { Content } from '@carbon/react'
 import DataTable from '@/components/ui/DataTable'
 import SaveCategoryModal from './save_category_modal'
 import DeleteCategoryModal from './delete_category_modal'
-import { itemCategoriesTable, ItemCategory, NewItemCategory } from '@/lib/pglite/schema'
-import { drizzleDb } from '@/components/providers/system_provider'
+import { itemCategoriesTable, ItemCategory, NewItemCategory } from '@/lib/db/sqlite/schema'
 import { eq } from 'drizzle-orm'
 import { uid } from 'uid'
+import { useDb } from '@/components/providers/drizzle_provider'
 
 const Categories = () => {
+  const db = useDb()
+
   const [categories, setCategories] = useState<ItemCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [editingCategory, setEditingCategory] = useState<NewItemCategory | null>(null)
@@ -21,14 +23,14 @@ const Categories = () => {
   const fetchCategories = useCallback(async () => {
     setLoading(true)
     try {
-      const result = await drizzleDb.select().from(itemCategoriesTable)
+      const result = await db.select().from(itemCategoriesTable)
       setCategories(result)
     } catch (error) {
       console.error('Error fetching categories:', error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [db])
 
   useEffect(() => {
     fetchCategories()
@@ -38,7 +40,7 @@ const Categories = () => {
     e.preventDefault()
     if (!editingCategory) return
     try {
-      await drizzleDb.insert(itemCategoriesTable).values({
+      await db.insert(itemCategoriesTable).values({
         id: uid(),
         name: editingCategory.name,
         description: editingCategory.description,
@@ -56,7 +58,7 @@ const Categories = () => {
     e.preventDefault()
     if (!editingCategory || !editingCategory.id) return
     try {
-      await drizzleDb.update(itemCategoriesTable)
+      await db.update(itemCategoriesTable)
         .set({
           name: editingCategory.name,
           description: editingCategory.description,
@@ -74,7 +76,7 @@ const Categories = () => {
   const handleDeleteCategory = async () => {
     if (!editingCategory?.id) return
     try {
-      await drizzleDb.delete(itemCategoriesTable)
+      await db.delete(itemCategoriesTable)
         .where(eq(itemCategoriesTable.id, editingCategory.id))
       setIsDeleteModalOpen(false)
       setEditingCategory(null)
