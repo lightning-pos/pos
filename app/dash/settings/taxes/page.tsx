@@ -1,26 +1,43 @@
 'use client'
-import React, { useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Content } from '@carbon/react'
-import { TaxesProvider, useTaxes } from './taxes_context'
 import DataTable from '@/components/ui/DataTable'
-import SaveTaxModal from './save_tax_modal'
+import AddTaxModal from './add_tax_modal'
+import EditTaxModal from './edit_tax_modal'
 import DeleteTaxModal from './delete_tax_modal'
-import { taxesTable } from '@/lib/pglite/schema'
+import { Tax, taxesTable } from '@/lib/db/sqlite/schema'
+import { useDb } from '@/components/providers/drizzle_provider'
 
-type TaxSchema = typeof taxesTable.$inferSelect
+const Taxes = () => {
+  const db = useDb()
 
-const TaxesContent = () => {
-  const {
-    taxes,
-    loading,
-    currentPage,
-    pageSize,
-    setCurrentPage,
-    setPageSize,
-    setEditingTax,
-    setIsModalOpen,
-    setIsDeleteModalOpen
-  } = useTaxes()
+  // Modal States
+  const [taxes, setTaxes] = useState<Tax[]>([])
+  const [selectedTax, setSelectedTax] = useState<Tax | null>()
+
+  // UI States
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+
+  const fetchTaxes = useCallback(async () => {
+    setLoading(true)
+    try {
+      const result = await db.select().from(taxesTable)
+      setTaxes(result)
+    } catch (error) {
+      console.error('Error fetching taxes:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [db])
+
+  useEffect(() => {
+    fetchTaxes()
+  }, [fetchTaxes])
 
   const headers = [
     { key: 'name', header: 'Name' },
@@ -29,27 +46,23 @@ const TaxesContent = () => {
   ]
 
   const handleAddTax = () => {
-    console.log('Adding new tax')
-    setEditingTax({ id: '', name: '', rate: 0, description: '' } as TaxSchema)
-    setIsModalOpen(true)
+    setIsAddModalOpen(true)
   }
 
-  const handleEditTax = (tax: TaxSchema) => {
-    console.log('Editing tax:', tax)
-    setEditingTax(tax)
-    setIsModalOpen(true)
+  const handleEditTax = (tax: Tax) => {
+    setSelectedTax(tax)
+    setIsEditModalOpen(true)
   }
 
-  const handleDeleteTax = (tax: TaxSchema) => {
-    console.log('Deleting tax:', tax)
-    setEditingTax(tax)
+  const handleDeleteTax = (tax: Tax) => {
+    setSelectedTax(tax)
     setIsDeleteModalOpen(true)
   }
 
   return (
     <Content className='min-h-[calc(100dvh-3rem)] p-0 flex flex-col'>
       <div className="p-4 flex-grow flex flex-col" style={{ height: 'calc(100vh - 12rem)' }}>
-        <DataTable<TaxSchema>
+        <DataTable<Tax>
           title="Tax"
           description="Manage your taxes here. You can add, edit, or delete taxes as needed."
           headers={headers}
@@ -60,7 +73,6 @@ const TaxesContent = () => {
           pageSize={pageSize}
           pageSizes={[10, 20, 30, 40, 50]}
           onPageChange={(page, pageSize) => {
-            console.log('Page changed to:', page, 'Page size:', pageSize)
             setCurrentPage(page)
             setPageSize(pageSize)
           }}
@@ -69,17 +81,45 @@ const TaxesContent = () => {
           onDeleteClick={handleDeleteTax}
         />
       </div>
-      <SaveTaxModal />
-      <DeleteTaxModal />
+      <AddTaxModal
+        open={isAddModalOpen}
+        onRequestClose={() => setIsAddModalOpen(false)}
+        onRequestSubmit={() => {
+          fetchTaxes()
+          setIsAddModalOpen(false)
+        }}
+      />
+      {selectedTax && (
+        <EditTaxModal
+          open={isEditModalOpen}
+          onRequestClose={() => {
+            setIsEditModalOpen(false)
+            setSelectedTax(null)
+          }}
+          onRequestSubmit={() => {
+            fetchTaxes()
+            setIsEditModalOpen(false)
+            setSelectedTax(null)
+          }}
+          tax={selectedTax}
+        />
+      )}
+      {selectedTax && (
+        <DeleteTaxModal
+          open={isDeleteModalOpen}
+          onRequestClose={() => {
+            setIsDeleteModalOpen(false)
+            setSelectedTax(null)
+          }}
+          onRequestSubmit={() => {
+            fetchTaxes()
+            setIsDeleteModalOpen(false)
+            setSelectedTax(null)
+          }}
+          tax={selectedTax}
+        />
+      )}
     </Content>
-  )
-}
-
-const Taxes = () => {
-  return (
-    <TaxesProvider>
-      <TaxesContent />
-    </TaxesProvider>
   )
 }
 
