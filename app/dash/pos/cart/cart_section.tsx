@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { Button, IconButton, Search, Modal, TextInput } from '@carbon/react'
-import { Add, Subtract, ShoppingCart, Close } from '@carbon/icons-react'
-// import { Item, Tax, Customer } from '@/lib/powersync/app_schema'
-// import { db } from '@/components/providers/system_provider'
-import CheckoutModal from '../checkout_modal'
-import { uid } from 'uid'
+import { Button } from '@carbon/react'
+import { ShoppingCart, Close } from '@carbon/icons-react'
+import CheckoutModal from './checkout_modal'
 import { useDb } from '@/components/providers/drizzle_provider'
-import { Customer, customersTable, Item, Tax, taxesTable } from '@/lib/db/sqlite/schema'
-import { eq, like } from 'drizzle-orm'
+import { Customer, Item, Tax, taxesTable } from '@/lib/db/sqlite/schema'
 import CustomerSelect from './customer_select'
+import CartItem from './cart_item'
 
 export interface CartItem extends Item {
   quantity: number;
-  taxes?: { id: string; name: string; rate: number }[];
+  taxIds?: string[];
 }
 
 interface CartSectionProps {
@@ -47,14 +44,12 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     })
   }
 
-  const calculateItemTax = (item: CartItem) => {
-    if (!item.taxes) return 0
-    const itemTaxes = taxes.filter(tax => item.taxes?.some(t => t.id === tax.id))
-    return itemTaxes.reduce((sum, tax) => sum + (item.price || 0) * item.quantity * ((tax.rate || 0) / 100), 0)
-  }
-
   const calculateTotalTax = () => {
-    return cart.reduce((sum, item) => sum + calculateItemTax(item), 0)
+    return cart.reduce((sum, item) => {
+      if (!item.taxIds) return sum
+      const itemTaxes = taxes.filter(tax => item.taxIds?.some(t => t === tax.id))
+      return sum + itemTaxes.reduce((taxSum, tax) => taxSum + (item.price || 0) * item.quantity * ((tax.rate || 0) / 100), 0)
+    }, 0)
   }
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0)
@@ -74,7 +69,6 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     setCart([])
     setIsCheckoutModalOpen(false)
     setSelectedCustomer(null)
-    setCustomerSearch('')
   }
 
   return (
@@ -83,38 +77,25 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
 
       <div className='flex-grow overflow-y-auto py-4'>
         {cart.map((item) => (
-          <div key={item.id} className='flex flex-col mb-4'>
-            <div className='flex justify-between items-center'>
-              <span>{item.name}</span>
-              <div className='flex items-center'>
-                <IconButton size='sm' label="Decrease" onClick={() => updateQuantity(item.id, -1)}>
-                  <Subtract size={16} />
-                </IconButton>
-                <span className='mx-2'>{item.quantity}</span>
-                <IconButton size='sm' label="Increase" onClick={() => updateQuantity(item.id, 1)}>
-                  <Add size={16} />
-                </IconButton>
-                <span className='ml-4'>Rs. {((item.price || 0) * item.quantity).toFixed(2)}</span>
-              </div>
-            </div>
-            <div className='text-sm'>
-              Tax: Rs. {calculateItemTax(item).toFixed(2)}
-            </div>
-          </div>
+          <CartItem
+            key={item.id}
+            item={item}
+            updateQuantity={updateQuantity}
+          />
         ))}
       </div>
-      <div className='mt-4 p-4'>
+      <div className='mt-4 py-4'>
         <div className='flex justify-between items-center'>
           <span>Subtotal:</span>
-          <span>Rs. {subtotal.toFixed(2)}</span>
+          <span>Rs. {(subtotal / 100).toFixed(2)}</span>
         </div>
         <div className='flex justify-between items-center'>
           <span>Tax:</span>
-          <span>Rs. {totalTax.toFixed(2)}</span>
+          <span>Rs. {(totalTax / 100).toFixed(2)}</span>
         </div>
         <div className='flex justify-between items-center font-bold'>
           <span>Total:</span>
-          <span>Rs. {totalAmount.toFixed(2)}</span>
+          <span>Rs. {(totalAmount / 100).toFixed(2)}</span>
         </div>
       </div>
       <div className='flex flex-row items-center my-4 w-full p-0'>
