@@ -1,7 +1,7 @@
 'use client'
 import { Column, Content, Grid } from '@carbon/react'
 import { useState } from 'react'
-import CartSection, { CartItem } from './cart_section'
+import CartSection, { CartItem } from './cart/cart_section'
 import { Item } from '@/lib/db/sqlite/schema'
 import CategoriesSection from './categories_section'
 import ItemsSection from './items_section'

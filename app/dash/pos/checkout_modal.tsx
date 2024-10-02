@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Modal, RadioButtonGroup, RadioButton } from '@carbon/react'
 // import { db } from '@/components/providers/system_provider'
-import { CartItem } from './cart_section'
+import { CartItem } from './cart/cart_section'
 // import { Customer } from '@/lib/powersync/app_schema'
 import { uid } from 'uid'
 import { Customer, orderItemsTable } from '@/lib/db/sqlite/schema'
