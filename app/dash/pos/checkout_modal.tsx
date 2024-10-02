@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
 import { Modal, RadioButtonGroup, RadioButton } from '@carbon/react'
-import { db } from '@/components/providers/system_provider'
+// import { db } from '@/components/providers/system_provider'
 import { CartItem } from './cart_section'
-import { Customer } from '@/lib/powersync/app_schema'
+// import { Customer } from '@/lib/powersync/app_schema'
 import { uid } from 'uid'
+import { Customer, orderItemsTable } from '@/lib/db/sqlite/schema'
+import { useDb } from '@/components/providers/drizzle_provider'
+import { ordersTable } from '@/lib/pglite/schema'
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -26,6 +29,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   total,
   customer
 }) => {
+  const db = useDb()
+
   const [paymentMethod, setPaymentMethod] = useState('cash')
 
   const handleCheckout = async () => {
@@ -47,22 +52,22 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     try {
       // Insert the order
-      await db.insertInto('orders').values({
+      await db.insert(ordersTable).values({
         id: orderId,
-        total_amount: total,
-        payment_method: paymentMethod,
-        created_at: Date.now(),
+        totalAmount: total,
+        paymentMethod: paymentMethod,
+        createdAt: Date.now(),
         status: 'completed',
         subtotal: subtotal,
         tax: tax,
-        customer_id: customer.id,
-        customer_name: customer.name,
-        customer_phone_number: customer.phone_number,
+        customerId: customer.id,
+        customerName: customer.name,
+        customerPhoneNumber: customer.phoneNumber,
       }).execute()
 
       // Insert order items
       for (const item of orderItems) {
-        await db.insertInto('order_items').values(item).execute()
+        await db.insert(orderItemsTable).values(item).execute()
       }
 
       onCheckoutComplete()
@@ -82,7 +87,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       onRequestSubmit={handleCheckout}
     >
       <div className='mb-4'>
-        <strong>Customer:</strong> {customer?.name} ({customer?.phone_number})
+        <strong>Customer:</strong> {customer?.name} ({customer?.phoneNumber})
       </div>
       <div className='mb-4'>
         <strong>Subtotal:</strong> Rs. {subtotal.toFixed(2)}

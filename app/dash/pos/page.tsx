@@ -1,20 +1,24 @@
 'use client'
-import { db } from '@/components/providers/system_provider'
-import { Category, Item } from '@/lib/powersync/app_schema'
+// import { db } from '@/components/providers/system_provider'
+// import { Category, Item } from '@/lib/powersync/app_schema'
 import { AspectRatio, ClickableTile, Column, Content, Grid } from '@carbon/react'
 import { useState, useEffect } from 'react'
 import { Corn } from '@carbon/icons-react'
 import CartSection, { CartItem } from './cart_section'
+import { useDb } from '@/components/providers/drizzle_provider'
+import { itemCategoriesTable, itemsTable, ItemCategory, Item } from '@/lib/db/sqlite/schema'
+import { eq } from 'drizzle-orm'
 
 const POS = () => {
-  const [categories, setCategories] = useState<Array<Category>>([])
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+  const db = useDb()
+  const [categories, setCategories] = useState<Array<ItemCategory>>([])
+  const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(null)
   const [items, setItems] = useState<Array<Item>>([])
   const [cart, setCart] = useState<Array<CartItem>>([])
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const result = await db.selectFrom('item_categories').selectAll().execute()
+      const result = await db.select().from(itemCategoriesTable).execute()
       setCategories(result)
     }
     fetchCategories()
@@ -24,9 +28,9 @@ const POS = () => {
     const fetchItems = async () => {
       if (selectedCategory) {
         const result = await db
-          .selectFrom('items')
-          .selectAll()
-          .where('item_category_id', '=', selectedCategory.id)
+          .select()
+          .from(itemsTable)
+          .where(eq(itemsTable.categoryId, selectedCategory.id))
           .execute()
         setItems(result)
       }

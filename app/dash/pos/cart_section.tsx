@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { Button, IconButton, Search, Modal, TextInput } from '@carbon/react'
 import { Add, Subtract, ShoppingCart, Close } from '@carbon/icons-react'
-import { Item, Tax, Customer } from '@/lib/powersync/app_schema'
-import { db } from '@/components/providers/system_provider'
+// import { Item, Tax, Customer } from '@/lib/powersync/app_schema'
+// import { db } from '@/components/providers/system_provider'
 import CheckoutModal from './checkout_modal'
 import { uid } from 'uid'
+import { useDb } from '@/components/providers/drizzle_provider'
+import { Customer, customersTable, Item, Tax, taxesTable } from '@/lib/db/sqlite/schema'
+import { eq, like } from 'drizzle-orm'
 
 export interface CartItem extends Item {
   quantity: number;
@@ -17,6 +20,7 @@ interface CartSectionProps {
 }
 
 const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
+  const db = useDb()
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
   const [checkoutModalKey, setCheckoutModalKey] = useState(0)
   const [taxes, setTaxes] = useState<Tax[]>([])
@@ -27,7 +31,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
 
   useEffect(() => {
     const fetchTaxes = async () => {
-      const taxesResult = await db.selectFrom('taxes').selectAll().execute()
+      const taxesResult = await db.select().from(taxesTable).execute()
       setTaxes(taxesResult)
     }
     fetchTaxes()
@@ -37,11 +41,9 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     const searchCustomers = async () => {
       if (customerSearch.length > 2) {
         const results = await db
-          .selectFrom('customers')
-          .selectAll()
-          .where((eb) => eb.or([
-            eb('phone_number', 'like', `%${customerSearch}%`),
-          ]))
+          .select()
+          .from(customersTable)
+          .where(like(customersTable.phoneNumber, `%${customerSearch}%`))
           .limit(3)
           .execute()
         setSearchResults(results)
@@ -65,8 +67,8 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
   }
 
   const calculateItemTax = (item: CartItem) => {
-    if (!item.tax_ids) return 0
-    const itemTaxes = taxes.filter(tax => item.tax_ids?.includes(tax.id))
+    if (!item.taxes) return 0
+    const itemTaxes = taxes.filter(tax => item.taxes?.some(t => t.id === tax.id))
     return itemTaxes.reduce((sum, tax) => sum + (item.price || 0) * item.quantity * ((tax.rate || 0) / 100), 0)
   }
 
@@ -109,30 +111,42 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
 
       try {
         // Check if customer already exists
-        const existingCustomer = await db
-          .selectFrom('customers')
-          .selectAll()
-          .where('phone_number', '=', phoneNumber)
-          .executeTakeFirst()
+        const existingCustomer = await db.query.customersTable.findFirst({
+          where: eq(customersTable.phoneNumber, phoneNumber)
+        })
 
         if (existingCustomer) {
           setSelectedCustomer(existingCustomer)
         } else {
           // Add new customer
           const newCustomerId = await db
-            .insertInto('customers')
-            .values({ id: uid(), phone_number: phoneNumber })
-            .returning('id')
-            .executeTakeFirstOrThrow()
+            .insert(customersTable)
+            .values({
+              id: uid(),
+              phoneNumber: phoneNumber,
+              name: '',
+              email: '',
+              countryCode: ''
+            })
+            .returning({ id: customersTable.id })
+            .execute()
 
           const newCustomer = {
-            id: newCustomerId.id,
-            phone_number: phoneNumber,
+            id: newCustomerId[0].id,
+            phoneNumber: phoneNumber,
             name: null,
             email: null,
-            country_code: null
+            countryCode: null
           }
-          setSelectedCustomer(newCustomer)
+          setSelectedCustomer({
+            ...newCustomer,
+            name: newCustomer.name || '',
+            email: newCustomer.email || null,
+            phoneNumber: newCustomer.phoneNumber || null,
+            countryCode: newCustomer.countryCode || null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
         }
 
         setCustomerInput('')
@@ -166,7 +180,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
           />
         ) : (
           <div className='flex items-center gap-2 mt-2 p-2'>
-            <span>Customer: {selectedCustomer.name || 'No Name'} ({selectedCustomer.phone_number})</span>
+            <span>Customer: {selectedCustomer.name || 'No Name'} ({selectedCustomer.phoneNumber})</span>
             <span className='mr-2 cursor-pointer text-blue-500' onClick={clearSelectedCustomer}>Clear</span>
           </div>
         )}
@@ -174,7 +188,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
           <ul>
             {searchResults.map(customer => (
               <li key={customer.id} onClick={() => setSelectedCustomer(customer)} className='px-2 cursor-pointer'>
-                {customer.phone_number}
+                {customer.phoneNumber}
               </li>
             ))}
           </ul>
