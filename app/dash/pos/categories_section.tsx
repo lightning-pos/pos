@@ -17,7 +17,7 @@ const CategoriesSection: React.FC<CategoriesSectionProps> = ({ onCategorySelect 
       setCategories(result)
     }
     fetchCategories()
-  }, [])
+  }, [db])
 
   return (
     <>

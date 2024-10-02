@@ -24,7 +24,7 @@ const ItemsSection: React.FC<ItemsSectionProps> = ({ selectedCategoryId, onAddTo
       }
     }
     fetchItems()
-  }, [selectedCategoryId])
+  }, [selectedCategoryId, db.query.itemsTable])
 
   return (
     <Grid narrow className='mx-4'>

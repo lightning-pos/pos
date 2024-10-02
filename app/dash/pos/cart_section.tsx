@@ -8,6 +8,7 @@ import { uid } from 'uid'
 import { useDb } from '@/components/providers/drizzle_provider'
 import { Customer, customersTable, Item, Tax, taxesTable } from '@/lib/db/sqlite/schema'
 import { eq, like } from 'drizzle-orm'
+import CustomerSelect from './customer_select'
 
 export interface CartItem extends Item {
   quantity: number;
@@ -24,10 +25,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
   const [checkoutModalKey, setCheckoutModalKey] = useState(0)
   const [taxes, setTaxes] = useState<Tax[]>([])
-  const [customerSearch, setCustomerSearch] = useState('')
-  const [searchResults, setSearchResults] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
-  const [customerInput, setCustomerInput] = useState('')
 
   useEffect(() => {
     const fetchTaxes = async () => {
@@ -35,24 +33,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
       setTaxes(taxesResult)
     }
     fetchTaxes()
-  }, [])
-
-  useEffect(() => {
-    const searchCustomers = async () => {
-      if (customerSearch.length > 2) {
-        const results = await db
-          .select()
-          .from(customersTable)
-          .where(like(customersTable.phoneNumber, `%${customerSearch}%`))
-          .limit(3)
-          .execute()
-        setSearchResults(results)
-      } else {
-        setSearchResults([])
-      }
-    }
-    searchCustomers()
-  }, [customerSearch])
+  }, [db])
 
   const updateQuantity = (itemId: string, change: number) => {
     setCart(prevCart => {
@@ -96,104 +77,9 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     setCustomerSearch('')
   }
 
-  const handleCustomerInput = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      const phoneNumber = customerInput.trim()
-      if (!phoneNumber) return
-
-      if (phoneNumber.length !== 10) {
-        if (searchResults.length > 0) {
-          setSelectedCustomer(searchResults[0])
-        }
-        return
-      }
-
-      try {
-        // Check if customer already exists
-        const existingCustomer = await db.query.customersTable.findFirst({
-          where: eq(customersTable.phoneNumber, phoneNumber)
-        })
-
-        if (existingCustomer) {
-          setSelectedCustomer(existingCustomer)
-        } else {
-          // Add new customer
-          const newCustomerId = await db
-            .insert(customersTable)
-            .values({
-              id: uid(),
-              phoneNumber: phoneNumber,
-              name: '',
-              email: '',
-              countryCode: ''
-            })
-            .returning({ id: customersTable.id })
-            .execute()
-
-          const newCustomer = {
-            id: newCustomerId[0].id,
-            phoneNumber: phoneNumber,
-            name: null,
-            email: null,
-            countryCode: null
-          }
-          setSelectedCustomer({
-            ...newCustomer,
-            name: newCustomer.name || '',
-            email: newCustomer.email || null,
-            phoneNumber: newCustomer.phoneNumber || null,
-            countryCode: newCustomer.countryCode || null,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-        }
-
-        setCustomerInput('')
-        setSearchResults([])
-      } catch (error) {
-        console.error('Error processing customer:', error)
-        alert('Failed to process customer. Please try again.')
-      }
-    } else {
-      setCustomerSearch(e.currentTarget.value)
-    }
-  }
-
-  const clearSelectedCustomer = () => {
-    setSelectedCustomer(null);
-    setCustomerInput('');
-    setSearchResults([]);
-  };
-
   return (
     <div className='flex flex-col h-[calc(100dvh-4rem)]'>
-      <div className='mb-4'>
-        {!selectedCustomer ? (
-          <TextInput
-            id="customer-input"
-            labelText="Customer Phone Number"
-            placeholder="Enter phone number and press Enter"
-            value={customerInput}
-            onChange={(e) => setCustomerInput(e.target.value)}
-            onKeyUp={handleCustomerInput}
-          />
-        ) : (
-          <div className='flex items-center gap-2 mt-2 p-2'>
-            <span>Customer: {selectedCustomer.name || 'No Name'} ({selectedCustomer.phoneNumber})</span>
-            <span className='mr-2 cursor-pointer text-blue-500' onClick={clearSelectedCustomer}>Clear</span>
-          </div>
-        )}
-        {!selectedCustomer && (
-          <ul>
-            {searchResults.map(customer => (
-              <li key={customer.id} onClick={() => setSelectedCustomer(customer)} className='px-2 cursor-pointer'>
-                {customer.phoneNumber}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <CustomerSelect selectedCustomer={selectedCustomer} setSelectedCustomer={setSelectedCustomer} />
 
       <div className='flex-grow overflow-y-auto py-4'>
         {cart.map((item) => (
