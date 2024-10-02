@@ -114,10 +114,10 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
       </div>
       <CheckoutModal
         key={checkoutModalKey}
-        isOpen={isCheckoutModalOpen}
-        onClose={() => setIsCheckoutModalOpen(false)}
+        open={isCheckoutModalOpen}
+        onRequestClose={() => setIsCheckoutModalOpen(false)}
+        onRequestSubmit={handleCheckoutComplete}
         cart={cart}
-        onCheckoutComplete={handleCheckoutComplete}
         subtotal={subtotal}
         tax={totalTax}
         total={totalAmount}

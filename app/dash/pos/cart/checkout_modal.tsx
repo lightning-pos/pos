@@ -1,18 +1,12 @@
 import React, { useState } from 'react'
-import { Modal, RadioButtonGroup, RadioButton } from '@carbon/react'
-// import { db } from '@/components/providers/system_provider'
+import { Modal, RadioButtonGroup, RadioButton, ModalProps } from '@carbon/react'
 import { CartItem } from './cart_section'
-// import { Customer } from '@/lib/powersync/app_schema'
 import { uid } from 'uid'
-import { Customer, orderItemsTable } from '@/lib/db/sqlite/schema'
+import { Customer, OrderItem, orderItemsTable, ordersTable, taxesTable } from '@/lib/db/sqlite/schema'
 import { useDb } from '@/components/providers/drizzle_provider'
-import { ordersTable } from '@/lib/pglite/schema'
 
-interface CheckoutModalProps {
-  isOpen: boolean
-  onClose: () => void
+interface CheckoutModalProps extends ModalProps {
   cart: CartItem[]
-  onCheckoutComplete: () => void
   subtotal: number
   tax: number
   total: number
@@ -20,10 +14,10 @@ interface CheckoutModalProps {
 }
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
-  isOpen,
-  onClose,
+  open,
+  onRequestClose,
+  onRequestSubmit,
   cart,
-  onCheckoutComplete,
   subtotal,
   tax,
   total,
@@ -33,44 +27,56 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const [paymentMethod, setPaymentMethod] = useState('cash')
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
     if (!customer) {
       alert('No customer selected')
       return
     }
 
     const orderId = uid()
-    const orderItems = cart.map(item => ({
-      id: uid(),
-      order_id: orderId,
-      item_id: item.id,
-      item_name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      tax: item.taxes?.reduce((sum, tax) => sum + (item.price || 0) * item.quantity * ((tax.rate || 0) / 100), 0) || 0,
-    }))
+    const taxes = await db.select().from(taxesTable)
+    const orderItems: OrderItem[] = cart.map(item => {
+      const itemTaxAmount = item.taxIds?.reduce((sum, taxId) => {
+        const tax = taxes.find(t => t.id === taxId)
+        return sum + (item.price || 0) * item.quantity * ((tax?.rate || 0) / 100)
+      }, 0) || 0
+
+      return {
+        id: uid(),
+        orderId: orderId,
+        itemId: item.id,
+        itemName: item.name,
+        quantity: item.quantity,
+        priceAmount: item.price,
+        taxAmount: itemTaxAmount,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    })
 
     try {
       // Insert the order
       await db.insert(ordersTable).values({
         id: orderId,
-        totalAmount: total,
-        paymentMethod: paymentMethod,
-        createdAt: Date.now(),
-        status: 'completed',
-        subtotal: subtotal,
-        tax: tax,
         customerId: customer.id,
         customerName: customer.name,
         customerPhoneNumber: customer.phoneNumber,
+        orderDate: new Date(),
+        netAmount: subtotal,
+        discAmount: 0, // Assuming no discount for now
+        taxableAmount: subtotal,
+        taxAmount: tax,
+        totalAmount: total,
+        state: 'completed',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       }).execute()
 
       // Insert order items
-      for (const item of orderItems) {
-        await db.insert(orderItemsTable).values(item).execute()
-      }
+      await db.insert(orderItemsTable).values(orderItems).execute()
 
-      onCheckoutComplete()
+      onRequestSubmit?.(e)
     } catch (error) {
       console.error('Error during checkout:', error)
       alert('An error occurred during checkout. Please try again.')
@@ -79,8 +85,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   return (
     <Modal
-      open={isOpen}
-      onRequestClose={onClose}
+      open={open}
+      onRequestClose={onRequestClose}
       modalHeading="Checkout"
       primaryButtonText="Complete Order"
       secondaryButtonText="Cancel"
