@@ -1,42 +1,14 @@
 'use client'
-// import { db } from '@/components/providers/system_provider'
-// import { Category, Item } from '@/lib/powersync/app_schema'
-import { AspectRatio, ClickableTile, Column, Content, Grid } from '@carbon/react'
-import { useState, useEffect } from 'react'
-import { Corn } from '@carbon/icons-react'
+import { Column, Content, Grid } from '@carbon/react'
+import { useState } from 'react'
 import CartSection, { CartItem } from './cart_section'
-import { useDb } from '@/components/providers/drizzle_provider'
-import { itemCategoriesTable, itemsTable, ItemCategory, Item } from '@/lib/db/sqlite/schema'
-import { eq } from 'drizzle-orm'
+import { Item } from '@/lib/db/sqlite/schema'
+import CategoriesSection from './categories_section'
+import ItemsSection from './items_section'
 
 const POS = () => {
-  const db = useDb()
-  const [categories, setCategories] = useState<Array<ItemCategory>>([])
-  const [selectedCategory, setSelectedCategory] = useState<ItemCategory | null>(null)
-  const [items, setItems] = useState<Array<Item>>([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [cart, setCart] = useState<Array<CartItem>>([])
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const result = await db.select().from(itemCategoriesTable).execute()
-      setCategories(result)
-    }
-    fetchCategories()
-  }, [])
-
-  useEffect(() => {
-    const fetchItems = async () => {
-      if (selectedCategory) {
-        const result = await db
-          .select()
-          .from(itemsTable)
-          .where(eq(itemsTable.categoryId, selectedCategory.id))
-          .execute()
-        setItems(result)
-      }
-    }
-    fetchItems()
-  }, [selectedCategory])
 
   const addToCart = (item: Item) => {
     setCart(prevCart => {
@@ -55,27 +27,10 @@ const POS = () => {
     <Content className='min-h-[calc(100dvh-3rem)] p-0 pt-4'>
       <Grid className='m-auto p-0'>
         <Column lg={2} className='m-0 p-0 max-h-[calc(100dvh-4rem)]'>
-          {categories.map((category) => (
-            <ClickableTile key={category.id} onClick={() => setSelectedCategory(category)}>
-              {category.name}
-            </ClickableTile>
-          ))}
+          <CategoriesSection onCategorySelect={setSelectedCategoryId} />
         </Column>
-        <Column lg={10} className='m-0 p-0  max-h-[calc(100dvh-4rem)]'>
-          <Grid narrow className='mx-4'>
-            {items.map((item) => (
-              <Column key={item.id} lg={2} className='mb-4'>
-                <ClickableTile renderIcon={Corn} onClick={() => addToCart(item)}>
-                  <AspectRatio ratio='3x2'>
-                    <div className='flex flex-col justify-between h-full'>
-                      <span>{item.name}</span>
-                      <span>Rs. {(item.price || 0).toFixed(2)}</span>
-                    </div>
-                  </AspectRatio>
-                </ClickableTile>
-              </Column>
-            ))}
-          </Grid>
+        <Column lg={10} className='m-0 p-0 max-h-[calc(100dvh-4rem)]'>
+          <ItemsSection selectedCategoryId={selectedCategoryId} onAddToCart={addToCart} />
         </Column>
         <Column lg={4} className='m-0 p-0 max-h-[calc(100dvh-4rem)]'>
           <CartSection cart={cart} setCart={setCart} />
