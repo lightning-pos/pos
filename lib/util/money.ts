@@ -13,6 +13,7 @@ interface Money {
   divide(divisor: number): Money;
   format(locale?: string): string;
   toDecimal(): number;
+  toBaseUnits(): number;
 }
 
 /**
@@ -86,7 +87,7 @@ const money = (amount: number, currency: string): Money => {
       if (this.currency !== other.currency) {
         throw new Error('Cannot add different currencies');
       }
-      return money(toDecimal(this) + toDecimal(other), this.currency);
+      return money(this.amount + other.amount, this.currency);
     },
     subtract(other: Money): Money {
       validateMoney(this);
@@ -94,14 +95,14 @@ const money = (amount: number, currency: string): Money => {
       if (this.currency !== other.currency) {
         throw new Error('Cannot subtract different currencies');
       }
-      return money(toDecimal(this) - toDecimal(other), this.currency);
+      return money(this.amount - other.amount, this.currency);
     },
     multiply(multiplier: number): Money {
       validateMoney(this);
       if (isNaN(multiplier)) {
         throw new Error('Multiplier must be a valid number');
       }
-      return money(toDecimal(this) * multiplier, this.currency);
+      return money(this.amount * multiplier, this.currency);
     },
     divide(divisor: number): Money {
       validateMoney(this);
@@ -111,7 +112,7 @@ const money = (amount: number, currency: string): Money => {
       if (divisor === 0) {
         throw new Error('Cannot divide by zero');
       }
-      return money(toDecimal(this) / divisor, this.currency);
+      return money(this.amount / divisor, this.currency);
     },
     format(locale = 'en-US'): string {
       validateMoney(this);
@@ -129,6 +130,11 @@ const money = (amount: number, currency: string): Money => {
       const config = getCurrencyConfig(this.currency);
       return this.amount / Math.pow(10, config.decimalPlaces);
     },
+    toBaseUnits(): number {
+      validateMoney(this);
+      const config = getCurrencyConfig(this.currency);
+      return this.amount * Math.pow(10, config.decimalPlaces);
+    }
   };
   validateMoney(moneyObj);
   return moneyObj;

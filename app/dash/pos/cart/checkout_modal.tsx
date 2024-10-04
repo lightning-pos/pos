@@ -4,12 +4,13 @@ import { CartItem } from './cart_section'
 import { uid } from 'uid'
 import { Customer, OrderItem, orderItemsTable, ordersTable, taxesTable } from '@/lib/db/sqlite/schema'
 import { useDb } from '@/components/providers/drizzle_provider'
+import { money, Money } from '@/lib/util/money'
 
 interface CheckoutModalProps extends ModalProps {
   cart: CartItem[]
-  subtotal: number
-  tax: number
-  total: number
+  subtotal: Money
+  tax: Money
+  total: Money
   customer: Customer | null
 }
 
@@ -39,8 +40,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const orderItems: OrderItem[] = cart.map(item => {
       const itemTaxAmount = item.taxIds?.reduce((sum, taxId) => {
         const tax = taxes.find(t => t.id === taxId)
-        return sum + (item.price || 0) * item.quantity * ((tax?.rate || 0) / 100)
-      }, 0) || 0
+        return sum.add(money(item.price || 0, 'INR').multiply(item.quantity).multiply((tax?.rate || 0) / 100))
+      }, money(0, 'INR')).toBaseUnits() || money(0, 'INR').toBaseUnits()
 
       return {
         id: uid(),
@@ -96,13 +97,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         <strong>Customer:</strong> {customer?.name} ({customer?.phoneNumber})
       </div>
       <div className='mb-4'>
-        <strong>Subtotal:</strong> Rs. {subtotal.toFixed(2)}
+        <strong>Subtotal:</strong> {subtotal.format()}
       </div>
       <div className='mb-4'>
-        <strong>Tax:</strong> Rs. {tax.toFixed(2)}
+        <strong>Tax:</strong> {tax.format()}
       </div>
       <div className='mb-4'>
-        <strong>Total:</strong> Rs. {total.toFixed(2)}
+        <strong>Total:</strong> {total.format()}
       </div>
       <RadioButtonGroup
         legendText="Payment Method"

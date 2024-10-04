@@ -4,6 +4,7 @@ import { Corn } from '@carbon/icons-react'
 import { useDb } from '@/components/providers/drizzle_provider'
 import { itemsTable, Item, ItemTax } from '@/lib/db/sqlite/schema'
 import { eq } from 'drizzle-orm'
+import { money } from '@/lib/util/money'
 
 interface ItemsSectionProps {
   selectedCategoryId: string | null
@@ -37,7 +38,7 @@ const ItemsSection: React.FC<ItemsSectionProps> = ({ selectedCategoryId, addItem
             <AspectRatio ratio='3x2'>
               <div className='flex flex-col justify-between h-full'>
                 <span>{item.name}</span>
-                <span>Rs. {((item.price || 0) / 100).toFixed(2)}</span>
+                <span>{money(item.price, 'INR').format()}</span>
               </div>
             </AspectRatio>
           </ClickableTile>

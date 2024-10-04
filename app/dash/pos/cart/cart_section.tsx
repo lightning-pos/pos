@@ -6,6 +6,7 @@ import { useDb } from '@/components/providers/drizzle_provider'
 import { Customer, Item, Tax, taxesTable } from '@/lib/db/sqlite/schema'
 import CustomerSelect from './customer_select'
 import CartItem from './cart_item'
+import { money, Money } from '@/lib/util/money'
 
 export interface CartItem extends Item {
   quantity: number;
@@ -44,17 +45,26 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     })
   }
 
-  const calculateTotalTax = () => {
+  const calculateTotalTax = (): Money => {
     return cart.reduce((sum, item) => {
       if (!item.taxIds) return sum
       const itemTaxes = taxes.filter(tax => item.taxIds?.some(t => t === tax.id))
-      return sum + itemTaxes.reduce((taxSum, tax) => taxSum + (item.price || 0) * item.quantity * ((tax.rate || 0) / 100), 0)
-    }, 0)
+      const itemPrice = money(item.price || 0, 'INR')
+      const itemTax = itemTaxes.reduce((taxSum, tax) => {
+        const taxRate = (tax.rate || 0) / 100
+        return taxSum.add(itemPrice.multiply(item.quantity).multiply(taxRate))
+      }, money(0, 'INR'))
+      return sum.add(itemTax)
+    }, money(0, 'INR'))
   }
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0)
+  const subtotal = cart.reduce((sum, item) => {
+    const itemPrice = money(item.price || 0, 'INR')
+    return sum.add(itemPrice.multiply(item.quantity))
+  }, money(0, 'INR'))
+
   const totalTax = calculateTotalTax()
-  const totalAmount = subtotal + totalTax
+  const totalAmount = subtotal.add(totalTax)
 
   const handleCheckout = () => {
     if (!selectedCustomer) {
@@ -87,15 +97,15 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
       <div className='mt-4 py-4'>
         <div className='flex justify-between items-center'>
           <span>Subtotal:</span>
-          <span>Rs. {(subtotal / 100).toFixed(2)}</span>
+          <span>{subtotal.format()}</span>
         </div>
         <div className='flex justify-between items-center'>
           <span>Tax:</span>
-          <span>Rs. {(totalTax / 100).toFixed(2)}</span>
+          <span>{totalTax.format()}</span>
         </div>
         <div className='flex justify-between items-center font-bold'>
           <span>Total:</span>
-          <span>Rs. {(totalAmount / 100).toFixed(2)}</span>
+          <span>{totalAmount.format()}</span>
         </div>
       </div>
       <div className='flex flex-row items-center my-4 w-full p-0'>

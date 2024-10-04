@@ -6,6 +6,7 @@ import { useDb } from '@/components/providers/drizzle_provider'
 import { Order, OrderItem, ordersTable, orderItemsTable } from '@/lib/db/sqlite/schema'
 import OrderDetailsModal from './order_details_modal'
 import { desc, eq } from 'drizzle-orm'
+import { money } from '@/lib/util/money'
 
 interface PaymentMethod {
   method: string;
@@ -68,7 +69,7 @@ const Orders = () => {
 
   const rows = orders.map(order => ({
     id: order.id,
-    totalAmount: `Rs. ${(order.totalAmount ?? 0).toFixed(2)}`,
+    totalAmount: money(order.totalAmount ?? 0, 'INR').format(),
     // payment_method: formatPaymentMethods(order.paymentMethod || ''),
     createdAt: new Date(order.createdAt ?? 0).toLocaleString(),
     status: order.state,
