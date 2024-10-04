@@ -64,12 +64,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         customerName: customer.name,
         customerPhoneNumber: customer.phoneNumber,
         orderDate: new Date(),
-        netAmount: subtotal,
+        netAmount: subtotal.toBaseUnits(),
         discAmount: 0, // Assuming no discount for now
-        taxableAmount: subtotal,
-        taxAmount: tax,
-        totalAmount: total,
-        state: 'completed',
+        taxableAmount: subtotal.toBaseUnits(),
+        taxAmount: tax.toBaseUnits(),
+        totalAmount: total.toBaseUnits(),
+        state: 'closed',
         createdAt: new Date(),
         updatedAt: new Date(),
       }).execute()

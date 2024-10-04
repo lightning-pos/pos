@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, ModalProps } from '@carbon/react';
 import { Order, OrderItem } from '@/lib/db/sqlite/schema';
+import { money } from '@/lib/util/money';
 
 interface OrderDetailsModalProps extends ModalProps {
   order: Order
@@ -54,8 +55,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     <TableRow {...getRowProps({ row })} key={row.id}>
                       {row.cells.map((cell) => (
                         <TableCell key={cell.id}>
-                          {cell.info.header === 'price' || cell.info.header === 'tax'
-                            ? `Rs. ${Number(cell.value).toFixed(2)}`
+                          {cell.info.header === 'priceAmount' || cell.info.header === 'taxAmount'
+                            ? money(cell.value, 'INR').format()
                             : cell.value}
                         </TableCell>
                       ))}
@@ -66,9 +67,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             )}
           </DataTable>
           <div className="mt-4">
-            <p><strong>Subtotal:</strong> Rs. {order.netAmount ? order.netAmount.toFixed(2) : 0}</p>
-            <p><strong>Tax:</strong> Rs. {order.taxAmount ? order.taxAmount.toFixed(2) : 0}</p>
-            <p><strong>Total:</strong> Rs. {order.totalAmount ? order.totalAmount.toFixed(2) : 0}</p>
+            <p><strong>Subtotal:</strong> {money(order.netAmount ?? 0, 'INR').format()}</p>
+            <p><strong>Tax:</strong> {money(order.taxAmount ?? 0, 'INR').format()}</p>
+            <p><strong>Total:</strong> {money(order.totalAmount ?? 0, 'INR').format()}</p>
           </div>
         </>
       )}

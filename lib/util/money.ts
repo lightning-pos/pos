@@ -1,7 +1,7 @@
 /**
  * Represents a monetary amount in a specific currency.
  * Usage:
- * const m = money(100, 'USD');
+ * const m = money(10000, 'USD'); // $100.00
  * console.log(m.format()); // $100.00
  */
 interface Money {
@@ -56,8 +56,8 @@ const getCurrencyConfig = (currencyCode: string): CurrencyConfig => {
  * @throws Error if the object is not a valid Money object
  */
 const validateMoney = (money: Money): void => {
-  if (typeof money.amount !== 'number' || isNaN(money.amount)) {
-    throw new Error('Amount must be a valid number');
+  if (typeof money.amount !== 'number' || !Number.isInteger(money.amount)) {
+    throw new Error('Amount must be an integer');
   }
   if (typeof money.currency !== 'string' || money.currency.length !== 3) {
     throw new Error('Currency must be a 3-letter ISO 4217 code');
@@ -66,18 +66,15 @@ const validateMoney = (money: Money): void => {
 };
 
 /**
- * Creates a Money object from a decimal amount and currency code.
+ * Creates a Money object from an amount in the smallest unit of the currency and currency code.
  *
- * @param amount - The amount in base units
+ * @param amount - The amount in the smallest unit of the currency (e.g., cents for USD)
  * @param currency - The ISO 4217 currency code (e.g., 'USD')
  * @returns A Money object
  * @throws Error if the input is invalid
  */
 const money = (amount: number, currency: string): Money => {
-  if (isNaN(amount)) {
-    throw new Error('Amount must be a valid number');
-  }
-  const baseUnits = amount;
+  const baseUnits = Math.round(amount); // Ensure we're working with integers
   const moneyObj: Money = {
     amount: baseUnits,
     currency: currency.toUpperCase(),
@@ -102,7 +99,7 @@ const money = (amount: number, currency: string): Money => {
       if (isNaN(multiplier)) {
         throw new Error('Multiplier must be a valid number');
       }
-      return money(this.amount * multiplier, this.currency);
+      return money(Math.round(this.amount * multiplier), this.currency);
     },
     divide(divisor: number): Money {
       validateMoney(this);
@@ -112,7 +109,7 @@ const money = (amount: number, currency: string): Money => {
       if (divisor === 0) {
         throw new Error('Cannot divide by zero');
       }
-      return money(this.amount / divisor, this.currency);
+      return money(Math.round(this.amount / divisor), this.currency);
     },
     format(locale = 'en-US'): string {
       validateMoney(this);
@@ -132,8 +129,7 @@ const money = (amount: number, currency: string): Money => {
     },
     toBaseUnits(): number {
       validateMoney(this);
-      const config = getCurrencyConfig(this.currency);
-      return this.amount * Math.pow(10, config.decimalPlaces);
+      return this.amount;
     }
   };
   validateMoney(moneyObj);
