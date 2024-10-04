@@ -1,6 +1,6 @@
 import React from 'react'
 import { Modal } from '@carbon/react'
-import { Customer } from '@/lib/pglite/schema'
+import { Customer } from '@/lib/db/sqlite/schema'
 
 interface DeleteCustomerModalProps {
   isOpen: boolean

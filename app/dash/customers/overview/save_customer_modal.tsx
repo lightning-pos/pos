@@ -1,6 +1,6 @@
 import React from 'react'
 import { Modal, TextInput, Form } from '@carbon/react'
-import { Customer } from '@/lib/pglite/schema'
+import { Customer } from '@/lib/db/sqlite/schema'
 
 interface SaveCustomerModalProps {
   isOpen: boolean

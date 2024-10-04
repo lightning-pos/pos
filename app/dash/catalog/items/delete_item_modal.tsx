@@ -1,6 +1,6 @@
 import React from 'react'
 import { Modal, ModalProps } from '@carbon/react'
-import { itemsTable } from '@/lib/pglite/schema'
+import { itemsTable } from '@/lib/db/sqlite/schema'
 import { eq } from 'drizzle-orm'
 import { useDb } from '@/components/providers/drizzle_provider';
 

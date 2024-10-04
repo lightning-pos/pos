@@ -13,7 +13,7 @@ import {
   ItemTax,
   itemCategoriesTable,
   taxesTable,
-} from "@/lib/pglite/schema";
+} from "@/lib/db/sqlite/schema";
 import { useDb } from "@/components/providers/drizzle_provider";
 
 interface TableRow extends Item {

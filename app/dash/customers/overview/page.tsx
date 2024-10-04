@@ -1,9 +1,8 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
 import { Content } from '@carbon/react'
-import { Customer, NewCustomer } from '@/lib/pglite/schema'
-import { drizzleDb } from '@/components/providers/system_provider'
-import { customersTable } from '@/lib/pglite/schema'
+import { Customer, NewCustomer, customersTable } from '@/lib/db/sqlite/schema'
+import { useDb } from '@/components/providers/drizzle_provider'
 import { eq } from 'drizzle-orm'
 import { uid } from 'uid'
 import SaveCustomerModal from './save_customer_modal'
@@ -11,6 +10,7 @@ import DataTable from '@/components/ui/DataTable'
 import DeleteCustomerModal from './delete_customer_modal'
 
 const CustomersOverview = () => {
+  const db = useDb()
   // State declarations
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,14 +24,14 @@ const CustomersOverview = () => {
   const fetchCustomers = useCallback(async () => {
     setLoading(true)
     try {
-      const result = await drizzleDb.select().from(customersTable)
+      const result = await db.select().from(customersTable)
       setCustomers(result)
     } catch (error) {
       console.error('Error fetching customers:', error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [db])
 
   // Fetch customers on component mount
   useEffect(() => { fetchCustomers() }, [fetchCustomers])
@@ -48,7 +48,7 @@ const CustomersOverview = () => {
         phoneNumber: editingCustomer.phoneNumber || null,
         countryCode: editingCustomer.countryCode || null,
       }
-      await drizzleDb.insert(customersTable).values([newCustomer])
+      await db.insert(customersTable).values([newCustomer])
       setCustomers(prevCustomers => [...prevCustomers, newCustomer as Customer])
       setIsSaveModalOpen(false)
       setEditingCustomer(null)
@@ -62,7 +62,7 @@ const CustomersOverview = () => {
     if (!editingCustomer || !editingCustomer.id) return
 
     try {
-      await drizzleDb.update(customersTable)
+      await db.update(customersTable)
         .set(editingCustomer as Customer)
         .where(eq(customersTable.id, editingCustomer.id))
       setCustomers(prevCustomers =>
@@ -78,7 +78,7 @@ const CustomersOverview = () => {
   // Delete customer
   const handleDeleteCustomer = async (id: string) => {
     try {
-      await drizzleDb.delete(customersTable).where(eq(customersTable.id, id))
+      await db.delete(customersTable).where(eq(customersTable.id, id))
       setCustomers(prevCustomers => prevCustomers.filter(c => c.id !== id))
       setIsDeleteModalOpen(false)
       setEditingCustomer(null)

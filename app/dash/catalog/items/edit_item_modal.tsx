@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Modal, TextInput, Form, TextArea, NumberInput, Select, SelectItem, MultiSelect, ModalProps } from '@carbon/react'
-import { Item, ItemCategory, itemsTable, itemTaxesTable, Tax } from '@/lib/pglite/schema'
+import { Item, ItemCategory, itemsTable, itemTaxesTable, Tax } from '@/lib/db/sqlite/schema'
 import { useDb } from "@/components/providers/drizzle_provider";
 import { eq } from "drizzle-orm";
 
