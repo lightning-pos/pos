@@ -1,0 +1,29 @@
+Code Style and Guidelines (General)
+- Use functional and declarative patterns. Avoid using classes.
+
+Naming Conventions
+- Use camelCase for variable names
+- Use PascalCase for component names
+- Use UPPERCASE for constants
+- Use kebab-case for folder names (eg. src-tauri)
+- Use snake_case for file names
+- Use snake_case for database related things (tables, columns, indexes, etc.)
+
+UI Styling
+- Use carbon for ui components
+- Use tailwind for styling and layout adjustments
+- Implement responsive design using carbon grid system
+
+Carbon Design System Guidelines
+- When implementing a new modal, use the ModalProps interface from Carbon Design System to extend the props for the modal.
+- Use carbon docs to find the best practices for using carbon
+- Use carbon recommended colors, spacing, typography, icons, grid, layout, breakpoint, and theme systems
+
+Drizzle ORM
+- Use useDb() hook to get the database instance
+- Always use db.query to run select queries
+- Use uid() from the uid package to generate unique ids
+
+Make best developer experience and end user experience a priority.
+
+Make everything type safe whenever possible and utilize best practices for not repeating ourselves.
