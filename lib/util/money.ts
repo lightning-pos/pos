@@ -111,7 +111,7 @@ const money = (amount: number, currency: string): Money => {
       }
       return money(Math.round(this.amount / divisor), this.currency);
     },
-    format(locale = 'en-US'): string {
+    format(locale = 'en-IN'): string {
       validateMoney(this);
       const config = getCurrencyConfig(this.currency);
       const amount = this.amount / Math.pow(10, config.decimalPlaces);

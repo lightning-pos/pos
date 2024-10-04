@@ -17,6 +17,9 @@
     "jsx": "preserve",
     "incremental": true,
     "target": "ES2022",
+    "types": [
+      "vitest/globals"
+    ],
     "plugins": [
       {
         "name": "next"
