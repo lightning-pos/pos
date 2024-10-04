@@ -15,6 +15,7 @@ import {
   taxesTable,
 } from "@/lib/db/sqlite/schema";
 import { useDb } from "@/components/providers/drizzle_provider";
+import { money } from "@/lib/util/money";
 
 interface TableRow extends Item {
   price_transformed: string;
@@ -59,7 +60,7 @@ const Items = () => {
     // Transform the itemsResult to the TableRow type
     const tableRows: TableRow[] = itemsResult.map((item) => ({
       ...item,
-      price_transformed: "Rs. " + (item.price / 100).toFixed(2),
+      price_transformed: money(item.price, 'INR').format(),
       category_transformed: item.category.name || "Unknown",
       taxes_transformed: item.taxes.map((tax) => tax.tax?.name || "Unknown").join(", "),
     }));
@@ -75,7 +76,7 @@ const Items = () => {
     setTaxesList(taxesResult);
 
     setLoading(false);
-  }, [])
+  }, [db])
 
   useEffect(() => {
     fetchData();
