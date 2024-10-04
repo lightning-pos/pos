@@ -1,10 +1,11 @@
 'use client'
 import { Receipt } from '@carbon/icons-react'
 import { Content, SideNav, SideNavItems, SideNavLink, DataTable, TableContainer, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination } from '@carbon/react'
-import React, { useEffect, useState } from 'react'
-import { db } from '@/components/providers/system_provider'
-import { Order, OrderItem } from '@/lib/powersync/app_schema'
+import React, { useEffect, useState, useCallback } from 'react'
+import { useDb } from '@/components/providers/drizzle_provider'
+import { Order, OrderItem, ordersTable, orderItemsTable } from '@/lib/db/sqlite/schema'
 import OrderDetailsModal from './order_details_modal'
+import { desc, eq } from 'drizzle-orm'
 
 interface PaymentMethod {
   method: string;
@@ -12,40 +13,35 @@ interface PaymentMethod {
 }
 
 const Orders = () => {
+  const db = useDb()
   const [orders, setOrders] = useState<Order[]>([])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([])
+  const [selectedOrderItems, setSelectedOrderItems] = useState<OrderItem[]>([])
+
+
+  const fetchOrders = useCallback(async () => {
+    const result = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt))
+    setOrders(result)
+  }, [db])
 
   useEffect(() => {
     fetchOrders()
-  }, [])
-
-  const fetchOrders = async () => {
-    const result = await db
-      .selectFrom('orders')
-      .selectAll()
-      .orderBy('created_at', 'desc')
-      .execute()
-    setOrders(result)
-  }
+  }, [fetchOrders])
 
   const handleOrderClick = async (orderId: string) => {
     const order = orders.find(o => o.id === orderId)
     if (order) {
       setSelectedOrder(order)
-      const items = await db.selectFrom('order_items')
-        .selectAll()
-        .where('order_id', '=', order.id)
-        .execute()
-      setOrderItems(items)
+      const items = await db.select().from(orderItemsTable).where(eq(orderItemsTable.orderId, order.id))
+      setSelectedOrderItems(items)
     }
   }
 
   const handleCloseModal = () => {
     setSelectedOrder(null)
-    setOrderItems([])
+    setSelectedOrderItems([])
     fetchOrders() // Refresh the order list to reflect any changes
   }
 
@@ -64,18 +60,18 @@ const Orders = () => {
 
   const headers = [
     { key: 'id', header: 'Order ID' },
-    { key: 'total_amount', header: 'Total Amount' },
-    { key: 'payment_method', header: 'Payment Method' },
-    { key: 'created_at', header: 'Created At' },
+    { key: 'totalAmount', header: 'Total Amount' },
+    { key: 'paymentMethod', header: 'Payment Method' },
+    { key: 'createdAt', header: 'Created At' },
     { key: 'status', header: 'Status' },
   ]
 
   const rows = orders.map(order => ({
     id: order.id,
-    total_amount: `Rs. ${(order.total_amount ?? 0).toFixed(2)}`,
-    payment_method: formatPaymentMethods(order.payment_method || ''),
-    created_at: new Date(order.created_at ?? 0).toLocaleString(),
-    status: order.status,
+    totalAmount: `Rs. ${(order.totalAmount ?? 0).toFixed(2)}`,
+    // payment_method: formatPaymentMethods(order.paymentMethod || ''),
+    createdAt: new Date(order.createdAt ?? 0).toLocaleString(),
+    status: order.state,
   }))
 
   const paginatedRows = rows.slice((page - 1) * pageSize, page * pageSize)
@@ -138,10 +134,10 @@ const Orders = () => {
 
       {selectedOrder && (
         <OrderDetailsModal
-          isOpen={!!selectedOrder}
-          onClose={handleCloseModal}
+          open={!!selectedOrder}
+          onRequestClose={handleCloseModal}
           order={selectedOrder}
-          orderItems={orderItems}
+          orderItems={selectedOrderItems}
         />
       )}
     </>

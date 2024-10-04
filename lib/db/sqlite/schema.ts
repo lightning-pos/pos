@@ -79,7 +79,7 @@ export const ordersTable = sqliteTable('orders', {
   taxableAmount: integer('taxable_amount'),
   taxAmount: integer('tax_amount'),
   totalAmount: integer('total_amount'),
-  state: text('order_state').notNull(),
+  state: text('order_state', { enum: ['open', 'closed', 'cancelled'] }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });

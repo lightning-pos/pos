@@ -1,54 +1,41 @@
 import React from 'react';
-import { Modal, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell } from '@carbon/react';
-import { Order, OrderItem } from '@/lib/powersync/app_schema';
-import { db } from '@/components/providers/system_provider';
+import { Modal, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, ModalProps } from '@carbon/react';
+import { Order, OrderItem } from '@/lib/db/sqlite/schema';
 
-interface OrderDetailsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  order: Order | null;
+interface OrderDetailsModalProps extends ModalProps {
+  order: Order
+  orderItems: OrderItem[]
 }
 
-const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, onClose, order }) => {
-  const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
-
-  React.useEffect(() => {
-    const fetchOrderItems = async () => {
-      if (order) {
-        const items = await db
-          .selectFrom('order_items')
-          .selectAll()
-          .where('order_id', '=', order.id)
-          .execute();
-        setOrderItems(items);
-      }
-    };
-    fetchOrderItems();
-  }, [order]);
-
+const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
+  open,
+  onRequestClose,
+  order,
+  orderItems
+}) => {
   const headers = [
-    { key: 'item_name', header: 'Item' },
+    { key: 'itemName', header: 'Item' },
     { key: 'quantity', header: 'Quantity' },
-    { key: 'price', header: 'Price' },
-    { key: 'tax', header: 'Tax' },
+    { key: 'priceAmount', header: 'Price' },
+    { key: 'taxAmount', header: 'Tax' },
   ];
 
   return (
     <Modal
-      open={isOpen}
-      onRequestClose={onClose}
+      open={open}
+      onRequestClose={onRequestClose}
       modalHeading={`Order Details - ${order?.id}`}
-      primaryButtonText="Close"
-      onRequestSubmit={onClose}
+      primaryButtonText={"Cancel Order"}
+      danger
     >
       {order && (
         <>
           <div className="mb-4">
-            <p><strong>Customer:</strong> {order.customer_name}</p>
-            <p><strong>Phone:</strong> {order.customer_phone_number}</p>
-            <p><strong>Date:</strong> {new Date(order.created_at).toLocaleString()}</p>
-            <p><strong>Status:</strong> {order.status}</p>
-            <p><strong>Payment Method:</strong> {order.payment_method}</p>
+            <p><strong>Customer:</strong> {order.customerName}</p>
+            <p><strong>Phone:</strong> {order.customerPhoneNumber}</p>
+            <p><strong>Date:</strong> {new Date(order.createdAt).toLocaleString()}</p>
+            <p><strong>Status:</strong> {order.state}</p>
+            {/* <p><strong>Payment Method:</strong> {order.paymentMethod}</p> */}
           </div>
           <DataTable rows={orderItems} headers={headers}>
             {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
@@ -79,9 +66,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, onClose, 
             )}
           </DataTable>
           <div className="mt-4">
-            <p><strong>Subtotal:</strong> Rs. {order.subtotal.toFixed(2)}</p>
-            <p><strong>Tax:</strong> Rs. {order.tax.toFixed(2)}</p>
-            <p><strong>Total:</strong> Rs. {order.total_amount.toFixed(2)}</p>
+            <p><strong>Subtotal:</strong> Rs. {order.netAmount ? order.netAmount.toFixed(2) : 0}</p>
+            <p><strong>Tax:</strong> Rs. {order.taxAmount ? order.taxAmount.toFixed(2) : 0}</p>
+            <p><strong>Total:</strong> Rs. {order.totalAmount ? order.totalAmount.toFixed(2) : 0}</p>
           </div>
         </>
       )}
