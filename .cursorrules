@@ -1,5 +1,6 @@
 Code Style and Guidelines (General)
 - Use functional and declarative patterns. Avoid using classes.
+- When transforming columns of records from db for presentation, always extend the type from @schema.ts. The transformed key should be named "<column_name>_transformed"
 
 Naming Conventions
 - Use camelCase for variable names

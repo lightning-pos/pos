@@ -18,11 +18,11 @@ import { useDb } from "@/components/providers/drizzle_provider";
 import { money } from "@/lib/util/money";
 
 interface TableRow extends Item {
-  price_transformed: string;
+  priceTransformed: string;
   taxes: ItemTax[];
-  taxes_transformed: string;
+  taxesTransformed: string;
   category: ItemCategory;
-  category_transformed: string;
+  categoryTransformed: string;
 }
 
 const Items = () => {
@@ -60,9 +60,9 @@ const Items = () => {
     // Transform the itemsResult to the TableRow type
     const tableRows: TableRow[] = itemsResult.map((item) => ({
       ...item,
-      price_transformed: money(item.price, 'INR').format(),
-      category_transformed: item.category.name || "Unknown",
-      taxes_transformed: item.taxes.map((tax) => tax.tax?.name || "Unknown").join(", "),
+      priceTransformed: money(item.price, 'INR').format(),
+      categoryTransformed: item.category.name || "Unknown",
+      taxesTransformed: item.taxes.map((tax) => tax.tax?.name || "Unknown").join(", "),
     }));
 
     setItemsList(tableRows);
@@ -84,9 +84,9 @@ const Items = () => {
 
   const headers = [
     { key: "name", header: "Name" },
-    { key: "price_transformed", header: "Price" },
-    { key: "category_transformed", header: "Category" },
-    { key: "taxes_transformed", header: "Taxes" },
+    { key: "priceTransformed", header: "Price" },
+    { key: "categoryTransformed", header: "Category" },
+    { key: "taxesTransformed", header: "Taxes" },
   ];
 
   const handleOpenEditModal = (item: TableRow) => {
