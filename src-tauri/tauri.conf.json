@@ -27,6 +27,13 @@
     ],
     "withGlobalTauri": false
   },
+  "plugins": {
+    "sql": {
+      "preload": [
+        "sqlite:minnal.db"
+      ]
+    }
+  },
   "build": {
     "beforeBuildCommand": "yarn build",
     "beforeDevCommand": "yarn dev",

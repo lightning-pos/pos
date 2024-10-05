@@ -27,9 +27,10 @@ export const DrizzleProvider = ({ children }: { children: React.ReactNode }) => 
   const [sqlite, setSqlite] = useState<Database>()
   const [db, setDb] = useState<SqliteRemoteDatabase<typeof schema>>()
   useEffect(() => {
+    console.log("Loading DB")
     const loadDb = async () => {
       // Load sqlite using tauri proxy
-      const sqlite = await Database.load("sqlite:minnal.db");
+      const sqlite = Database.get("sqlite:minnal.db");
       setSqlite(sqlite)
     }
     loadDb()

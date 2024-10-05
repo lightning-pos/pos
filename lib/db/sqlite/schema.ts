@@ -5,8 +5,8 @@ export const customersTable = sqliteTable('customers', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email'),
-  phoneNumber: text('phone_number'),
   countryCode: text('country_code'),
+  phoneNumber: text('phone_number'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
@@ -17,7 +17,7 @@ export const itemCategoriesTable = sqliteTable('item_categories', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
-  state: text('state'),
+  state: text('state', { enum: ['active', 'inactive'] }).notNull().default('active'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
@@ -71,14 +71,14 @@ export const itemTaxRelations = relations(itemTaxesTable, ({ one }) => ({
 export const ordersTable = sqliteTable('orders', {
   id: text('id').primaryKey(),
   customerId: text('customer_id').references(() => customersTable.id),
-  customerName: text('customer_name'),
-  customerPhoneNumber: text('customer_phone_number'),
+  customerName: text('customer_name').notNull(),
+  customerPhoneNumber: text('customer_phone_number').notNull(),
   orderDate: integer('order_date', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
-  netAmount: integer('net_amount'),
-  discAmount: integer('disc_amount'),
-  taxableAmount: integer('taxable_amount'),
-  taxAmount: integer('tax_amount'),
-  totalAmount: integer('total_amount'),
+  netAmount: integer('net_amount').notNull(),
+  discAmount: integer('disc_amount').notNull(),
+  taxableAmount: integer('taxable_amount').notNull(),
+  taxAmount: integer('tax_amount').notNull(),
+  totalAmount: integer('total_amount').notNull(),
   state: text('order_state', { enum: ['open', 'closed', 'cancelled'] }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
@@ -90,10 +90,10 @@ export const orderItemsTable = sqliteTable('order_items', {
   id: text('id').primaryKey(),
   orderId: text('order_id').references(() => ordersTable.id),
   itemId: text('item_id').references(() => itemsTable.id),
-  itemName: text('item_name'),
-  quantity: integer('quantity'),
-  priceAmount: integer('price_amount'),
-  taxAmount: integer('tax_amount'),
+  itemName: text('item_name').notNull(),
+  quantity: integer('quantity').notNull(),
+  priceAmount: integer('price_amount').notNull(),
+  taxAmount: integer('tax_amount').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 });
@@ -114,3 +114,68 @@ export type NewTax = typeof taxesTable.$inferInsert;
 export const taxRelations = relations(taxesTable, ({ many }) => ({
   items: many(itemTaxesTable),
 }));
+
+export const suppliersTable = sqliteTable('suppliers', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email'),
+  countryCode: text('country_code'),
+  phoneNumber: text('phone_number'),
+  address: text('address'),
+  tinNumber: text('tin_number'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+export type Supplier = typeof suppliersTable.$inferSelect;
+export type NewSupplier = typeof suppliersTable.$inferInsert;
+
+export const purchaseOrdersTable = sqliteTable('purchase_orders', {
+  id: text('id').primaryKey(),
+  supplierId: text('supplier_id').references(() => suppliersTable.id),
+  supplierName: text('supplier_name').notNull(),
+  orderDate: integer('order_date', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  netAmount: integer('net_amount').notNull(),
+  discAmount: integer('disc_amount').notNull(),
+  taxableAmount: integer('taxable_amount').notNull(),
+  taxAmount: integer('tax_amount').notNull(),
+  totalAmount: integer('total_amount').notNull(),
+  state: text('order_state', { enum: ['open', 'closed', 'cancelled'] }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+export type PurchaseOrder = typeof purchaseOrdersTable.$inferSelect;
+export type NewPurchaseOrder = typeof purchaseOrdersTable.$inferInsert;
+
+export const purchaseOrderItemsTable = sqliteTable('purchase_order_items', {
+  id: text('id').primaryKey(),
+  purchaseOrderId: text('purchase_order_id').references(() => purchaseOrdersTable.id),
+  itemId: text('item_id').references(() => itemsTable.id),
+  itemName: text('item_name').notNull(),
+  quantity: integer('quantity').notNull(),
+  priceAmount: integer('price_amount').notNull(),
+  taxAmount: integer('tax_amount').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+export type PurchaseOrderItem = typeof purchaseOrderItemsTable.$inferSelect;
+export type NewPurchaseOrderItem = typeof purchaseOrderItemsTable.$inferInsert;
+
+export const purchaseOrderRelations = relations(purchaseOrdersTable, ({ one, many }) => ({
+  supplier: one(suppliersTable, {
+    fields: [purchaseOrdersTable.supplierId],
+    references: [suppliersTable.id],
+  }),
+  items: many(purchaseOrderItemsTable),
+}));
+
+export const purchaseOrderItemRelations = relations(purchaseOrderItemsTable, ({ one }) => ({
+  purchaseOrder: one(purchaseOrdersTable, {
+    fields: [purchaseOrderItemsTable.purchaseOrderId],
+    references: [purchaseOrdersTable.id],
+  }),
+  item: one(itemsTable, {
+    fields: [purchaseOrderItemsTable.itemId],
+    references: [itemsTable.id],
+  }),
+}));
+

@@ -15,6 +15,12 @@ pub fn run() {
             sql: include_str!("../migrations/0001_curious_mentallo.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "Add purchase orders",
+            sql: include_str!("../migrations/0002_normal_karnak.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

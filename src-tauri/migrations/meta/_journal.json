@@ -15,6 +15,13 @@
       "when": 1727809062973,
       "tag": "0001_curious_mentallo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1728120986673,
+      "tag": "0002_normal_karnak",
+      "breakpoints": true
     }
   ]
 }
