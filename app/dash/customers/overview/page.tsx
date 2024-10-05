@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Content } from '@carbon/react'
 import { Customer, NewCustomer, customersTable } from '@/lib/db/sqlite/schema'
 import { useDb } from '@/components/providers/drizzle_provider'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { uid } from 'uid'
 import SaveCustomerModal from './save_customer_modal'
 import DataTable from '@/components/ui/DataTable'
@@ -13,6 +13,7 @@ const CustomersOverview = () => {
   const db = useDb()
   // State declarations
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [totalCustomers, setTotalCustomers] = useState(0)
   const [loading, setLoading] = useState(true)
   const [editingCustomer, setEditingCustomer] = useState<Partial<Customer> | null>(null)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
@@ -20,21 +21,28 @@ const CustomersOverview = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
-  // Fetch customers from the database
-  const fetchCustomers = useCallback(async () => {
-    setLoading(true)
+  // Updated fetchCustomers function with server-side pagination
+  const fetchCustomers = useCallback(async (page: number, size: number) => {
     try {
-      const result = await db.select().from(customersTable)
-      setCustomers(result)
+      const offset = (page - 1) * size
+      const [paginatedResult, [{ count }]] = await Promise.all([
+        db.select()
+          .from(customersTable)
+          .limit(size)
+          .offset(offset),
+        db.select({ count: sql<number>`count(*)` }).from(customersTable)
+      ])
+      setCustomers(paginatedResult)
+      setTotalCustomers(count)
     } catch (error) {
       console.error('Error fetching customers:', error)
-    } finally {
-      setLoading(false)
     }
   }, [db])
 
-  // Fetch customers on component mount
-  useEffect(() => { fetchCustomers() }, [fetchCustomers])
+  // Fetch customers on component mount and when pagination changes
+  useEffect(() => {
+    fetchCustomers(currentPage, pageSize)
+  }, [fetchCustomers, currentPage, pageSize])
 
   // Add customer
   const handleAddCustomer = async () => {
@@ -49,9 +57,9 @@ const CustomersOverview = () => {
         countryCode: editingCustomer.countryCode || null,
       }
       await db.insert(customersTable).values([newCustomer])
-      setCustomers(prevCustomers => [...prevCustomers, newCustomer as Customer])
       setIsSaveModalOpen(false)
       setEditingCustomer(null)
+      fetchCustomers(currentPage, pageSize) // Refresh the customer list
     } catch (error) {
       console.error('Error adding customer:', error)
     }
@@ -65,11 +73,9 @@ const CustomersOverview = () => {
       await db.update(customersTable)
         .set(editingCustomer as Customer)
         .where(eq(customersTable.id, editingCustomer.id))
-      setCustomers(prevCustomers =>
-        prevCustomers.map(c => c.id === editingCustomer.id ? { ...c, ...editingCustomer } : c)
-      )
       setIsSaveModalOpen(false)
       setEditingCustomer(null)
+      fetchCustomers(currentPage, pageSize) // Refresh the customer list
     } catch (error) {
       console.error('Error updating customer:', error)
     }
@@ -79,12 +85,18 @@ const CustomersOverview = () => {
   const handleDeleteCustomer = async (id: string) => {
     try {
       await db.delete(customersTable).where(eq(customersTable.id, id))
-      setCustomers(prevCustomers => prevCustomers.filter(c => c.id !== id))
       setIsDeleteModalOpen(false)
       setEditingCustomer(null)
+      fetchCustomers(currentPage, pageSize) // Refresh the customer list
     } catch (error) {
       console.error('Error deleting customer:', error)
     }
+  }
+
+  const handlePageChange = (page: number, size: number) => {
+    setCurrentPage(page)
+    setPageSize(size)
+    fetchCustomers(page, size)
   }
 
   const headers = [
@@ -95,21 +107,18 @@ const CustomersOverview = () => {
 
   return (
     <Content className='min-h-[calc(100dvh-3rem)] p-0 flex flex-col'>
-      <div className="p-4 flex-grow flex flex-col" style={{ height: 'calc(100vh - 12rem)' }}>
+      <div className="p-4 flex-grow flex flex-col" style={{ minHeight: 'calc(100vh - 12rem)' }}>
         <DataTable<Customer>
           title="Customers"
           description="Manage your customers here. You can add, edit, or delete customers as needed."
           headers={headers}
           tableRows={customers}
           loading={loading}
-          totalItems={customers.length}
+          totalItems={totalCustomers}
           currentPage={currentPage}
           pageSize={pageSize}
           pageSizes={[10, 20, 30, 40, 50]}
-          onPageChange={(page, pageSize) => {
-            setCurrentPage(page)
-            setPageSize(pageSize)
-          }}
+          onPageChange={handlePageChange}
           onAddClick={() => {
             setEditingCustomer({})
             setIsSaveModalOpen(true)

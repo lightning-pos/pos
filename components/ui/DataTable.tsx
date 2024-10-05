@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Add } from '@carbon/icons-react'
 import { DataTable as CarbonDataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination, DataTableSkeleton, Button, TableToolbar, TableToolbarContent, TableContainer, OverflowMenu, OverflowMenuItem } from '@carbon/react'
 
@@ -33,8 +33,22 @@ function DataTable<T extends { id: string }>({
   onEditClick,
   onDeleteClick
 }: DataTableProps<T>) {
+  const [internalPage, setInternalPage] = useState(currentPage)
+  const [internalPageSize, setInternalPageSize] = useState(pageSize)
+
+  useEffect(() => {
+    setInternalPage(currentPage)
+    setInternalPageSize(pageSize)
+  }, [currentPage, pageSize])
+
   if (loading) {
     return <DataTableSkeleton headers={headers} rowCount={pageSize} />
+  }
+
+  const handlePaginationChange = ({ page, pageSize }: { page: number; pageSize: number }) => {
+    setInternalPage(page)
+    setInternalPageSize(pageSize)
+    onPageChange(page, pageSize)
   }
 
   return (
@@ -91,10 +105,11 @@ function DataTable<T extends { id: string }>({
         totalItems={totalItems}
         backwardText="Previous page"
         forwardText="Next page"
-        pageSize={pageSize}
+        pageSize={internalPageSize}
         pageSizes={pageSizes}
         itemsPerPageText="Items per page:"
-        onChange={({ page, pageSize }) => onPageChange(page, pageSize)}
+        page={internalPage}
+        onChange={handlePaginationChange}
       />
     </TableContainer>
   )
