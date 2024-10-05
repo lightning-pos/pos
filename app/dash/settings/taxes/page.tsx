@@ -23,10 +23,11 @@ const Taxes = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
-  const fetchTaxes = useCallback(async () => {
+  const fetchTaxes = useCallback(async (page: number, size: number) => {
+    const offset = (page - 1) * size
     setLoading(true)
     try {
-      const result = await db.select().from(taxesTable)
+      const result = await db.select().from(taxesTable).limit(size).offset(offset)
       setTaxes(result)
     } catch (error) {
       console.error('Error fetching taxes:', error)
@@ -36,8 +37,8 @@ const Taxes = () => {
   }, [db])
 
   useEffect(() => {
-    fetchTaxes()
-  }, [fetchTaxes])
+    fetchTaxes(currentPage, pageSize)
+  }, [fetchTaxes, currentPage, pageSize])
 
   const headers = [
     { key: 'name', header: 'Name' },
@@ -85,7 +86,7 @@ const Taxes = () => {
         open={isAddModalOpen}
         onRequestClose={() => setIsAddModalOpen(false)}
         onRequestSubmit={() => {
-          fetchTaxes()
+          fetchTaxes(currentPage, pageSize)
           setIsAddModalOpen(false)
         }}
       />
@@ -97,7 +98,7 @@ const Taxes = () => {
             setSelectedTax(null)
           }}
           onRequestSubmit={() => {
-            fetchTaxes()
+            fetchTaxes(currentPage, pageSize)
             setIsEditModalOpen(false)
             setSelectedTax(null)
           }}
@@ -112,7 +113,7 @@ const Taxes = () => {
             setSelectedTax(null)
           }}
           onRequestSubmit={() => {
-            fetchTaxes()
+            fetchTaxes(currentPage, pageSize)
             setIsDeleteModalOpen(false)
             setSelectedTax(null)
           }}

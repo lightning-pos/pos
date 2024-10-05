@@ -43,8 +43,9 @@ const Items = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (page: number, size: number) => {
     setLoading(true);
+    const offset = (page - 1) * size
     // Fetch items with category and taxes
     const itemsResult = await db.query.itemsTable.findMany({
       with: {
@@ -55,6 +56,8 @@ const Items = () => {
           },
         },
       },
+      limit: size,
+      offset: offset
     });
 
     // Transform the itemsResult to the TableRow type
@@ -79,8 +82,8 @@ const Items = () => {
   }, [db])
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData(currentPage, pageSize);
+  }, [fetchData, currentPage, pageSize]);
 
   const headers = [
     { key: "name", header: "Name" },
@@ -127,6 +130,7 @@ const Items = () => {
           onPageChange={(page, pageSize) => {
             setCurrentPage(page);
             setPageSize(pageSize);
+            fetchData(page, pageSize);
           }}
           onAddClick={() => setIsAddModalOpen(true)}
           onEditClick={(row) => handleOpenEditModal(itemsList.find(item => item.id === row.id) as TableRow)}
@@ -137,7 +141,7 @@ const Items = () => {
         open={isAddModalOpen}
         onRequestClose={() => setIsAddModalOpen(false)}
         onRequestSubmit={() => {
-          fetchData();
+          fetchData(currentPage, pageSize);
           setIsAddModalOpen(false);
         }}
         categories={categories}
@@ -150,7 +154,7 @@ const Items = () => {
           setSelectedItem(null);
         }}
         onRequestSubmit={() => {
-          fetchData();
+          fetchData(currentPage, pageSize);
           setIsEditModalOpen(false);
           setSelectedItem(null);
         }}
@@ -166,7 +170,7 @@ const Items = () => {
           setSelectedItem(null);
         }}
         onRequestSubmit={() => {
-          fetchData();
+          fetchData(currentPage, pageSize);
           setIsDeleteModalOpen(false);
           setSelectedItem(null);
         }}

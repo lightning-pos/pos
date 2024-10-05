@@ -20,10 +20,11 @@ const Categories = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
-  const fetchCategories = useCallback(async () => {
-    setLoading(true)
+  const fetchCategories = useCallback(async (page: number, size: number) => {
+    // setLoading(true)
     try {
-      const result = await db.select().from(itemCategoriesTable)
+      const offset = (page - 1) * size
+      const result = await db.select().from(itemCategoriesTable).limit(size).offset(offset)
       setCategories(result)
     } catch (error) {
       console.error('Error fetching categories:', error)
@@ -33,8 +34,8 @@ const Categories = () => {
   }, [db])
 
   useEffect(() => {
-    fetchCategories()
-  }, [fetchCategories])
+    fetchCategories(currentPage, pageSize)
+  }, [fetchCategories, currentPage, pageSize])
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,7 +49,7 @@ const Categories = () => {
       })
       setIsModalOpen(false)
       setEditingCategory(null)
-      fetchCategories()
+      fetchCategories(currentPage, pageSize)
     } catch (error) {
       console.error('Error adding category:', error)
     }
@@ -67,7 +68,7 @@ const Categories = () => {
         .where(eq(itemCategoriesTable.id, editingCategory.id))
       setIsModalOpen(false)
       setEditingCategory(null)
-      fetchCategories()
+      fetchCategories(currentPage, pageSize)
     } catch (error) {
       console.error('Error editing category:', error)
     }
@@ -80,7 +81,7 @@ const Categories = () => {
         .where(eq(itemCategoriesTable.id, editingCategory.id))
       setIsDeleteModalOpen(false)
       setEditingCategory(null)
-      fetchCategories()
+      fetchCategories(currentPage, pageSize)
     } catch (error) {
       console.error('Error deleting category:', error)
     }
@@ -123,6 +124,7 @@ const Categories = () => {
           onPageChange={(page, pageSize) => {
             setCurrentPage(page)
             setPageSize(pageSize)
+            fetchCategories(page, pageSize)
           }}
           onAddClick={handleOpenAddModal}
           onEditClick={handleOpenEditModal}

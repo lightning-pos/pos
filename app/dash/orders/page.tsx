@@ -22,14 +22,15 @@ const Orders = () => {
   const [selectedOrderItems, setSelectedOrderItems] = useState<OrderItem[]>([])
 
 
-  const fetchOrders = useCallback(async () => {
-    const result = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt))
+  const fetchOrders = useCallback(async (page: number, size: number) => {
+    const offset = (page - 1) * size
+    const result = await db.select().from(ordersTable).orderBy(desc(ordersTable.createdAt)).limit(size).offset(offset)
     setOrders(result)
   }, [db])
 
   useEffect(() => {
-    fetchOrders()
-  }, [fetchOrders])
+    fetchOrders(page, pageSize)
+  }, [fetchOrders, page, pageSize])
 
   const handleOrderClick = async (orderId: string) => {
     const order = orders.find(o => o.id === orderId)
@@ -43,7 +44,7 @@ const Orders = () => {
   const handleCloseModal = () => {
     setSelectedOrder(null)
     setSelectedOrderItems([])
-    fetchOrders() // Refresh the order list to reflect any changes
+    fetchOrders(page, pageSize) // Refresh the order list to reflect any changes
   }
 
   const formatPaymentMethods = (paymentMethodJson: string): string => {
@@ -128,6 +129,7 @@ const Orders = () => {
             onChange={({ page, pageSize }) => {
               setPage(page);
               setPageSize(pageSize);
+              fetchOrders(page, pageSize)
             }}
           />
         </div>

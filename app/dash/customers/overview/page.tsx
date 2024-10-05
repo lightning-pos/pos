@@ -95,12 +95,6 @@ const CustomersOverview = () => {
     }
   }
 
-  const handlePageChange = (page: number, size: number) => {
-    setCurrentPage(page)
-    setPageSize(size)
-    fetchCustomers(page, size)
-  }
-
   const headers = [
     { key: 'name', header: 'Name' },
     { key: 'email', header: 'Email' },
@@ -120,7 +114,11 @@ const CustomersOverview = () => {
           currentPage={currentPage}
           pageSize={pageSize}
           pageSizes={[10, 20, 30, 40, 50]}
-          onPageChange={handlePageChange}
+          onPageChange={(page, pageSize) => {
+            setCurrentPage(page)
+            setPageSize(pageSize)
+            fetchCustomers(page, pageSize)
+          }}
           onAddClick={() => {
             setEditingCustomer({})
             setIsSaveModalOpen(true)
