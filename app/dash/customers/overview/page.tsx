@@ -36,6 +36,8 @@ const CustomersOverview = () => {
       setTotalCustomers(count)
     } catch (error) {
       console.error('Error fetching customers:', error)
+    } finally {
+      setLoading(false)
     }
   }, [db])
 
