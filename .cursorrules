@@ -1,7 +1,9 @@
 Code Style and Guidelines (General)
 - Use functional and declarative patterns. Avoid using classes.
+- Use hexagonal (ports and adapter) architecture for a clean code base.
 - When transforming columns of records from db for presentation, always extend the type from @schema.ts. The transformed key should be named "<column_name>_transformed"
 - Use money.ts to format and transform money related values. All add, sub, mul and div should happen using the util library
+- Entities having relations should have a field with Option enum with type of the related entity.
 
 
 Naming Conventions
