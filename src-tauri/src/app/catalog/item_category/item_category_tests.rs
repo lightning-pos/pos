@@ -24,8 +24,8 @@ fn test_create_item_category() {
         .returning(|_| Err(Error::new(std::io::ErrorKind::Other, "Error")));
 
     let service = CatalogService {
-        item_category: mock_category_repo,
-        item: MockItemRepository::new(),
+        item_category: &mock_category_repo,
+        item: &MockItemRepository::new(),
     };
 
     let item_category = ItemCategory {
@@ -63,8 +63,8 @@ fn test_create_item_category_already_exists() {
         .returning(|_| Ok(true));
 
     let catalog_service = CatalogService {
-        item_category: mock_category_repo,
-        item: MockItemRepository::new(),
+        item_category: &mock_category_repo,
+        item: &MockItemRepository::new(),
     };
 
     let result = catalog_service.create_item_category(&item_category);
@@ -98,8 +98,8 @@ fn test_update_item_category() {
         .returning(|item_category| Ok(item_category.clone()));
 
     let catalog_service = CatalogService {
-        item_category: mock_category_repo,
-        item: MockItemRepository::new(),
+        item_category: &mock_category_repo,
+        item: &MockItemRepository::new(),
     };
 
     let result = catalog_service.update_item_category(&item_category);
@@ -127,8 +127,8 @@ fn test_update_item_category_already_exists() {
         .returning(|_| Ok(true));
 
     let catalog_service = CatalogService {
-        item_category: mock_category_repo,
-        item: MockItemRepository::new(),
+        item_category: &mock_category_repo,
+        item: &MockItemRepository::new(),
     };
 
     let result = catalog_service.update_item_category(&item_category);
@@ -146,8 +146,8 @@ fn test_delete_item_category_with_items() {
         .returning(|_| Ok(true));
 
     let catalog_service = CatalogService {
-        item_category: mock_category_repo,
-        item: MockItemRepository::new(),
+        item_category: &mock_category_repo,
+        item: &MockItemRepository::new(),
     };
 
     let result = catalog_service.delete_item_category("1");
@@ -171,8 +171,8 @@ fn test_delete_item_category_without_items() {
         .returning(|_| Ok(true));
 
     let catalog_service = CatalogService {
-        item_category: mock_category_repo,
-        item: MockItemRepository::new(),
+        item_category: &mock_category_repo,
+        item: &MockItemRepository::new(),
     };
 
     let result = catalog_service.delete_item_category("1");

@@ -51,8 +51,8 @@ fn test_create_item() {
         });
 
     let service = CatalogService {
-        item_category: mock_category_repo,
-        item: mock_item_repo,
+        item_category: &mock_category_repo,
+        item: &mock_item_repo,
     };
 
     let result = service.create_item(&Item {
@@ -81,8 +81,8 @@ fn test_create_item_with_invalid_category_id() {
         .returning(|_| Err(Error::new(std::io::ErrorKind::Other, "")));
 
     let service = CatalogService {
-        item_category: mock_category_repo,
-        item: mock_item_repo,
+        item_category: &mock_category_repo,
+        item: &mock_item_repo,
     };
 
     let item = Item {
@@ -129,8 +129,8 @@ fn test_update_item() {
         });
 
     let service = CatalogService {
-        item_category: mock_category_repo,
-        item: mock_item_repo,
+        item_category: &mock_category_repo,
+        item: &mock_item_repo,
     };
 
     let item = Item {
@@ -161,8 +161,8 @@ fn test_update_item_with_invalid_category_id() {
         .returning(|_| Err(Error::new(std::io::ErrorKind::Other, "")));
 
     let service = CatalogService {
-        item_category: mock_category_repo,
-        item: mock_item_repo,
+        item_category: &mock_category_repo,
+        item: &mock_item_repo,
     };
 
     let item = Item {

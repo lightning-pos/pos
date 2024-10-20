@@ -2,15 +2,10 @@ use std::io::Error;
 
 use crate::app::catalog::{
     catalog_service::CatalogService,
-    item::item_model::{Item, ItemRepository, ItemUseCase},
-    item_category::item_category_model::ItemCategoryRepository,
+    item::item_model::{Item, ItemUseCase},
 };
 
-impl<A, B> ItemUseCase for CatalogService<A, B>
-where
-    A: ItemCategoryRepository,
-    B: ItemRepository,
-{
+impl<'a> ItemUseCase for CatalogService<'a> {
     fn create_item(&self, item: &Item) -> Result<Item, Error> {
         let category = self.item_category.get_one_by_id(&item.category_id);
 

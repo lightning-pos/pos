@@ -1,17 +1,10 @@
 use crate::app::catalog::{
     catalog_service::CatalogService,
-    item::item_model::ItemRepository,
-    item_category::item_category_model::{
-        ItemCategory, ItemCategoryRepository, ItemCategoryUseCase,
-    },
+    item_category::item_category_model::{ItemCategory, ItemCategoryUseCase},
 };
 use std::io::Error;
 
-impl<A, B> ItemCategoryUseCase for CatalogService<A, B>
-where
-    A: ItemCategoryRepository,
-    B: ItemRepository,
-{
+impl<'a> ItemCategoryUseCase for CatalogService<'a> {
     fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error> {
         let existing_item_category = self.item_category.is_name_taken(&item_category.name);
 
