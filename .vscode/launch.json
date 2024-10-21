@@ -7,16 +7,6 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch via Yarn",
-      "runtimeExecutable": "yarn",
-      "cwd": "${workspaceFolder}",
-      "runtimeArgs": [
-        "dev"
-      ]
-    },
-    {
-      "type": "node",
-      "request": "launch",
       "name": "Launch via Tauri",
       "runtimeExecutable": "yarn",
       "cwd": "${workspaceFolder}",

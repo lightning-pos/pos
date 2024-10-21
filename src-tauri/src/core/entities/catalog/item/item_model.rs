@@ -1,6 +1,6 @@
 use std::io::Error;
 
-use crate::app::catalog::item_category::item_category_model::ItemCategory;
+use crate::core::entities::catalog::item_category::item_category_model::ItemCategory;
 
 use serde::{Deserialize, Serialize};
 
@@ -20,12 +20,6 @@ pub struct Item {
 pub enum ItemNature {
     Goods,
     Service,
-}
-
-pub trait ItemUseCase {
-    fn create_item(&self, item: &Item) -> Result<Item, Error>;
-    fn update_item(&self, item: &Item) -> Result<Item, Error>;
-    fn delete_item(&self, id: &str) -> Result<bool, Error>;
 }
 
 #[cfg_attr(test, mockall::automock)]

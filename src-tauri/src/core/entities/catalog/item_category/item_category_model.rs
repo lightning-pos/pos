@@ -1,4 +1,4 @@
-use crate::app::catalog::item::item_model::Item;
+use crate::core::entities::catalog::item::item_model::Item;
 use serde::{Deserialize, Serialize};
 use std::io::Error;
 
@@ -17,12 +17,6 @@ pub struct ItemCategory {
 pub enum ItemCategoryState {
     Active,
     Inactive,
-}
-
-pub trait ItemCategoryUseCase {
-    fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error>;
-    fn update_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error>;
-    fn delete_item_category(&self, id: &str) -> Result<bool, Error>;
 }
 
 #[cfg_attr(test, mockall::automock)]

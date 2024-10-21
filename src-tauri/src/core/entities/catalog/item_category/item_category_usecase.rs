@@ -1,8 +1,14 @@
-use crate::app::catalog::{
-    catalog_service::CatalogService,
-    item_category::item_category_model::{ItemCategory, ItemCategoryUseCase},
-};
 use std::io::Error;
+
+use crate::core::entities::catalog::{
+    catalog_service::CatalogService, item_category::item_category_model::ItemCategory,
+};
+
+pub trait ItemCategoryUseCase {
+    fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error>;
+    fn update_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error>;
+    fn delete_item_category(&self, id: &str) -> Result<bool, Error>;
+}
 
 impl<'a> ItemCategoryUseCase for CatalogService<'a> {
     fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error> {

@@ -1,9 +1,14 @@
 use std::io::Error;
 
-use crate::app::catalog::{
-    catalog_service::CatalogService,
-    item::item_model::{Item, ItemUseCase},
-};
+use crate::core::entities::catalog::catalog_service::CatalogService;
+
+use super::item_model::Item;
+
+pub trait ItemUseCase {
+    fn create_item(&self, item: &Item) -> Result<Item, Error>;
+    fn update_item(&self, item: &Item) -> Result<Item, Error>;
+    fn delete_item(&self, id: &str) -> Result<bool, Error>;
+}
 
 impl<'a> ItemUseCase for CatalogService<'a> {
     fn create_item(&self, item: &Item) -> Result<Item, Error> {

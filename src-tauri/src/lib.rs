@@ -1,4 +1,5 @@
-mod app;
+mod adapters;
+mod core;
 
 use tauri_plugin_sql::{Migration, MigrationKind};
 
@@ -26,6 +27,7 @@ pub fn run() {
     ];
 
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![])
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations("sqlite:minnal.db", migrations)
