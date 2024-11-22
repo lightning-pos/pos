@@ -1,39 +1,25 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-/// # Money
+/// Represents a monetary amount in a specific currency.
 ///
-/// The Money struct represents a monetary amount in a specific currency in the smallest
-/// unit of the currency.
+/// # Fields
+/// - `base_units`: Amount in the smallest unit of the currency (e.g., cents for USD, paise for INR)
+/// - `currency_code`: ISO 4217 currency code (e.g., 'USD', 'INR')
 ///
-/// Assertions are used to ensure that the currency code is a 3-letter ISO string, and that
-/// the currency code is not empty.
+/// # Examples
+/// ```
+/// let m1 = Money::new(10000, "USD");
+/// let m2 = Money::new(5000, "USD");
 ///
-/// ## Fields
+/// let sum = &m1 + &m2;
+/// let diff = &m1 - &m2;
+/// let doubled = &m1 * 2;
+/// let halved = &m1 / 2;
+/// ```
 ///
-/// * `base_units` - The amount in the smallest unit of the currency (e.g., cents for USD)
-/// * `currency_code` - The ISO 4217 currency code (e.g., 'USD')
-///
-/// ## Usage
-///
-/// ```
-/// let m = Money::new(10000, "USD");
-/// ```
-/// Add
-/// ```
-/// let m3 = &m1 + &m2;
-/// ```
-/// Subtract
-/// ```
-/// let m3 = &m1 - &m2;
-/// ```
-/// Multiply
-/// ```
-/// let m2 = &m1 * 2;
-/// ```
-/// Divide
-/// ```
-/// let m2 = &m1 / 2;
-/// ```
+/// # Notes
+/// - Currency code must be a 3-letter ISO string
+/// - Assertions ensure currency code validity
 struct Money {
     base_units: i64,
     currency_code: String,
