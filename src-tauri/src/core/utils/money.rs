@@ -18,20 +18,22 @@
 /// ```
 /// Add
 /// ```
-/// let m3 = m1.add(&m2);
+/// let m3 = &m1 + &m2;
 /// ```
 /// Subtract
 /// ```
-/// let m3 = m1.subtract(&m2);
+/// let m3 = &m1 - &m2;
 /// ```
 /// Multiply
 /// ```
-/// let m2 = m1.multiply(2);
+/// let m2 = &m1 * 2;
 /// ```
 /// Divide
 /// ```
-/// let m2 = m1.divide(2);
+/// let m2 = &m1 / 2;
 /// ```
+use std::ops::{Add, Div, Mul, Sub};
+
 struct Money {
     base_units: i64,
     currency_code: String,
@@ -49,61 +51,73 @@ impl Money {
         }
     }
 
-    fn add(&self, other: &Money) -> Money {
+    fn to_string(&self) -> String {
+        format!("{} {}", self.base_units as f64 / 100.0, self.currency_code)
+    }
+}
+
+impl Add for &Money {
+    type Output = Money;
+
+    fn add(self, other: &Money) -> Money {
         debug_assert_eq!(
             self.currency_code, other.currency_code,
             "Cannot add money with different currencies"
         );
-        let result = self
-            .base_units
-            .checked_add(other.base_units)
-            .expect("Integer overflow in addition");
         Money {
-            base_units: result,
+            base_units: self
+                .base_units
+                .checked_add(other.base_units)
+                .expect("Integer overflow in addition"),
             currency_code: self.currency_code.clone(),
         }
     }
+}
 
-    fn subtract(&self, other: &Money) -> Money {
+impl Sub for &Money {
+    type Output = Money;
+
+    fn sub(self, other: &Money) -> Money {
         debug_assert_eq!(
             self.currency_code, other.currency_code,
             "Cannot subtract money with different currencies"
         );
-        let result = self
-            .base_units
-            .checked_sub(other.base_units)
-            .expect("Integer underflow in subtraction");
         Money {
-            base_units: result,
+            base_units: self
+                .base_units
+                .checked_sub(other.base_units)
+                .expect("Integer underflow in subtraction"),
             currency_code: self.currency_code.clone(),
         }
     }
+}
 
-    fn multiply(&self, factor: i64) -> Money {
-        let result = self
-            .base_units
-            .checked_mul(factor)
-            .expect("Integer overflow in multiplication");
+impl Mul<i64> for &Money {
+    type Output = Money;
+
+    fn mul(self, factor: i64) -> Money {
         Money {
-            base_units: result,
+            base_units: self
+                .base_units
+                .checked_mul(factor)
+                .expect("Integer overflow in multiplication"),
             currency_code: self.currency_code.clone(),
         }
     }
+}
 
-    fn divide(&self, divisor: i64) -> Money {
+impl Div<i64> for &Money {
+    type Output = Money;
+
+    fn div(self, divisor: i64) -> Money {
         debug_assert!(divisor != 0, "Cannot divide by zero");
-        let result = self
-            .base_units
-            .checked_div(divisor)
-            .expect("Integer overflow in division");
         Money {
-            base_units: result,
+            base_units: self
+                .base_units
+                .checked_div(divisor)
+                .expect("Integer overflow in division"),
             currency_code: self.currency_code.clone(),
         }
-    }
-
-    fn to_string(&self) -> String {
-        format!("{} {}", self.base_units as f64 / 100.0, self.currency_code)
     }
 }
 
@@ -128,7 +142,7 @@ mod tests {
     fn test_addition() {
         let usd100 = Money::new(10000, "USD".to_string());
         let usd200 = Money::new(20000, "USD".to_string());
-        let result = usd100.add(&usd200);
+        let result = &usd100 + &usd200;
         assert_eq!(result.base_units, 30000);
         assert_eq!(result.currency_code, "USD");
     }
@@ -138,14 +152,14 @@ mod tests {
     fn test_add_different_currencies() {
         let usd100 = Money::new(10000, "USD".to_string());
         let eur100 = Money::new(10000, "EUR".to_string());
-        usd100.add(&eur100);
+        let _result = &usd100 + &eur100;
     }
 
     #[test]
     fn test_subtraction() {
         let usd200 = Money::new(20000, "USD".to_string());
         let usd100 = Money::new(10000, "USD".to_string());
-        let result = usd200.subtract(&usd100);
+        let result = &usd200 - &usd100;
         assert_eq!(result.base_units, 10000);
         assert_eq!(result.currency_code, "USD");
     }
@@ -155,13 +169,13 @@ mod tests {
     fn test_subtract_different_currencies() {
         let usd100 = Money::new(10000, "USD".to_string());
         let eur100 = Money::new(10000, "EUR".to_string());
-        usd100.subtract(&eur100);
+        let _result = &usd100 - &eur100;
     }
 
     #[test]
     fn test_multiplication() {
         let usd100 = Money::new(10000, "USD".to_string());
-        let result = usd100.multiply(2);
+        let result = &usd100 * 2;
         assert_eq!(result.base_units, 20000);
         assert_eq!(result.currency_code, "USD");
     }
@@ -169,7 +183,7 @@ mod tests {
     #[test]
     fn test_division() {
         let usd100 = Money::new(10000, "USD".to_string());
-        let result = usd100.divide(2);
+        let result = &usd100 / 2;
         assert_eq!(result.base_units, 5000);
         assert_eq!(result.currency_code, "USD");
     }
@@ -178,7 +192,7 @@ mod tests {
     #[should_panic(expected = "Cannot divide by zero")]
     fn test_division_by_zero() {
         let usd100 = Money::new(10000, "USD".to_string());
-        usd100.divide(0);
+        let _result = &usd100 / 0;
     }
 
     #[test]
@@ -199,7 +213,7 @@ mod tests {
     fn test_addition_overflow() {
         let max_money = Money::new(i64::MAX, "USD".to_string());
         let positive_money = Money::new(1, "USD".to_string());
-        max_money.add(&positive_money);
+        let _result = &max_money + &positive_money;
     }
 
     #[test]
@@ -207,20 +221,20 @@ mod tests {
     fn test_subtraction_underflow() {
         let min_money = Money::new(i64::MIN, "USD".to_string());
         let positive_money = Money::new(1, "USD".to_string());
-        min_money.subtract(&positive_money);
+        let _result = &min_money - &positive_money;
     }
 
     #[test]
     #[should_panic(expected = "Integer overflow in multiplication")]
     fn test_multiplication_overflow() {
         let large_money = Money::new(i64::MAX / 2 + 1, "USD".to_string());
-        large_money.multiply(2);
+        let _result = &large_money * 2;
     }
 
     #[test]
     #[should_panic(expected = "Integer overflow in division")]
     fn test_division_overflow() {
         let min_money = Money::new(i64::MIN, "USD".to_string());
-        min_money.divide(-1); // This will overflow because MIN/-1 > MAX
+        let _result = &min_money / -1; // This will overflow because MIN/-1 > MAX
     }
 }
