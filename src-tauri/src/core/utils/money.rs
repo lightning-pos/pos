@@ -1,3 +1,5 @@
+use std::ops::{Add, Div, Mul, Sub};
+
 /// # Money
 ///
 /// The Money struct represents a monetary amount in a specific currency in the smallest
@@ -32,8 +34,6 @@
 /// ```
 /// let m2 = &m1 / 2;
 /// ```
-use std::ops::{Add, Div, Mul, Sub};
-
 struct Money {
     base_units: i64,
     currency_code: String,
