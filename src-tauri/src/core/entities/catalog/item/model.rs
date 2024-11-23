@@ -1,6 +1,6 @@
 use std::io::Error;
 
-use crate::core::entities::catalog::item_category::item_category_model::ItemCategory;
+use crate::core::entities::catalog::item_category::model::ItemCategory;
 
 use serde::{Deserialize, Serialize};
 

@@ -2,11 +2,11 @@ use mockall::predicate;
 use std::io::Error;
 
 use crate::core::entities::catalog::catalog_service::CatalogService;
-use crate::core::entities::catalog::item::item_model::MockItemRepository;
-use crate::core::entities::catalog::item_category::item_category_model::{
+use crate::core::entities::catalog::item::model::MockItemRepository;
+use crate::core::entities::catalog::item_category::model::{
     ItemCategory, ItemCategoryState, MockItemCategoryRepository,
 };
-use crate::core::entities::catalog::item_category::item_category_usecase::ItemCategoryUseCase;
+use crate::core::entities::catalog::item_category::use_cases::ItemCategoryUseCase;
 #[test]
 fn test_create_item_category() {
     let mut mock_category_repo = MockItemCategoryRepository::new();

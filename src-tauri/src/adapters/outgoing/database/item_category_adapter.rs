@@ -1,4 +1,4 @@
-use crate::core::entities::catalog::item_category::item_category_model::{
+use crate::core::entities::catalog::item_category::model::{
     ItemCategory, ItemCategoryRepository, ItemCategoryState,
 };
 use std::io::Error;

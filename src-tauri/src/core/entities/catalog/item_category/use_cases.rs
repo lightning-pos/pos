@@ -1,7 +1,7 @@
 use std::io::Error;
 
 use crate::core::entities::catalog::{
-    catalog_service::CatalogService, item_category::item_category_model::ItemCategory,
+    catalog_service::CatalogService, item_category::model::ItemCategory,
 };
 
 pub trait ItemCategoryUseCase {

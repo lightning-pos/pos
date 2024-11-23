@@ -2,7 +2,7 @@ use std::io::Error;
 
 use crate::core::entities::catalog::catalog_service::CatalogService;
 
-use super::item_model::Item;
+use super::model::Item;
 
 pub trait ItemUseCase {
     fn create_item(&self, item: &Item) -> Result<Item, Error>;

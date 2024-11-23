@@ -1,5 +1,5 @@
-pub mod item_model;
-pub mod item_usecase;
+pub mod model;
+pub mod use_cases;
 
 #[cfg(test)]
-mod item_tests;
+mod tests;

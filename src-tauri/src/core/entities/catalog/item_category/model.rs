@@ -1,4 +1,4 @@
-use crate::core::entities::catalog::item::item_model::Item;
+use crate::core::entities::catalog::item::model::Item;
 use serde::{Deserialize, Serialize};
 use std::io::Error;
 

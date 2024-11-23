@@ -1,6 +1,6 @@
 use std::io::Error;
 
-use crate::core::entities::catalog::item::item_model::{Item, ItemRepository};
+use crate::core::entities::catalog::item::model::{Item, ItemRepository};
 
 struct ItemAdapter {}
 

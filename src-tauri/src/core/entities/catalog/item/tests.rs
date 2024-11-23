@@ -4,13 +4,11 @@ use mockall::predicate;
 
 use crate::core::entities::catalog::{
     catalog_service::CatalogService,
-    item::item_usecase::ItemUseCase,
-    item_category::item_category_model::{
-        ItemCategory, ItemCategoryState, MockItemCategoryRepository,
-    },
+    item::use_cases::ItemUseCase,
+    item_category::model::{ItemCategory, ItemCategoryState, MockItemCategoryRepository},
 };
 
-use super::item_model::{Item, ItemNature, MockItemRepository};
+use super::model::{Item, ItemNature, MockItemRepository};
 
 #[test]
 fn test_create_item() {
