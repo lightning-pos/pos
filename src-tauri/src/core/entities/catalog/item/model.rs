@@ -11,9 +11,17 @@ pub struct Item {
     pub description: Option<String>,
     pub nature: ItemNature,
     pub category_id: String,
-    pub category: Option<ItemCategory>,
     pub created_at: i64,
     pub updated_at: i64,
+
+    // Relations
+    pub category: Option<ItemCategory>,
+}
+
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+pub enum ItemRelation {
+    Taxes,
+    Variants,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

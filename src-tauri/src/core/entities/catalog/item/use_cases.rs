@@ -1,6 +1,8 @@
 use std::io::Error;
 
-use crate::core::entities::catalog::catalog_service::CatalogService;
+use crate::core::{
+    common::repository::JoinEntities, entities::catalog::catalog_service::CatalogService,
+};
 
 use super::model::Item;
 
@@ -12,7 +14,9 @@ pub trait ItemUseCase {
 
 impl<'a> ItemUseCase for CatalogService<'a> {
     fn create_item(&self, item: &Item) -> Result<Item, Error> {
-        let category = self.item_category.get_one_by_id(&item.category_id);
+        let category = self
+            .item_category
+            .get_one_by_id(&item.category_id, JoinEntities::default());
 
         match category {
             Ok(_) => self.item.insert(item),
@@ -23,7 +27,9 @@ impl<'a> ItemUseCase for CatalogService<'a> {
     }
 
     fn update_item(&self, item: &Item) -> Result<Item, Error> {
-        let category = self.item_category.get_one_by_id(&item.category_id);
+        let category = self
+            .item_category
+            .get_one_by_id(&item.category_id, JoinEntities::default());
 
         match category {
             Ok(_) => self.item.update(item),

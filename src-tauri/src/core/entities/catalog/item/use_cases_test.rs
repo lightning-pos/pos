@@ -2,12 +2,15 @@ use std::io::Error;
 
 use mockall::predicate;
 
-use crate::core::entities::catalog::{
-    catalog_service::CatalogService,
-    item::{repository::MockItemRepository, use_cases::ItemUseCase},
-    item_category::{
-        model::{ItemCategory, ItemCategoryState},
-        repository::MockItemCategoryRepository,
+use crate::core::{
+    common::repository::JoinEntities,
+    entities::catalog::{
+        catalog_service::CatalogService,
+        item::{repository::MockItemRepository, use_cases::ItemUseCase},
+        item_category::{
+            model::{ItemCategory, ItemCategoryRelation, ItemCategoryState},
+            repository::MockItemCategoryRepository,
+        },
     },
 };
 
@@ -37,9 +40,12 @@ fn test_create_item() {
 
     mock_category_repo
         .expect_get_one_by_id()
-        .with(predicate::always())
+        .with(
+            predicate::always(),
+            predicate::function(|_: &JoinEntities<ItemCategoryRelation>| true),
+        )
         .times(1)
-        .returning(|_| {
+        .returning(|_, _| {
             Ok(ItemCategory {
                 id: "1".to_string(),
                 name: "Category 1".to_string(),
@@ -77,9 +83,12 @@ fn test_create_item_with_invalid_category_id() {
 
     mock_category_repo
         .expect_get_one_by_id()
-        .with(predicate::always())
+        .with(
+            predicate::always(),
+            predicate::function(|_: &JoinEntities<ItemCategoryRelation>| true),
+        )
         .times(1)
-        .returning(|_| Err(Error::new(std::io::ErrorKind::Other, "")));
+        .returning(|_, _| Err(Error::new(std::io::ErrorKind::Other, "")));
 
     let service = CatalogService {
         item_category: &mock_category_repo,
@@ -115,9 +124,12 @@ fn test_update_item() {
 
     mock_category_repo
         .expect_get_one_by_id()
-        .with(predicate::always())
+        .with(
+            predicate::always(),
+            predicate::function(|_: &JoinEntities<ItemCategoryRelation>| true),
+        )
         .times(1)
-        .returning(|_| {
+        .returning(|_, _| {
             Ok(ItemCategory {
                 id: "1".to_string(),
                 name: "Category 1".to_string(),
@@ -157,10 +169,12 @@ fn test_update_item_with_invalid_category_id() {
 
     mock_category_repo
         .expect_get_one_by_id()
-        .with(predicate::always())
+        .with(
+            predicate::always(),
+            predicate::function(|_: &JoinEntities<ItemCategoryRelation>| true),
+        )
         .times(1)
-        .returning(|_| Err(Error::new(std::io::ErrorKind::Other, "")));
-
+        .returning(|_, _| Err(Error::new(std::io::ErrorKind::Other, "")));
     let service = CatalogService {
         item_category: &mock_category_repo,
         item: &mock_item_repo,
