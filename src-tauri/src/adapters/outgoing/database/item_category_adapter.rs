@@ -1,5 +1,6 @@
-use crate::core::entities::catalog::item_category::model::{
-    ItemCategory, ItemCategoryRepository, ItemCategoryState,
+use crate::core::entities::catalog::item_category::{
+    model::{ItemCategory, ItemCategoryState},
+    repository::ItemCategoryRepository,
 };
 use std::io::Error;
 struct ItemCategoryAdapter {}
