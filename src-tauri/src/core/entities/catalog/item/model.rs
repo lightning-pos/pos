@@ -1,6 +1,6 @@
 use std::io::Error;
 
-use crate::core::entities::catalog::item_category::model::ItemCategory;
+use crate::core::entities::catalog::item_category::model::{ItemCategory, ItemCategoryRelation};
 
 use serde::{Deserialize, Serialize};
 
@@ -20,8 +20,7 @@ pub struct Item {
 
 #[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub enum ItemRelation {
-    Taxes,
-    Variants,
+    Category(ItemCategoryRelation),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
