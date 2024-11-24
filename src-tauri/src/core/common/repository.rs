@@ -1,80 +1,35 @@
 use std::{collections::HashSet, hash::Hash};
 
-/// A generic struct that manages entity relations for dynamic join operations in repositories.
+/// Manages entity relations for dynamic join operations in repositories.
 ///
-/// `JoinEntities` provides a type-safe way to specify which related entities should be included
-/// when fetching data from a repository. It uses a `HashSet` to store unique relation types,
-/// ensuring that each relation is only joined once.
+/// `JoinEntities` specifies which related entities to include when fetching data,
+/// using a `HashSet` to store unique relation types.
 ///
 /// # Type Parameters
 ///
-/// * `R` - The relation enum type that implements `Sized + Clone + Eq + Hash`. This is typically
-///         an enum that defines all possible relations for a specific entity.
+/// * `R`: The relation enum type (implements `Sized + Clone + Eq + Hash`).
 ///
 /// # Examples
 ///
 /// ```rust
-/// // Define relations for an Item entity
 /// enum ItemRelation {
-///     Category(ItemCategoryRelation),  // Nested relation
+///     Category(ItemCategoryRelation),
 /// }
 ///
-/// // Define relations for an ItemCategory entity
 /// enum ItemCategoryRelation {
-///     Items(Vec<ItemRelation>),  // Can specify nested relations
+///     Items(Vec<ItemRelation>),
 /// }
 ///
-/// # Simple Join Example
-/// // Create a new JoinEntities instance
+/// // Simple join
 /// let mut joins = JoinEntities::default();
-///
-/// // Add relations to include in the query
-/// joins.with.insert(ItemRelation::Category(
-///     ItemCategoryRelation::Items(vec![])
-/// ));
-///
-/// // Use in a repository method
+/// joins.with.insert(ItemRelation::Category(ItemCategoryRelation::Items(vec![])));
 /// repository.get_many(joins);
-/// ```
 ///
-/// # Multiple Join Example
-///
-/// Here's how to perform nested joins to fetch items with their categories and the category's other items:
-///
-/// ```rust
-/// // 1. Create JoinEntities for fetching an Item with its Category
+/// // Nested join
 /// let mut item_joins = JoinEntities::default();
-///
-/// // 2. Request Category relation and specify that we want the Category's Items too
 /// item_joins.with.insert(ItemRelation::Category(
-///     ItemCategoryRelation::Items(vec![
-///         // 3. For each Item in the Category, we can specify what to include
-///         ItemRelation::Category(ItemCategoryRelation::Items(vec![])) // Further nesting if needed
-///     ])
+///     ItemCategoryRelation::Items(vec![ItemRelation::Category(ItemCategoryRelation::Items(vec![]))])
 /// ));
-///
-/// // This will generate SQL similar to:
-/// // SELECT * FROM items i
-/// // LEFT JOIN item_categories ic ON i.category_id = ic.id
-/// // LEFT JOIN items category_items ON ic.id = category_items.category_id
-///
-/// // Use in repository implementation:
-/// impl ItemRepository for ItemAdapter {
-///     fn get_many(&self, with: JoinEntities<ItemRelation>) -> Result<Vec<Item>, Error> {
-///         let mut query = "SELECT * FROM items";
-///
-///         // Check for Category relation
-///         if let Some(ItemRelation::Category(cat_relation)) = with.with.iter().next() {
-///             query += " LEFT JOIN item_categories ON items.category_id = item_categories.id";
-///
-///             // Check if we need to join Category's Items
-///             if matches!(cat_relation, ItemCategoryRelation::Items(_)) {
-///                 query += " LEFT JOIN items category_items ON item_categories.id = category_items.category_id";
-///             }
-///         }
-///         // ... rest of implementation
-///     }
-/// }
 /// ```
 #[derive(Debug, Clone)]
 pub struct JoinEntities<R: Sized + Clone + Eq + Hash> {
