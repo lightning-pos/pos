@@ -1,5 +1,7 @@
+use std::io::Error;
+
 use crate::core::{
-    common::repository::JoinEntities,
+    common::repository::{JoinEntities, QueryRepository},
     entities::catalog::{
         item::model::Item,
         item_category::{
@@ -8,48 +10,48 @@ use crate::core::{
         },
     },
 };
-use std::io::Error;
-struct ItemCategoryAdapter {}
 
-impl ItemCategoryRepository for ItemCategoryAdapter {
-    fn is_name_taken(&self, name: &str) -> Result<bool, Error> {
-        unimplemented!()
-    }
+pub struct ItemCategoryAdapter;
 
+impl QueryRepository<ItemCategory, ItemCategoryRelation> for ItemCategoryAdapter {
     fn get_many(
         &self,
-        with: crate::core::common::repository::JoinEntities<
-            crate::core::entities::catalog::item_category::model::ItemCategoryRelation,
-        >,
+        _with: JoinEntities<ItemCategoryRelation>,
     ) -> Result<Vec<ItemCategory>, Error> {
         unimplemented!()
     }
 
     fn get_one_by_id(
         &self,
-        id: &str,
-        with: JoinEntities<ItemCategoryRelation>,
+        _id: &str,
+        _with: JoinEntities<ItemCategoryRelation>,
     ) -> Result<ItemCategory, Error> {
         unimplemented!()
     }
+}
 
-    fn has_items(&self, id: &str) -> Result<bool, Error> {
+impl ItemCategoryRepository for ItemCategoryAdapter {
+    fn is_name_taken(&self, _name: &str) -> Result<bool, Error> {
         unimplemented!()
     }
 
-    fn insert(&self, entity: &ItemCategory) -> Result<ItemCategory, Error> {
+    fn insert(&self, _entity: &ItemCategory) -> Result<ItemCategory, Error> {
         unimplemented!()
     }
 
-    fn update(&self, entity: &ItemCategory) -> Result<ItemCategory, Error> {
+    fn update(&self, _entity: &ItemCategory) -> Result<ItemCategory, Error> {
         unimplemented!()
     }
 
-    fn delete(&self, id: &str) -> Result<bool, Error> {
+    fn delete(&self, _id: &str) -> Result<bool, Error> {
         unimplemented!()
     }
 
-    fn add_item(&self, item: &Item) -> Result<Item, Error> {
+    fn has_items(&self, _id: &str) -> Result<bool, Error> {
+        unimplemented!()
+    }
+
+    fn add_item(&self, _item: &Item) -> Result<Item, Error> {
         unimplemented!()
     }
 }

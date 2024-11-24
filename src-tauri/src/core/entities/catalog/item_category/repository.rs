@@ -1,27 +1,14 @@
 use std::io::Error;
 
 use crate::core::{
-    common::repository::JoinEntities,
+    common::repository::QueryRepository,
     entities::catalog::{
         item::model::Item,
         item_category::model::{ItemCategory, ItemCategoryRelation},
     },
 };
 
-#[cfg_attr(test, mockall::automock)]
-pub trait ItemCategoryRepository {
-    // Read with flexible includes
-    fn get_many(
-        &self,
-        with: JoinEntities<ItemCategoryRelation>,
-    ) -> Result<Vec<ItemCategory>, Error>;
-
-    fn get_one_by_id(
-        &self,
-        id: &str,
-        with: JoinEntities<ItemCategoryRelation>,
-    ) -> Result<ItemCategory, Error>;
-
+pub trait ItemCategoryRepository: QueryRepository<ItemCategory, ItemCategoryRelation> {
     // Write
     fn insert(&self, entity: &ItemCategory) -> Result<ItemCategory, Error>;
     fn update(&self, entity: &ItemCategory) -> Result<ItemCategory, Error>;

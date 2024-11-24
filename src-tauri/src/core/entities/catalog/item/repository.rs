@@ -1,9 +1,12 @@
 use std::io::Error;
 
-use super::model::Item;
+use crate::core::{
+    common::repository::QueryRepository,
+    entities::catalog::item::model::{Item, ItemRelation},
+};
 
-#[cfg_attr(test, mockall::automock)]
-pub trait ItemRepository {
+pub trait ItemRepository: QueryRepository<Item, ItemRelation> {
+    // Write methods
     fn insert(&self, item: &Item) -> Result<Item, Error>;
     fn update(&self, item: &Item) -> Result<Item, Error>;
     fn delete(&self, id: &str) -> Result<bool, Error>;

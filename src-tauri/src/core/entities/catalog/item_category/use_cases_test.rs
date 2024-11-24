@@ -1,14 +1,66 @@
-use mockall::predicate;
+use mockall::{mock, predicate};
 use std::io::Error;
 
-use crate::core::entities::catalog::catalog_service::CatalogService;
-use crate::core::entities::catalog::item::repository::MockItemRepository;
-use crate::core::entities::catalog::item_category::model::{ItemCategory, ItemCategoryState};
-use crate::core::entities::catalog::item_category::repository::MockItemCategoryRepository;
-use crate::core::entities::catalog::item_category::use_cases::ItemCategoryUseCase;
+use crate::core::{
+    common::repository::{JoinEntities, QueryRepository},
+    entities::catalog::{
+        catalog_service::CatalogService,
+        item::model::{Item, ItemRelation},
+        item::repository::ItemRepository,
+        item_category::{
+            model::{ItemCategory, ItemCategoryRelation, ItemCategoryState},
+            repository::ItemCategoryRepository,
+            use_cases::ItemCategoryUseCase,
+        },
+    },
+};
+
+mock! {
+    pub ItemCategoryRepo {}
+
+    impl QueryRepository<ItemCategory, ItemCategoryRelation> for ItemCategoryRepo {
+        fn get_many(&self, with: JoinEntities<ItemCategoryRelation>) -> Result<Vec<ItemCategory>, Error> {
+            Ok(vec![])
+        }
+
+        fn get_one_by_id(&self, id: &str, with: JoinEntities<ItemCategoryRelation>) -> Result<ItemCategory, Error> {
+            Ok(ItemCategory {
+                id: id.to_string(),
+                name: "Test".to_string(),
+                description: None,
+                state: Default::default(),
+            })
+        }
+    }
+
+    impl ItemCategoryRepository for ItemCategoryRepo {
+        fn is_name_taken(&self, name: &str) -> Result<bool, Error>;
+        fn insert(&self, entity: &ItemCategory) -> Result<ItemCategory, Error>;
+        fn update(&self, entity: &ItemCategory) -> Result<ItemCategory, Error>;
+        fn delete(&self, id: &str) -> Result<bool, Error>;
+        fn has_items(&self, id: &str) -> Result<bool, Error>;
+        fn add_item(&self, item: &Item) -> Result<Item, Error>;
+    }
+}
+
+mock! {
+    pub ItemRepo {}
+
+    impl QueryRepository<Item, ItemRelation> for ItemRepo {
+        fn get_many(&self, with: JoinEntities<ItemRelation>) -> Result<Vec<Item>, Error>;
+        fn get_one_by_id(&self, id: &str, with: JoinEntities<ItemRelation>) -> Result<Item, Error>;
+    }
+
+    impl ItemRepository for ItemRepo {
+        fn insert(&self, item: &Item) -> Result<Item, Error>;
+        fn update(&self, item: &Item) -> Result<Item, Error>;
+        fn delete(&self, id: &str) -> Result<bool, Error>;
+    }
+}
+
 #[test]
 fn test_create_item_category() {
-    let mut mock_category_repo = MockItemCategoryRepository::new();
+    let mut mock_category_repo = MockItemCategoryRepo::new();
 
     mock_category_repo
         .expect_insert()
@@ -24,7 +76,7 @@ fn test_create_item_category() {
 
     let service = CatalogService {
         item_category: &mock_category_repo,
-        item: &MockItemRepository::new(),
+        item: &MockItemRepo::new(),
     };
 
     let item_category = ItemCategory {
@@ -43,7 +95,7 @@ fn test_create_item_category() {
 
 #[test]
 fn test_create_item_category_already_exists() {
-    let mut mock_category_repo = MockItemCategoryRepository::new();
+    let mut mock_category_repo = MockItemCategoryRepo::new();
 
     let item_category = ItemCategory {
         id: "1".to_string(),
@@ -63,7 +115,7 @@ fn test_create_item_category_already_exists() {
 
     let catalog_service = CatalogService {
         item_category: &mock_category_repo,
-        item: &MockItemRepository::new(),
+        item: &MockItemRepo::new(),
     };
 
     let result = catalog_service.create_item_category(&item_category);
@@ -72,7 +124,7 @@ fn test_create_item_category_already_exists() {
 
 #[test]
 fn test_update_item_category() {
-    let mut mock_category_repo = MockItemCategoryRepository::new();
+    let mut mock_category_repo = MockItemCategoryRepo::new();
 
     let item_category = ItemCategory {
         id: "1".to_string(),
@@ -98,7 +150,7 @@ fn test_update_item_category() {
 
     let catalog_service = CatalogService {
         item_category: &mock_category_repo,
-        item: &MockItemRepository::new(),
+        item: &MockItemRepo::new(),
     };
 
     let result = catalog_service.update_item_category(&item_category);
@@ -107,7 +159,7 @@ fn test_update_item_category() {
 
 #[test]
 fn test_update_item_category_already_exists() {
-    let mut mock_category_repo = MockItemCategoryRepository::new();
+    let mut mock_category_repo = MockItemCategoryRepo::new();
 
     let item_category = ItemCategory {
         id: "1".to_string(),
@@ -127,7 +179,7 @@ fn test_update_item_category_already_exists() {
 
     let catalog_service = CatalogService {
         item_category: &mock_category_repo,
-        item: &MockItemRepository::new(),
+        item: &MockItemRepo::new(),
     };
 
     let result = catalog_service.update_item_category(&item_category);
@@ -136,7 +188,7 @@ fn test_update_item_category_already_exists() {
 
 #[test]
 fn test_delete_item_category_with_items() {
-    let mut mock_category_repo = MockItemCategoryRepository::new();
+    let mut mock_category_repo = MockItemCategoryRepo::new();
 
     mock_category_repo
         .expect_has_items()
@@ -146,7 +198,7 @@ fn test_delete_item_category_with_items() {
 
     let catalog_service = CatalogService {
         item_category: &mock_category_repo,
-        item: &MockItemRepository::new(),
+        item: &MockItemRepo::new(),
     };
 
     let result = catalog_service.delete_item_category("1");
@@ -155,7 +207,7 @@ fn test_delete_item_category_with_items() {
 
 #[test]
 fn test_delete_item_category_without_items() {
-    let mut mock_category_repo = MockItemCategoryRepository::new();
+    let mut mock_category_repo = MockItemCategoryRepo::new();
 
     mock_category_repo
         .expect_has_items()
@@ -171,7 +223,7 @@ fn test_delete_item_category_without_items() {
 
     let catalog_service = CatalogService {
         item_category: &mock_category_repo,
-        item: &MockItemRepository::new(),
+        item: &MockItemRepo::new(),
     };
 
     let result = catalog_service.delete_item_category("1");

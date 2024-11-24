@@ -43,3 +43,12 @@ impl<R: Sized + Clone + Eq + Hash> Default for JoinEntities<R> {
         }
     }
 }
+
+/// Base trait for repository query operations
+pub trait QueryRepository<T, R: Sized + Clone + Eq + Hash> {
+    /// Get multiple entities with optional relations
+    fn get_many(&self, with: JoinEntities<R>) -> Result<Vec<T>, std::io::Error>;
+
+    /// Get a single entity by ID with optional relations
+    fn get_one_by_id(&self, id: &str, with: JoinEntities<R>) -> Result<T, std::io::Error>;
+}
