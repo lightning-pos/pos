@@ -1,62 +1,15 @@
-use mockall::{mock, predicate};
+use mockall::predicate;
 use std::io::Error;
 
-use crate::core::{
-    common::repository::{JoinEntities, QueryRepository},
-    entities::catalog::{
-        catalog_service::CatalogService,
-        item::model::{Item, ItemRelation},
-        item::repository::ItemRepository,
-        item_category::{
-            model::{ItemCategory, ItemCategoryRelation, ItemCategoryState},
-            repository::ItemCategoryRepository,
-            use_cases::ItemCategoryUseCase,
-        },
+use crate::core::entities::catalog::{
+    catalog_service::CatalogService,
+    item_category::{
+        model::{ItemCategory, ItemCategoryState},
+        use_cases::ItemCategoryUseCase,
     },
 };
 
-mock! {
-    pub ItemCategoryRepo {}
-
-    impl QueryRepository<ItemCategory, ItemCategoryRelation> for ItemCategoryRepo {
-        fn get_many(&self, with: JoinEntities<ItemCategoryRelation>) -> Result<Vec<ItemCategory>, Error> {
-            Ok(vec![])
-        }
-
-        fn get_one_by_id(&self, id: &str, with: JoinEntities<ItemCategoryRelation>) -> Result<ItemCategory, Error> {
-            Ok(ItemCategory {
-                id: id.to_string(),
-                name: "Test".to_string(),
-                description: None,
-                state: Default::default(),
-            })
-        }
-    }
-
-    impl ItemCategoryRepository for ItemCategoryRepo {
-        fn is_name_taken(&self, name: &str) -> Result<bool, Error>;
-        fn insert(&self, entity: &ItemCategory) -> Result<ItemCategory, Error>;
-        fn update(&self, entity: &ItemCategory) -> Result<ItemCategory, Error>;
-        fn delete(&self, id: &str) -> Result<bool, Error>;
-        fn has_items(&self, id: &str) -> Result<bool, Error>;
-        fn add_item(&self, item: &Item) -> Result<Item, Error>;
-    }
-}
-
-mock! {
-    pub ItemRepo {}
-
-    impl QueryRepository<Item, ItemRelation> for ItemRepo {
-        fn get_many(&self, with: JoinEntities<ItemRelation>) -> Result<Vec<Item>, Error>;
-        fn get_one_by_id(&self, id: &str, with: JoinEntities<ItemRelation>) -> Result<Item, Error>;
-    }
-
-    impl ItemRepository for ItemRepo {
-        fn insert(&self, item: &Item) -> Result<Item, Error>;
-        fn update(&self, item: &Item) -> Result<Item, Error>;
-        fn delete(&self, id: &str) -> Result<bool, Error>;
-    }
-}
+use crate::test::mocks::{MockItemCategoryRepo, MockItemRepo};
 
 #[test]
 fn test_create_item_category() {
