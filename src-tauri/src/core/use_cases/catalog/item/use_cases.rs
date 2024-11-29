@@ -1,10 +1,9 @@
 use std::io::Error;
 
 use crate::core::{
-    common::interface::JoinEntities, entities::catalog::catalog_service::CatalogService,
+    common::interface::JoinEntities, entities::catalog::item::model::Item,
+    use_cases::catalog_service::CatalogService,
 };
-
-use super::model::Item;
 
 pub trait ItemUseCase {
     fn create_item(&self, item: &Item) -> Result<Item, Error>;

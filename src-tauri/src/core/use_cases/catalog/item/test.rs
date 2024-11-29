@@ -4,13 +4,10 @@ use std::io::Error;
 use crate::core::{
     common::interface::JoinEntities,
     entities::catalog::{
-        catalog_service::CatalogService,
-        item::{
-            model::{Item, ItemNature},
-            use_cases::ItemUseCase,
-        },
+        item::model::{Item, ItemNature},
         item_category::model::{ItemCategory, ItemCategoryRelation, ItemCategoryState},
     },
+    use_cases::{catalog::item::use_cases::ItemUseCase, catalog_service::CatalogService},
 };
 
 use crate::test::mocks::{MockItemCategoryRepo, MockItemRepo};
@@ -18,6 +15,7 @@ use crate::test::mocks::{MockItemCategoryRepo, MockItemRepo};
 #[test]
 fn test_create_item() {
     let mut mock_item_repo = MockItemRepo::new();
+
     let mut mock_category_repo = MockItemCategoryRepo::new();
 
     mock_item_repo

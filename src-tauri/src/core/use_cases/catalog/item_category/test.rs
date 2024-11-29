@@ -1,14 +1,9 @@
 use mockall::predicate;
 use std::io::Error;
 
-use crate::core::entities::catalog::{
-    catalog_service::CatalogService,
-    item_category::{
-        model::{ItemCategory, ItemCategoryState},
-        use_cases::ItemCategoryUseCase,
-    },
-};
-
+use crate::core::entities::catalog::item_category::model::{ItemCategory, ItemCategoryState};
+use crate::core::use_cases::catalog::item_category::use_cases::ItemCategoryUseCase;
+use crate::core::use_cases::catalog_service::CatalogService;
 use crate::test::mocks::{MockItemCategoryRepo, MockItemRepo};
 
 #[test]
