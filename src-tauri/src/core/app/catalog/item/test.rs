@@ -7,7 +7,7 @@ use crate::core::{
         item::model::{Item, ItemNature},
         item_category::model::{ItemCategory, ItemCategoryRelation, ItemCategoryState},
     },
-    use_cases::{catalog::item::use_cases::ItemUseCase, catalog_service::CatalogService},
+    app::{catalog::item::app::ItemUseCase, catalog_service::CatalogService},
 };
 
 use crate::test::mocks::{MockItemCategoryRepo, MockItemRepo};

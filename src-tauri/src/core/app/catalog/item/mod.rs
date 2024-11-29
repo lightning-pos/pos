@@ -1,4 +1,4 @@
-pub mod use_cases;
+pub mod app;
 
 #[cfg(test)]
 pub mod test;

@@ -2,7 +2,7 @@ use std::io::Error;
 
 use crate::core::{
     common::interface::JoinEntities, entities::catalog::item::model::Item,
-    use_cases::catalog_service::CatalogService,
+    app::catalog_service::CatalogService,
 };
 
 pub trait ItemUseCase {
