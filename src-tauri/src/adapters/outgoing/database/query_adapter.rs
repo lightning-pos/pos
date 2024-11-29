@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use crate::core::common::interface::{JoinEntities, QueryInterface};
+use crate::core::common::interface::sql::query::{JoinEntities, QueryInterface};
 
 /// Adapter for querying data from a database.
 /// Usage:

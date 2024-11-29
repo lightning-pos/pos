@@ -1,7 +1,7 @@
 use std::io::Error;
 
 use crate::core::{
-    common::interface::QueryInterface,
+    common::interface::sql::query::QueryInterface,
     entities::catalog::{
         item::model::Item,
         item_category::model::{ItemCategory, ItemCategoryRelation},

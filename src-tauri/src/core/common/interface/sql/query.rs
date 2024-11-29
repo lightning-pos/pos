@@ -1,5 +1,18 @@
 use std::{collections::HashSet, hash::Hash};
 
+/// Base trait for repository query operations
+pub trait QueryInterface<T, R: Sized + Clone + Eq + Hash> {
+    /// Get multiple entities with optional relations
+    fn get_many(&self, with: JoinEntities<R>) -> Result<Vec<T>, std::io::Error> {
+        unimplemented!()
+    }
+
+    /// Get a single entity by ID with optional relations
+    fn get_one_by_id(&self, id: &str, with: JoinEntities<R>) -> Result<T, std::io::Error> {
+        unimplemented!()
+    }
+}
+
 /// Manages entity relations for dynamic join operations in repositories.
 ///
 /// `JoinEntities` specifies which related entities to include when fetching data,
@@ -49,18 +62,5 @@ impl<R: Sized + Clone + Eq + Hash> Default for JoinEntities<R> {
         Self {
             with: HashSet::new(),
         }
-    }
-}
-
-/// Base trait for repository query operations
-pub trait QueryInterface<T, R: Sized + Clone + Eq + Hash> {
-    /// Get multiple entities with optional relations
-    fn get_many(&self, with: JoinEntities<R>) -> Result<Vec<T>, std::io::Error> {
-        unimplemented!()
-    }
-
-    /// Get a single entity by ID with optional relations
-    fn get_one_by_id(&self, id: &str, with: JoinEntities<R>) -> Result<T, std::io::Error> {
-        unimplemented!()
     }
 }

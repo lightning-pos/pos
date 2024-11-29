@@ -2,7 +2,7 @@ use mockall::mock;
 use std::io::Error;
 
 use crate::core::{
-    common::interface::{JoinEntities, QueryInterface},
+    common::interface::sql::query::{JoinEntities, QueryInterface},
     entities::catalog::{
         item::{
             interface::ItemInterface,

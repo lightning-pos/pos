@@ -2,12 +2,12 @@ use mockall::predicate;
 use std::io::Error;
 
 use crate::core::{
-    common::interface::JoinEntities,
+    app::{catalog::item::app::ItemUseCase, catalog_service::CatalogService},
+    common::interface::sql::query::JoinEntities,
     entities::catalog::{
         item::model::{Item, ItemNature},
         item_category::model::{ItemCategory, ItemCategoryRelation, ItemCategoryState},
     },
-    app::{catalog::item::app::ItemUseCase, catalog_service::CatalogService},
 };
 
 use crate::test::mocks::{MockItemCategoryRepo, MockItemRepo};
