@@ -36,6 +36,14 @@ pub struct JoinEntities<R: Sized + Clone + Eq + Hash> {
     pub with: HashSet<R>,
 }
 
+impl<R: Sized + Clone + Eq + Hash> JoinEntities<R> {
+    pub fn new(relations: Vec<R>) -> Self {
+        Self {
+            with: relations.into_iter().collect(),
+        }
+    }
+}
+
 impl<R: Sized + Clone + Eq + Hash> Default for JoinEntities<R> {
     fn default() -> Self {
         Self {
