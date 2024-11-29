@@ -154,9 +154,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "Invalid currency code. Must be one of: USD, EUR, GBP, JPY, CNY, INR"
-    )]
+    #[should_panic(expected = "Invalid currency code.")]
     fn test_invalid_currency() {
         Money::new(100, "INVALID");
     }

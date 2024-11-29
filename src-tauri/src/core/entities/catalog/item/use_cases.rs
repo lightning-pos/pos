@@ -1,7 +1,7 @@
 use std::io::Error;
 
 use crate::core::{
-    common::repository::JoinEntities, entities::catalog::catalog_service::CatalogService,
+    common::interface::JoinEntities, entities::catalog::catalog_service::CatalogService,
 };
 
 use super::model::Item;

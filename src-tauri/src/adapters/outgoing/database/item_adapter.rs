@@ -1,16 +1,16 @@
 use std::io::Error;
 
 use crate::core::{
-    common::repository::{JoinEntities, QueryRepository},
+    common::interface::{JoinEntities, QueryInterface},
     entities::catalog::item::{
+        interface::ItemInterface,
         model::{Item, ItemRelation},
-        repository::ItemRepository,
     },
 };
 
 pub struct ItemAdapter;
 
-impl QueryRepository<Item, ItemRelation> for ItemAdapter {
+impl QueryInterface<Item, ItemRelation> for ItemAdapter {
     fn get_many(&self, _with: JoinEntities<ItemRelation>) -> Result<Vec<Item>, Error> {
         unimplemented!()
     }
@@ -20,7 +20,7 @@ impl QueryRepository<Item, ItemRelation> for ItemAdapter {
     }
 }
 
-impl ItemRepository for ItemAdapter {
+impl ItemInterface for ItemAdapter {
     fn insert(&self, _item: &Item) -> Result<Item, Error> {
         unimplemented!()
     }

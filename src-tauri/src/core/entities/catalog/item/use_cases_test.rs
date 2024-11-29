@@ -2,7 +2,7 @@ use mockall::predicate;
 use std::io::Error;
 
 use crate::core::{
-    common::repository::JoinEntities,
+    common::interface::JoinEntities,
     entities::catalog::{
         catalog_service::CatalogService,
         item::{

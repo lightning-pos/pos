@@ -1,14 +1,14 @@
 use std::io::Error;
 
 use crate::core::{
-    common::repository::QueryRepository,
+    common::interface::QueryInterface,
     entities::catalog::{
         item::model::Item,
         item_category::model::{ItemCategory, ItemCategoryRelation},
     },
 };
 
-pub trait ItemCategoryRepository: QueryRepository<ItemCategory, ItemCategoryRelation> {
+pub trait ItemCategoryInterface: QueryInterface<ItemCategory, ItemCategoryRelation> {
     // Write
     fn insert(&self, entity: &ItemCategory) -> Result<ItemCategory, Error>;
     fn update(&self, entity: &ItemCategory) -> Result<ItemCategory, Error>;
