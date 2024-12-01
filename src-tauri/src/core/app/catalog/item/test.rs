@@ -2,7 +2,7 @@ use mockall::predicate;
 use std::io::Error;
 
 use crate::core::{
-    app::{catalog::item::app::ItemUseCase, catalog_service::CatalogService},
+    app::{catalog::item::app::ItemUseCase, app_service::AppService},
     common::interface::sql::query::JoinEntities,
     entities::catalog::{
         item::model::{Item, ItemNature},
@@ -54,7 +54,7 @@ fn test_create_item() {
             })
         });
 
-    let service = CatalogService {
+    let service = AppService {
         item_category: &mock_category_repo,
         item: &mock_item_repo,
     };
@@ -87,7 +87,7 @@ fn test_create_item_with_invalid_category_id() {
         .times(1)
         .returning(|_, _| Err(Error::new(std::io::ErrorKind::Other, "")));
 
-    let service = CatalogService {
+    let service = AppService {
         item_category: &mock_category_repo,
         item: &mock_item_repo,
     };
@@ -138,7 +138,7 @@ fn test_update_item() {
             })
         });
 
-    let service = CatalogService {
+    let service = AppService {
         item_category: &mock_category_repo,
         item: &mock_item_repo,
     };
@@ -172,7 +172,7 @@ fn test_update_item_with_invalid_category_id() {
         )
         .times(1)
         .returning(|_, _| Err(Error::new(std::io::ErrorKind::Other, "")));
-    let service = CatalogService {
+    let service = AppService {
         item_category: &mock_category_repo,
         item: &mock_item_repo,
     };

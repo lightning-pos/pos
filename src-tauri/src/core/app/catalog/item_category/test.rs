@@ -1,9 +1,9 @@
 use mockall::predicate;
 use std::io::Error;
 
-use crate::core::entities::catalog::item_category::model::{ItemCategory, ItemCategoryState};
 use crate::core::app::catalog::item_category::app::ItemCategoryUseCase;
-use crate::core::app::catalog_service::CatalogService;
+use crate::core::app::app_service::AppService;
+use crate::core::entities::catalog::item_category::model::{ItemCategory, ItemCategoryState};
 use crate::test::mocks::{MockItemCategoryRepo, MockItemRepo};
 
 #[test]
@@ -22,7 +22,7 @@ fn test_create_item_category() {
         .times(1)
         .returning(|_| Err(Error::new(std::io::ErrorKind::Other, "Error")));
 
-    let service = CatalogService {
+    let service = AppService {
         item_category: &mock_category_repo,
         item: &MockItemRepo::new(),
     };
@@ -61,7 +61,7 @@ fn test_create_item_category_already_exists() {
         .times(1)
         .returning(|_| Ok(true));
 
-    let catalog_service = CatalogService {
+    let catalog_service = AppService {
         item_category: &mock_category_repo,
         item: &MockItemRepo::new(),
     };
@@ -96,7 +96,7 @@ fn test_update_item_category() {
         .times(1)
         .returning(|item_category| Ok(item_category.clone()));
 
-    let catalog_service = CatalogService {
+    let catalog_service = AppService {
         item_category: &mock_category_repo,
         item: &MockItemRepo::new(),
     };
@@ -125,7 +125,7 @@ fn test_update_item_category_already_exists() {
         .times(1)
         .returning(|_| Ok(true));
 
-    let catalog_service = CatalogService {
+    let catalog_service = AppService {
         item_category: &mock_category_repo,
         item: &MockItemRepo::new(),
     };
@@ -144,7 +144,7 @@ fn test_delete_item_category_with_items() {
         .times(1)
         .returning(|_| Ok(true));
 
-    let catalog_service = CatalogService {
+    let catalog_service = AppService {
         item_category: &mock_category_repo,
         item: &MockItemRepo::new(),
     };
@@ -169,7 +169,7 @@ fn test_delete_item_category_without_items() {
         .times(1)
         .returning(|_| Ok(true));
 
-    let catalog_service = CatalogService {
+    let catalog_service = AppService {
         item_category: &mock_category_repo,
         item: &MockItemRepo::new(),
     };

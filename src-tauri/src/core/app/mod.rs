@@ -1,3 +1,3 @@
 pub mod catalog;
 
-pub mod catalog_service;
+pub mod app_service;

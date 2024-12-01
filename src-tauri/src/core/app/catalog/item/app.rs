@@ -1,7 +1,7 @@
 use std::io::Error;
 
 use crate::core::{
-    app::catalog_service::CatalogService, common::interface::sql::query::JoinEntities,
+    app::app_service::AppService, common::interface::sql::query::JoinEntities,
     entities::catalog::item::model::Item,
 };
 
@@ -11,7 +11,7 @@ pub trait ItemUseCase {
     fn delete_item(&self, id: &str) -> Result<bool, Error>;
 }
 
-impl<'a> ItemUseCase for CatalogService<'a> {
+impl<'a> ItemUseCase for AppService<'a> {
     fn create_item(&self, item: &Item) -> Result<Item, Error> {
         let category = self
             .item_category

@@ -1,8 +1,7 @@
 use std::io::Error;
 
 use crate::core::{
-    entities::catalog::item_category::model::ItemCategory,
-    app::catalog_service::CatalogService,
+    app::app_service::AppService, entities::catalog::item_category::model::ItemCategory,
 };
 
 pub trait ItemCategoryUseCase {
@@ -11,7 +10,7 @@ pub trait ItemCategoryUseCase {
     fn delete_item_category(&self, id: &str) -> Result<bool, Error>;
 }
 
-impl<'a> ItemCategoryUseCase for CatalogService<'a> {
+impl<'a> ItemCategoryUseCase for AppService<'a> {
     fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error> {
         let existing_item_category = self.item_category.is_name_taken(&item_category.name);
 
