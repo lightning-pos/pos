@@ -1,6 +1,6 @@
-use std::hash::Hash;
-
-use crate::core::common::interface::sql::query::{JoinEntities, QueryInterface};
+use crate::core::common::interface::sql::query::{
+    join_entity::JoinEntities, query::QueryInterface,
+};
 
 /// Adapter for querying data from a database.
 /// Usage:
@@ -25,7 +25,7 @@ use crate::core::common::interface::sql::query::{JoinEntities, QueryInterface};
 /// );
 pub struct QueryAdapter;
 
-impl<T, R: Hash + Eq + Clone + Sized> QueryInterface<T, R> for QueryAdapter {
+impl<T, R> QueryInterface<T, R> for QueryAdapter {
     fn get_many(&self, with: JoinEntities<R>) -> Result<Vec<T>, std::io::Error> {
         unimplemented!()
     }

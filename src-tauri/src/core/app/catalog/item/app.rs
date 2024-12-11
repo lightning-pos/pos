@@ -1,7 +1,7 @@
 use std::io::Error;
 
 use crate::core::{
-    app::app_service::AppService, common::interface::sql::query::JoinEntities,
+    app::app_service::AppService, common::interface::sql::query::join_entity::JoinEntities,
     entities::catalog::item::model::Item,
 };
 
@@ -15,7 +15,7 @@ impl<'a> ItemUseCase for AppService<'a> {
     fn create_item(&self, item: &Item) -> Result<Item, Error> {
         let category = self
             .item_category
-            .get_one_by_id(&item.category_id, JoinEntities::default());
+            .get_one_by_id(&item.category_id, JoinEntities::new(vec![]));
 
         match category {
             Ok(_) => self.item.insert(item),
@@ -28,7 +28,7 @@ impl<'a> ItemUseCase for AppService<'a> {
     fn update_item(&self, item: &Item) -> Result<Item, Error> {
         let category = self
             .item_category
-            .get_one_by_id(&item.category_id, JoinEntities::default());
+            .get_one_by_id(&item.category_id, JoinEntities::new(vec![]));
 
         match category {
             Ok(_) => self.item.update(item),

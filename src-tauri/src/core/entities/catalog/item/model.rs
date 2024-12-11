@@ -1,5 +1,3 @@
-use std::io::Error;
-
 use crate::core::entities::catalog::item_category::model::{ItemCategory, ItemCategoryRelation};
 
 use serde::{Deserialize, Serialize};

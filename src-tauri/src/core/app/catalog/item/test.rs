@@ -2,8 +2,8 @@ use mockall::predicate;
 use std::io::Error;
 
 use crate::core::{
-    app::{catalog::item::app::ItemUseCase, app_service::AppService},
-    common::interface::sql::query::JoinEntities,
+    app::{app_service::AppService, catalog::item::app::ItemUseCase},
+    common::interface::sql::query::join_entity::JoinEntities,
     entities::catalog::{
         item::model::{Item, ItemNature},
         item_category::model::{ItemCategory, ItemCategoryRelation, ItemCategoryState},

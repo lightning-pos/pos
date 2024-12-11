@@ -1,7 +1,7 @@
 use std::io::Error;
 
 use crate::core::{
-    common::interface::sql::query::{JoinEntities, QueryInterface},
+    common::interface::sql::query::{join_entity::JoinEntities, query::QueryInterface},
     entities::catalog::{
         item::model::Item,
         item_category::{
@@ -13,8 +13,24 @@ use crate::core::{
 
 pub struct ItemCategoryAdapter;
 
-// Automatically gets default QueryInterface implementation
-impl QueryInterface<ItemCategory, ItemCategoryRelation> for ItemCategoryAdapter {}
+impl QueryInterface<ItemCategory, ItemCategoryRelation> for ItemCategoryAdapter {
+    fn get_many(
+        &self,
+        _with: JoinEntities<ItemCategoryRelation>,
+    ) -> Result<Vec<ItemCategory>, Error> {
+        unimplemented!()
+    }
+
+    fn get_one_by_id(
+        &self,
+        _id: &str,
+        _with: crate::core::common::interface::sql::query::join_entity::JoinEntities<
+            ItemCategoryRelation,
+        >,
+    ) -> Result<ItemCategory, Error> {
+        unimplemented!()
+    }
+}
 
 // Implement only the specific ItemCategoryInterface methods
 impl ItemCategoryInterface for ItemCategoryAdapter {
