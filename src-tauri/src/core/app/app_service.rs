@@ -1,8 +1,17 @@
-use crate::core::entities::catalog::{
-    item::interface::ItemInterface, item_category::interface::ItemCategoryInterface,
-};
+use crate::core::common::interface::sql::SQLInterface;
 
-pub struct AppService<'a> {
-    pub item_category: &'a dyn ItemCategoryInterface,
-    pub item: &'a dyn ItemInterface,
+pub struct AppService<S>
+where
+    S: SQLInterface,
+{
+    pub model: S,
+}
+
+impl<S> AppService<S>
+where
+    S: SQLInterface,
+{
+    pub fn new(sql: S) -> Self {
+        Self { model: sql }
+    }
 }

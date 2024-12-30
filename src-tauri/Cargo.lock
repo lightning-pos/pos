@@ -1778,6 +1778,7 @@ name = "lightning_pos"
 version = "0.1.0"
 dependencies = [
  "mockall",
+ "modql",
  "serde",
  "serde_json",
  "tauri",
@@ -1923,6 +1924,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "341014e7f530314e9a1fdbc7400b244efea7122662c96bfa248c31da5bfb2020"
 dependencies = [
  "cfg-if",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.72",
+]
+
+[[package]]
+name = "modql"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4226d7e0d2a99687ed0eda5f33f2c9095bdf74869652eab73d075a9f981ecfd"
+dependencies = [
+ "modql-macros",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "modql-macros"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64cb2ed7c4062a6219c5144317219a5b2668f413f40a52757b9481346817ac86"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.72",

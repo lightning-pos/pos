@@ -1,197 +1,243 @@
-use mockall::predicate;
 use std::io::Error;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::core::{
-    app::{app_service::AppService, catalog::item::app::ItemUseCase},
-    common::interface::sql::query::join_entity::JoinEntities,
-    entities::catalog::{
-        item::model::{Item, ItemNature},
-        item_category::model::{ItemCategory, ItemCategoryRelation, ItemCategoryState},
-    },
-};
-
-use crate::test::mocks::{MockItemCategoryRepo, MockItemRepo};
+use crate::core::app::catalog::item::app::ItemUseCase;
+use crate::core::common::interface::sql::MockSQLInterface;
+use crate::core::entities::catalog::item::{ItemNature, ItemState};
+use crate::core::entities::catalog::item_category::{ItemCategory, ItemCategoryState};
+use crate::core::{app::app_service::AppService, entities::catalog::item::Item};
+use mockall::predicate::*;
 
 #[test]
-fn test_create_item() {
-    let mut mock_item_repo = MockItemRepo::new();
+fn test_create_item() -> Result<(), Error> {
+    let mut mock = MockSQLInterface::new();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
 
-    let mut mock_category_repo = MockItemCategoryRepo::new();
+    let item = Item {
+        id: "1".to_string(),
+        name: "Test Item".to_string(),
+        description: None,
+        nature: ItemNature::Goods,
+        category_id: "1".to_string(),
+        state: ItemState::Active,
+        created_at: now,
+        updated_at: now,
+    };
 
-    mock_item_repo
-        .expect_insert()
-        .with(predicate::always())
-        .times(1)
-        .returning(|item| {
-            Ok(Item {
-                id: item.id.clone(),
-                name: item.name.clone(),
-                description: item.description.clone(),
-                nature: item.nature.clone(),
-                category_id: item.category_id.clone(),
-                category: item.category.clone(),
-                created_at: item.created_at,
-                updated_at: item.updated_at,
-            })
-        });
+    let item_clone = item.clone();
 
-    mock_category_repo
-        .expect_get_one_by_id()
-        .with(
-            predicate::always(),
-            predicate::function(|_: &JoinEntities<ItemCategoryRelation>| true),
-        )
-        .times(1)
-        .returning(|_, _| {
-            Ok(ItemCategory {
+    // Mock category exists check
+    mock.expect_get_one::<ItemCategory>()
+        .with(always(), always())
+        .returning(move |_, _| {
+            Some(ItemCategory {
                 id: "1".to_string(),
-                name: "Category 1".to_string(),
-                state: ItemCategoryState::Active,
+                name: "Test Category".to_string(),
                 description: None,
-                items: None,
-                created_at: 0,
-                updated_at: 0,
+                state: ItemCategoryState::Active,
+                created_at: now,
+                updated_at: now,
             })
         });
 
-    let service = AppService {
-        item_category: &mock_category_repo,
-        item: &mock_item_repo,
-    };
+    // Mock item doesn't exist check
+    mock.expect_get_one::<Item>()
+        .with(always(), always())
+        .returning(|_, _| None);
 
-    let result = service.create_item(&Item {
-        id: "1".to_string(),
-        name: "Item 1".to_string(),
-        description: None,
-        nature: ItemNature::Goods,
-        category_id: "1".to_string(),
-        category: None,
-        created_at: 0,
-        updated_at: 0,
-    });
+    // Mock save operation
+    mock.expect_save::<Item>()
+        .with(always())
+        .returning(move |_| Ok(item_clone.clone()));
 
-    assert_eq!(result.is_ok(), true);
+    let app_service = AppService::new(mock);
+    let result = app_service.create_item(&item);
+    assert!(result.is_ok());
+    Ok(())
 }
 
 #[test]
-fn test_create_item_with_invalid_category_id() {
-    let mock_item_repo = MockItemRepo::new();
-    let mut mock_category_repo = MockItemCategoryRepo::new();
-
-    mock_category_repo
-        .expect_get_one_by_id()
-        .with(
-            predicate::always(),
-            predicate::function(|_: &JoinEntities<ItemCategoryRelation>| true),
-        )
-        .times(1)
-        .returning(|_, _| Err(Error::new(std::io::ErrorKind::Other, "")));
-
-    let service = AppService {
-        item_category: &mock_category_repo,
-        item: &mock_item_repo,
-    };
+fn test_create_item_already_exists() -> Result<(), Error> {
+    let mut mock = MockSQLInterface::new();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
 
     let item = Item {
         id: "1".to_string(),
-        name: "Item 1".to_string(),
+        name: "Test Item".to_string(),
         description: None,
         nature: ItemNature::Goods,
         category_id: "1".to_string(),
-        category: None,
-        created_at: 0,
-        updated_at: 0,
+        state: ItemState::Active,
+        created_at: now,
+        updated_at: now,
     };
 
-    let result = service.create_item(&item);
+    let item_clone = item.clone();
 
-    assert_eq!(result.is_err(), true);
-}
-
-#[test]
-fn test_update_item() {
-    let mut mock_item_repo = MockItemRepo::new();
-    let mut mock_category_repo = MockItemCategoryRepo::new();
-
-    mock_item_repo
-        .expect_update()
-        .with(predicate::always())
-        .times(1)
-        .returning(|item| Ok(item.clone()));
-
-    mock_category_repo
-        .expect_get_one_by_id()
-        .with(
-            predicate::always(),
-            predicate::function(|_: &JoinEntities<ItemCategoryRelation>| true),
-        )
-        .times(1)
-        .returning(|_, _| {
-            Ok(ItemCategory {
+    // Mock category exists check
+    mock.expect_get_one::<ItemCategory>()
+        .with(always(), always())
+        .returning(move |_, _| {
+            Some(ItemCategory {
                 id: "1".to_string(),
-                name: "Category 1".to_string(),
-                state: ItemCategoryState::Active,
+                name: "Test Category".to_string(),
                 description: None,
-                items: None,
-                created_at: 0,
-                updated_at: 0,
+                state: ItemCategoryState::Active,
+                created_at: now,
+                updated_at: now,
             })
         });
 
-    let service = AppService {
-        item_category: &mock_category_repo,
-        item: &mock_item_repo,
-    };
+    // Mock item already exists check
+    mock.expect_get_one::<Item>()
+        .with(always(), always())
+        .returning(move |_, _| Some(item.clone()));
 
-    let item = Item {
-        id: "1".to_string(),
-        name: "Item 1".to_string(),
-        description: None,
-        nature: ItemNature::Goods,
-        category_id: "1".to_string(),
-        category: None,
-        created_at: 0,
-        updated_at: 0,
-    };
-
-    let result = service.update_item(&item);
-
-    assert_eq!(result.is_ok(), true);
+    let app_service = AppService::new(mock);
+    let result = app_service.create_item(&item_clone);
+    assert!(result.is_err());
+    Ok(())
 }
 
 #[test]
-fn test_update_item_with_invalid_category_id() {
-    let mock_item_repo = MockItemRepo::new();
-    let mut mock_category_repo = MockItemCategoryRepo::new();
-
-    mock_category_repo
-        .expect_get_one_by_id()
-        .with(
-            predicate::always(),
-            predicate::function(|_: &JoinEntities<ItemCategoryRelation>| true),
-        )
-        .times(1)
-        .returning(|_, _| Err(Error::new(std::io::ErrorKind::Other, "")));
-    let service = AppService {
-        item_category: &mock_category_repo,
-        item: &mock_item_repo,
-    };
+fn test_update_item() -> Result<(), Error> {
+    let mut mock = MockSQLInterface::new();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
 
     let item = Item {
         id: "1".to_string(),
-        name: "Item 1".to_string(),
+        name: "Test Item".to_string(),
         description: None,
         nature: ItemNature::Goods,
         category_id: "1".to_string(),
-        category: None,
-        created_at: 0,
-        updated_at: 0,
+        state: ItemState::Active,
+        created_at: now,
+        updated_at: now,
     };
 
-    let result = service.update_item(&item);
+    let updated_item = Item {
+        name: "Updated Item".to_string(),
+        ..item.clone()
+    };
 
-    assert_eq!(result.is_err(), true);
+    let updated_item_clone = updated_item.clone();
+
+    // Mock category exists check
+    mock.expect_get_one::<ItemCategory>()
+        .with(always(), always())
+        .returning(move |_, _| {
+            Some(ItemCategory {
+                id: "1".to_string(),
+                name: "Test Category".to_string(),
+                description: None,
+                state: ItemCategoryState::Active,
+                created_at: now,
+                updated_at: now,
+            })
+        });
+
+    // Mock item exists check
+    mock.expect_get_one::<Item>()
+        .with(always(), always())
+        .returning(move |_, _| Some(item.clone()));
+
+    // Mock save operation
+    mock.expect_save::<Item>()
+        .with(always())
+        .returning(move |_| Ok(updated_item_clone.clone()));
+
+    let app_service = AppService::new(mock);
+    let result = app_service.update_item(&updated_item);
+    assert!(result.is_ok());
+    Ok(())
 }
 
 #[test]
-fn test_delete_item() {}
+fn test_update_nonexistent_item() -> Result<(), Error> {
+    let mut mock = MockSQLInterface::new();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+
+    let item = Item {
+        id: "nonexistent".to_string(),
+        name: "Test Item".to_string(),
+        description: None,
+        nature: ItemNature::Goods,
+        category_id: "1".to_string(),
+        state: ItemState::Active,
+        created_at: now,
+        updated_at: now,
+    };
+
+    // Mock category exists check
+    mock.expect_get_one::<ItemCategory>()
+        .with(always(), always())
+        .returning(move |_, _| {
+            Some(ItemCategory {
+                id: "1".to_string(),
+                name: "Test Category".to_string(),
+                description: None,
+                state: ItemCategoryState::Active,
+                created_at: now,
+                updated_at: now,
+            })
+        });
+
+    // Mock item doesn't exist check
+    mock.expect_get_one::<Item>()
+        .with(always(), always())
+        .returning(|_, _| None);
+
+    let app_service = AppService::new(mock);
+    let result = app_service.update_item(&item);
+    assert!(result.is_err());
+    Ok(())
+}
+
+#[test]
+fn test_delete_item() -> Result<(), Error> {
+    let mut mock = MockSQLInterface::new();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+
+    let item = Item {
+        id: "1".to_string(),
+        name: "Test Item".to_string(),
+        description: None,
+        nature: ItemNature::Goods,
+        category_id: "1".to_string(),
+        state: ItemState::Active,
+        created_at: now,
+        updated_at: now,
+    };
+
+    let item_clone = item.clone();
+
+    // Mock item exists check
+    mock.expect_get_one::<Item>()
+        .with(always(), always())
+        .returning(move |_, _| Some(item.clone()));
+
+    // Mock delete operation
+    mock.expect_delete::<Item>()
+        .with(always())
+        .returning(|_| Ok(true));
+
+    let app_service = AppService::new(mock);
+    let result = app_service.delete_item(&item_clone);
+    assert!(result.is_ok());
+    Ok(())
+}
