@@ -1,22 +1,24 @@
-use crate::core::{
-    app::app_service::AppService,
-    common::interface::sql::SQLInterface,
-    entities::catalog::{
-        item::Item,
-        item_category::{ItemCategory, ItemCategoryFilter},
+use crate::{
+    core::{
+        app::app_service::AppService,
+        common::interface::sql::SQLInterface,
+        entities::catalog::{
+            item::Item,
+            item_category::{ItemCategory, ItemCategoryFilter},
+        },
     },
+    error::{Error, Result},
 };
 use serde_json::json;
-use std::io::Error;
 
 pub trait ItemCategoryUseCase {
-    fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error>;
-    fn update_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error>;
-    fn delete_item_category(&self, item_category: &ItemCategory) -> Result<bool, Error>;
+    fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory>;
+    fn update_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory>;
+    fn delete_item_category(&self, item_category: &ItemCategory) -> Result<bool>;
 }
 
 impl<T: SQLInterface> ItemCategoryUseCase for AppService<T> {
-    fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error> {
+    fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory> {
         let cat_filter = serde_json::from_value::<ItemCategoryFilter>(json!({
             "id": item_category.id
         }))?;
@@ -31,10 +33,7 @@ impl<T: SQLInterface> ItemCategoryUseCase for AppService<T> {
 
         match existing_item_category {
             Some(_) => {
-                return Err(Error::new(
-                    std::io::ErrorKind::Other,
-                    "Item category already exists",
-                ));
+                return Err(Error::UniqueConstraintError);
             }
             None => {}
         }
@@ -42,7 +41,7 @@ impl<T: SQLInterface> ItemCategoryUseCase for AppService<T> {
         self.model.save(&item_category)
     }
 
-    fn update_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory, Error> {
+    fn update_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory> {
         let cat_filter: ItemCategoryFilter = serde_json::from_value::<ItemCategoryFilter>(json!({
             "id": item_category.id
         }))?;
@@ -52,16 +51,11 @@ impl<T: SQLInterface> ItemCategoryUseCase for AppService<T> {
 
         match existing_item_category {
             Some(_) => self.model.save(&item_category),
-            None => {
-                return Err(Error::new(
-                    std::io::ErrorKind::Other,
-                    "Item category not found",
-                ));
-            }
+            None => Err(Error::NotFoundError),
         }
     }
 
-    fn delete_item_category(&self, item_category: &ItemCategory) -> Result<bool, Error> {
+    fn delete_item_category(&self, item_category: &ItemCategory) -> Result<bool> {
         // First check if the category exists
         let cat_filter = serde_json::from_value::<ItemCategoryFilter>(json!({
             "id": item_category.id
@@ -79,18 +73,12 @@ impl<T: SQLInterface> ItemCategoryUseCase for AppService<T> {
                 let cat_items = self.model.get_many::<Item>(Some(item_filter.into()), None);
 
                 if !cat_items.is_empty() {
-                    return Err(Error::new(
-                        std::io::ErrorKind::Other,
-                        "Item category has items",
-                    ));
+                    return Err(Error::HasChildrenError);
                 }
 
                 self.model.delete::<ItemCategory>(&item_category)
             }
-            None => Err(Error::new(
-                std::io::ErrorKind::Other,
-                "Item category not found",
-            )),
+            None => Err(Error::NotFoundError),
         }
     }
 }

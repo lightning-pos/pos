@@ -1,5 +1,5 @@
+use crate::error::Result;
 use modql::filter::{FilterGroups, ListOptions};
-use std::io::Result;
 
 pub trait SQLEntity {
     const TABLE_NAME: &'static str;

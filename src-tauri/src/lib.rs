@@ -1,5 +1,6 @@
 mod adapters;
 mod core;
+mod error;
 
 use tauri_plugin_sql::{Migration, MigrationKind};
 

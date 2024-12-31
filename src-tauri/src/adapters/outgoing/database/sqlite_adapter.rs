@@ -1,6 +1,7 @@
-use std::io::Result;
-
-use crate::core::common::interface::sql::{SQLEntity, SQLInterface};
+use crate::{
+    core::common::interface::sql::{SQLEntity, SQLInterface},
+    error::Result,
+};
 use modql::filter::{FilterGroups, ListOptions};
 
 pub struct SQLiteAdapter;
