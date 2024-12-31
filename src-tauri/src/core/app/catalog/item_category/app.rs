@@ -20,7 +20,7 @@ pub trait ItemCategoryUseCase {
 impl<T: SQLInterface> ItemCategoryUseCase for AppService<T> {
     fn create_item_category(&self, item_category: &ItemCategory) -> Result<ItemCategory> {
         let cat_filter = serde_json::from_value::<ItemCategoryFilter>(json!({
-            "id": item_category.id
+            "name": item_category.name
         }))?;
 
         let list_options = serde_json::from_value(json!({
