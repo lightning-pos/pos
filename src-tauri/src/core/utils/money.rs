@@ -8,6 +8,8 @@ use std::ops::{Add, Div, Mul, Sub};
 ///
 /// # Examples
 /// ```
+/// use lightning_pos::core::utils::money::Money;
+///
 /// let m1 = Money::new(10000, "USD");
 /// let m2 = Money::new(5000, "USD");
 ///
@@ -23,7 +25,7 @@ pub struct Money {
 }
 
 impl Money {
-    fn new(base_units: i64, currency_code: &str) -> Self {
+    pub fn new(base_units: i64, currency_code: &str) -> Self {
         let code = CurrencyCode::from_str(currency_code).expect("Invalid currency code.");
         Self {
             base_units,
@@ -31,7 +33,7 @@ impl Money {
         }
     }
 
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         format!(
             "{} {}",
             self.base_units as f64 / 100.0,
