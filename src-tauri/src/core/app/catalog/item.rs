@@ -82,22 +82,223 @@ impl<T: SQLInterface> ItemUseCase for AppService<T> {
 
 #[cfg(test)]
 mod test {
+    use crate::{
+        adapters::outgoing::database::sqlite_adapter::SQLiteAdapter,
+        core::{
+            app::{
+                app_service::AppService,
+                catalog::{item::ItemUseCase, item_category::ItemCategoryUseCase},
+            },
+            common::{interface::sql::SQLInterface, queries},
+            entities::catalog::{
+                item::{Item, ItemNature, ItemState},
+                item_category::{ItemCategory, ItemCategoryState},
+            },
+        },
+    };
 
     #[async_std::test]
-    async fn test_create_item() {}
+    async fn test_create_item() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item_category = ItemCategory {
+            id: String::from("test_cat_id"),
+            name: String::from("test"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .create_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_ok());
+
+        let item = Item {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            nature: ItemNature::Goods,
+            state: ItemState::Active,
+            category_id: String::from("test_cat_id"),
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service.create_item(item.clone()).await;
+
+        assert!(result.is_ok());
+    }
 
     #[async_std::test]
-    async fn test_create_item_already_exists() {}
+    async fn test_create_item_already_exists() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item_category = ItemCategory {
+            id: String::from("test_cat_id"),
+            name: String::from("test"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .create_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_ok());
+
+        let item = Item {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            nature: ItemNature::Goods,
+            state: ItemState::Active,
+            category_id: String::from("test_cat_id"),
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service.create_item(item.clone()).await;
+
+        assert!(result.is_ok());
+
+        let result = app_service.create_item(item.clone()).await;
+
+        assert!(result.is_err());
+    }
 
     #[async_std::test]
-    async fn test_update_item() {}
+    async fn test_update_item() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item_category = ItemCategory {
+            id: String::from("test_cat_id"),
+            name: String::from("test"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .create_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_ok());
+
+        let item = Item {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            nature: ItemNature::Goods,
+            state: ItemState::Active,
+            category_id: String::from("test_cat_id"),
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service.create_item(item.clone()).await;
+
+        assert!(result.is_ok());
+
+        let item = Item {
+            id: String::from("test_id"),
+            name: String::from("test2"),
+            description: None,
+            nature: ItemNature::Goods,
+            state: ItemState::Active,
+            category_id: String::from("test_cat_id"),
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service.update_item(item.clone()).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().name, "test2");
+    }
 
     #[async_std::test]
-    async fn test_update_item_does_not_exist() {}
+    async fn test_update_item_does_not_exist() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item = Item {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            nature: ItemNature::Goods,
+            state: ItemState::Active,
+            category_id: String::from("test_cat_id"),
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service.update_item(item.clone()).await;
+
+        assert!(result.is_err());
+    }
 
     #[async_std::test]
-    async fn test_delete_item() {}
+    async fn test_delete_item() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item_category = ItemCategory {
+            id: String::from("test_cat_id"),
+            name: String::from("test"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .create_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_ok());
+
+        let item = Item {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            nature: ItemNature::Goods,
+            state: ItemState::Active,
+            category_id: String::from("test_cat_id"),
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service.create_item(item.clone()).await;
+
+        assert!(result.is_ok());
+
+        let result = app_service.delete_item(item.clone()).await;
+
+        assert!(result.is_ok());
+        assert!(result.unwrap() == true);
+    }
 
     #[async_std::test]
-    async fn test_delete_item_does_not_exist() {}
+    async fn test_delete_item_does_not_exist() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item = Item {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            nature: ItemNature::Goods,
+            state: ItemState::Active,
+            category_id: String::from("test_cat_id"),
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service.delete_item(item.clone()).await;
+
+        assert!(result.is_err());
+    }
 }
