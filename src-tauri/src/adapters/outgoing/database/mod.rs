@@ -1,1 +1,1 @@
-mod sqlite_adapter;
+pub mod sqlite_adapter;

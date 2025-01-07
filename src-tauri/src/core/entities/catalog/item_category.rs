@@ -1,12 +1,13 @@
 use crate::core::common::interface::sql::SQLEntity;
+use derive_more::derive::Display;
 use modql::{
     field::Fields,
     filter::{FilterNodes, OpValsString},
 };
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use sqlx::prelude::FromRow;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Fields)]
+#[derive(Debug, Clone, Serialize, Deserialize, Fields, FromRow, PartialEq)]
 pub struct ItemCategory {
     pub id: String,
     pub name: String,
@@ -23,23 +24,23 @@ pub struct ItemCategoryFilter {
     pub state: Option<OpValsString>,
 }
 
-impl SQLEntity for ItemCategory {
-    const TABLE_NAME: &'static str = "item_categories";
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Display, PartialEq, sqlx::Type)]
 pub enum ItemCategoryState {
     Active,
     Inactive,
     Deleted,
 }
 
-impl fmt::Display for ItemCategoryState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ItemCategoryState::Active => write!(f, "Active"),
-            ItemCategoryState::Inactive => write!(f, "Inactive"),
-            ItemCategoryState::Deleted => write!(f, "Deleted"),
-        }
+impl SQLEntity for ItemCategory {
+    const TABLE_NAME: &'static str = "item_categories";
+
+    fn id(&self) -> String {
+        self.id.clone()
+    }
+}
+
+impl From<ItemCategoryState> for sea_query::Value {
+    fn from(state: ItemCategoryState) -> Self {
+        sea_query::Value::from(state.to_string())
     }
 }

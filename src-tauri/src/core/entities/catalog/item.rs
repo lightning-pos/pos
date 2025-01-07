@@ -1,12 +1,14 @@
 use crate::core::common::interface::sql::SQLEntity;
 
+use derive_more::derive::Display;
 use modql::{
     field::Fields,
     filter::{FilterNodes, OpValsString},
 };
 use serde::{Deserialize, Serialize};
+use sqlx::prelude::FromRow;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Fields)]
+#[derive(Debug, Clone, Serialize, Deserialize, Fields, FromRow)]
 pub struct Item {
     pub id: String,
     pub name: String,
@@ -27,29 +29,35 @@ pub struct ItemFilter {
     pub state: Option<OpValsString>,
 }
 
-impl SQLEntity for Item {
-    const TABLE_NAME: &'static str = "items";
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Display, PartialEq, sqlx::Type)]
 pub enum ItemNature {
     Goods,
     Service,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Display, PartialEq, sqlx::Type)]
 pub enum ItemState {
     Active,
     Inactive,
     Deleted,
 }
 
-impl std::fmt::Display for ItemState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ItemState::Active => write!(f, "Active"),
-            ItemState::Inactive => write!(f, "Inactive"),
-            ItemState::Deleted => write!(f, "Deleted"),
-        }
+impl SQLEntity for Item {
+    const TABLE_NAME: &'static str = "items";
+
+    fn id(&self) -> String {
+        self.id.clone()
+    }
+}
+
+impl From<ItemNature> for sea_query::Value {
+    fn from(value: ItemNature) -> Self {
+        value.to_string().into()
+    }
+}
+
+impl From<ItemState> for sea_query::Value {
+    fn from(value: ItemState) -> Self {
+        value.to_string().into()
     }
 }

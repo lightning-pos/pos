@@ -15,11 +15,13 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.0.0-rc.12", features = [] }
 
 [dependencies]
+async-std = { version = "1.12.0", features = ["attributes"] }
 derive_more = { version = "1.0.0", features = ["display", "from"] }
-mockall = "0.13.0"
-modql = "0.4.1"
+modql = { version = "0.4.1", features = ["with-sea-query"] }
+sea-query = "0.32.1"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+sqlx = { version = "0.8.2", features = ["runtime-async-std", "sqlite"] }
 tauri = { version = "2.0.2", features = [] }
 tauri-plugin-sql = { version = "2.0.1", features = ["sqlite"] }
 tauri-plugin-fs = "2.0.1"
