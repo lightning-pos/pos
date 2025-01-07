@@ -113,17 +113,138 @@ mod test {
     }
 
     #[async_std::test]
-    async fn test_create_item_category_already_exists() {}
+    async fn test_create_item_category_already_exists() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item_category = ItemCategory {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .create_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_ok());
+
+        let result = app_service
+            .create_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_err());
+    }
 
     #[async_std::test]
-    async fn test_update_item_category() {}
+    async fn test_update_item_category() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item_category = ItemCategory {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .create_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_ok());
+
+        let item_category = ItemCategory {
+            id: String::from("test_id"),
+            name: String::from("test2"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .update_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_ok());
+
+        let item_category_filter = queries::get_item_cat_by_id(item_category.id.clone());
+        let existing_item_category = app_service
+            .model
+            .get_one::<ItemCategory>(Some(item_category_filter.into()), None)
+            .await
+            .unwrap();
+
+        assert!((existing_item_category.unwrap() == item_category));
+    }
 
     #[async_std::test]
-    async fn test_update_item_category_does_not_exist() {}
+    async fn test_update_item_category_does_not_exist() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item_category = ItemCategory {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .update_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_err());
+    }
 
     #[async_std::test]
-    async fn test_delete_item_category() {}
+    async fn test_delete_item_category() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item_category = ItemCategory {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .create_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_ok());
+
+        let result = app_service
+            .delete_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_ok());
+    }
 
     #[async_std::test]
-    async fn test_delete_item_category_has_items() {}
+    async fn test_delete_item_category_has_items() {
+        let sqlite_adapter = SQLiteAdapter::new("sqlite::memory:").await.unwrap();
+        let app_service = AppService::new(sqlite_adapter);
+        let item_category = ItemCategory {
+            id: String::from("test_id"),
+            name: String::from("test"),
+            description: None,
+            state: ItemCategoryState::Active,
+            created_at: 0,
+            updated_at: 0,
+        };
+
+        let result = app_service
+            .delete_item_category(item_category.clone())
+            .await;
+
+        assert!(result.is_err());
+    }
 }
