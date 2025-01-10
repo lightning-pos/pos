@@ -4,10 +4,10 @@ use modql::{
     field::Fields,
     filter::{FilterNodes, OpValsString},
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sqlx::prelude::FromRow;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Fields, FromRow, PartialEq)]
+#[derive(Debug, Clone, Fields, FromRow, PartialEq)]
 pub struct ItemCategory {
     pub id: String,
     pub name: String,
@@ -24,7 +24,7 @@ pub struct ItemCategoryFilter {
     pub state: Option<OpValsString>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Display, PartialEq, sqlx::Type)]
+#[derive(Debug, Clone, Display, PartialEq, sqlx::Type)]
 pub enum ItemCategoryState {
     Active,
     Inactive,

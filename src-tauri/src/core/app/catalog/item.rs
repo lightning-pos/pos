@@ -89,7 +89,6 @@ mod test {
                 app_service::AppService,
                 catalog::{item::ItemUseCase, item_category::ItemCategoryUseCase},
             },
-            common::{interface::sql::SQLInterface, queries},
             entities::catalog::{
                 item::{Item, ItemNature, ItemState},
                 item_category::{ItemCategory, ItemCategoryState},
