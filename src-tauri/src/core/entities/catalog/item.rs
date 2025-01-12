@@ -1,63 +1,102 @@
-use crate::core::common::interface::sql::SQLEntity;
-
-use derive_more::derive::Display;
-use modql::{
-    field::Fields,
-    filter::{FilterNodes, OpValsString},
+use derive_more::derive::{Display, From};
+use diesel::{
+    expression::AsExpression,
+    prelude::{AsChangeset, Insertable, Queryable},
+    serialize::{IsNull, Output, ToSql},
+    sql_types::Text,
+    Selectable,
 };
-use serde::Deserialize;
-use sqlx::prelude::FromRow;
 
-#[derive(Debug, Clone, Fields, FromRow)]
+use crate::schema::items;
+
+#[derive(Debug, Clone, Queryable, Selectable, Insertable, AsChangeset)]
+#[diesel(table_name = items)]
 pub struct Item {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub nature: ItemNature,
-    pub category_id: String,
     pub state: ItemState,
+    pub category_id: String,
     pub created_at: i64,
     pub updated_at: i64,
 }
 
-#[derive(Debug, Default, Deserialize, FilterNodes)]
-pub struct ItemFilter {
-    pub id: Option<OpValsString>,
-    pub name: Option<OpValsString>,
-    pub nature: Option<OpValsString>,
-    pub category_id: Option<OpValsString>,
-    pub state: Option<OpValsString>,
-}
-
-#[derive(Debug, Clone, Display, sqlx::Type)]
+#[derive(Debug, Clone, Display, From, AsExpression, PartialEq)]
+#[diesel(sql_type = Text)]
 pub enum ItemNature {
     Goods,
     Service,
 }
 
-#[derive(Debug, Clone, Display, sqlx::Type)]
+#[derive(Debug, Clone, Display, From, AsExpression, PartialEq)]
+#[diesel(sql_type = Text)]
 pub enum ItemState {
     Active,
     Inactive,
     Deleted,
 }
 
-impl SQLEntity for Item {
-    const TABLE_NAME: &'static str = "items";
-
-    fn id(&self) -> String {
-        self.id.clone()
+impl From<String> for ItemState {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "Active" => ItemState::Active,
+            "Inactive" => ItemState::Inactive,
+            "Deleted" => ItemState::Deleted,
+            _ => ItemState::Inactive, // default case
+        }
     }
 }
 
-impl From<ItemNature> for sea_query::Value {
-    fn from(value: ItemNature) -> Self {
-        value.to_string().into()
+impl From<String> for ItemNature {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "Goods" => ItemNature::Goods,
+            "Service" => ItemNature::Service,
+            _ => ItemNature::Goods, // default case
+        }
     }
 }
 
-impl From<ItemState> for sea_query::Value {
-    fn from(value: ItemState) -> Self {
-        value.to_string().into()
+impl ToSql<Text, diesel::sqlite::Sqlite> for ItemState {
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
+    ) -> diesel::serialize::Result {
+        let s = match self {
+            ItemState::Active => "Active",
+            ItemState::Inactive => "Inactive",
+            ItemState::Deleted => "Deleted",
+        };
+        out.set_value(s);
+        Ok(IsNull::No)
+    }
+}
+
+impl ToSql<Text, diesel::sqlite::Sqlite> for ItemNature {
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
+    ) -> diesel::serialize::Result {
+        let s = match self {
+            ItemNature::Goods => "Goods",
+            ItemNature::Service => "Service",
+        };
+        out.set_value(s);
+        Ok(IsNull::No)
+    }
+}
+
+impl Queryable<Text, diesel::sqlite::Sqlite> for ItemState {
+    type Row = String;
+    fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
+        Ok(ItemState::from(row))
+    }
+}
+
+impl Queryable<Text, diesel::sqlite::Sqlite> for ItemNature {
+    type Row = String;
+    fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
+        Ok(ItemNature::from(row))
     }
 }

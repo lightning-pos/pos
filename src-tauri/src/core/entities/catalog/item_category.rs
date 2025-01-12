@@ -1,13 +1,14 @@
-use crate::core::common::interface::sql::SQLEntity;
 use derive_more::derive::Display;
-use modql::{
-    field::Fields,
-    filter::{FilterNodes, OpValsString},
+use diesel::{
+    expression::AsExpression,
+    prelude::*,
+    serialize::{IsNull, Output, ToSql},
+    sql_types::Text,
 };
-use serde::Deserialize;
-use sqlx::prelude::FromRow;
 
-#[derive(Debug, Clone, Fields, FromRow, PartialEq)]
+#[derive(Debug, Clone, Queryable, Selectable, Insertable, AsChangeset)]
+#[diesel(table_name = crate::schema::item_categories)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ItemCategory {
     pub id: String,
     pub name: String,
@@ -17,30 +18,41 @@ pub struct ItemCategory {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Default, Deserialize, FilterNodes)]
-pub struct ItemCategoryFilter {
-    pub id: Option<OpValsString>,
-    pub name: Option<OpValsString>,
-    pub state: Option<OpValsString>,
-}
-
-#[derive(Debug, Clone, Display, PartialEq, sqlx::Type)]
+#[derive(Debug, Clone, Display, AsExpression, PartialEq)]
+#[diesel(sql_type = diesel::sql_types::Text)]
 pub enum ItemCategoryState {
     Active,
     Inactive,
-    Deleted,
 }
 
-impl SQLEntity for ItemCategory {
-    const TABLE_NAME: &'static str = "item_categories";
-
-    fn id(&self) -> String {
-        self.id.clone()
+impl From<String> for ItemCategoryState {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "Active" => ItemCategoryState::Active,
+            "Inactive" => ItemCategoryState::Inactive,
+            _ => ItemCategoryState::Inactive, // default case
+        }
     }
 }
 
-impl From<ItemCategoryState> for sea_query::Value {
-    fn from(state: ItemCategoryState) -> Self {
-        sea_query::Value::from(state.to_string())
+impl Queryable<Text, diesel::sqlite::Sqlite> for ItemCategoryState {
+    type Row = String;
+
+    fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
+        Ok(ItemCategoryState::from(row))
+    }
+}
+
+impl ToSql<Text, diesel::sqlite::Sqlite> for ItemCategoryState {
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
+    ) -> diesel::serialize::Result {
+        let s = match self {
+            ItemCategoryState::Active => "Active",
+            ItemCategoryState::Inactive => "Inactive",
+        };
+        out.set_value(s);
+        Ok(IsNull::No)
     }
 }

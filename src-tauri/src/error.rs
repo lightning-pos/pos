@@ -10,11 +10,9 @@ pub enum Error {
     HasChildrenError,
 
     // External Errors
+    DieselError(diesel::result::Error),
     SerdeJsonError(serde_json::Error),
-    SeaQueryError(sea_query::error::Error),
-    SQLxError(sqlx::Error),
     TauriError(tauri::Error),
-    IntoSeaError(modql::filter::IntoSeaError),
 }
 
 // impl std::error::Error for Error {}
