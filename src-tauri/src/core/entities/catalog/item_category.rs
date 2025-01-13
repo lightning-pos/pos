@@ -5,8 +5,9 @@ use diesel::{
     serialize::{IsNull, Output, ToSql},
     sql_types::Text,
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Queryable, Selectable, Insertable, AsChangeset)]
+#[derive(Debug, Clone, Queryable, Selectable, Insertable, AsChangeset, Serialize, Deserialize)]
 #[diesel(table_name = crate::schema::item_categories)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct ItemCategory {
@@ -18,7 +19,7 @@ pub struct ItemCategory {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Clone, Display, AsExpression, PartialEq)]
+#[derive(Debug, Clone, Display, AsExpression, PartialEq, Serialize, Deserialize)]
 #[diesel(sql_type = diesel::sql_types::Text)]
 pub enum ItemCategoryState {
     Active,

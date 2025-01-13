@@ -1,4 +1,5 @@
 use derive_more::derive::{Display, From};
+use tauri::ipc::InvokeError;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -16,4 +17,8 @@ pub enum Error {
     TauriError(tauri::Error),
 }
 
-// impl std::error::Error for Error {}
+impl From<Error> for InvokeError {
+    fn from(err: Error) -> Self {
+        InvokeError::from(err.to_string())
+    }
+}
