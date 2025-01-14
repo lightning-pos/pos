@@ -19,7 +19,7 @@ table! {
         description -> Nullable<Text>,
         nature -> Text,
         state -> Text,
-        price -> Int,
+        price -> Integer,
         created_at -> BigInt,
         updated_at -> BigInt,
     }

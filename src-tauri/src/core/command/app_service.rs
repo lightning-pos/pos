@@ -1,6 +1,9 @@
 // use crate::core::common::interface::sql::SQLInterface;
 
-use diesel::{Connection, RunQueryDsl, SqliteConnection};
+use std::error::Error;
+
+use diesel::{sqlite::Sqlite, Connection, SqliteConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
 pub struct AppService {
     pub conn: SqliteConnection,
@@ -9,40 +12,22 @@ pub struct AppService {
 impl AppService {
     pub fn new(conn: &str) -> Self {
         let mut conn = SqliteConnection::establish(conn).unwrap();
-        Self::initialize_schema(&mut conn);
+        let migration_result = Self::run_migrations(&mut conn);
+
+        match migration_result {
+            Ok(_) => println!("Migration successful"),
+            Err(e) => println!("Migration failed: {}", e),
+        }
         Self { conn }
     }
 
-    fn initialize_schema(conn: &mut SqliteConnection) {
-        // Create item_category table
-        let item_category = String::from(
-            "CREATE TABLE IF NOT EXISTS item_categories (
-            id TEXT NOT NULL PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE,
-            state TEXT NOT NULL,
-            description TEXT,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )",
-        );
+    fn run_migrations(
+        connection: &mut impl MigrationHarness<Sqlite>,
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-        let _ = diesel::sql_query(item_category).execute(conn);
+        connection.run_pending_migrations(MIGRATIONS)?;
 
-        // Create item table
-        let item = String::from(
-            "CREATE TABLE IF NOT EXISTS items (
-            id TEXT NOT NULL PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            nature TEXT NOT NULL,
-            category_id TEXT NOT NULL,
-            state TEXT NOT NULL,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL,
-            FOREIGN KEY (category_id) REFERENCES item_categories (id)
-        )",
-        );
-
-        let _ = diesel::sql_query(item).execute(conn);
+        Ok(())
     }
 }
