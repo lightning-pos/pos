@@ -1,3 +1,4 @@
+use crate::schema::item_categories;
 use derive_more::derive::Display;
 use diesel::{
     expression::AsExpression,
@@ -8,8 +9,7 @@ use diesel::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Queryable, Selectable, Insertable, AsChangeset, Serialize, Deserialize)]
-#[diesel(table_name = crate::schema::item_categories)]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(table_name = item_categories)]
 pub struct ItemCategory {
     pub id: String,
     pub name: String,

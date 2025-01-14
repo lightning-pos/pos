@@ -6,6 +6,11 @@ use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
+async fn query(query: serde_json::Value, state: State<'_, AppState>) -> Result<()> {
+    todo!()
+}
+
+#[tauri::command]
 pub fn create_item_category(
     name: String,
     description: Option<String>,
