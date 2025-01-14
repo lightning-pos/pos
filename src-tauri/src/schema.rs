@@ -1,4 +1,6 @@
-diesel::table! {
+use diesel::{joinable, table};
+
+table! {
     item_categories (id) {
         id -> Text,
         name -> Text,
@@ -9,17 +11,38 @@ diesel::table! {
     }
 }
 
-diesel::table! {
+table! {
     items (id) {
         id -> Text,
+        category_id -> Text,
         name -> Text,
         description -> Nullable<Text>,
         nature -> Text,
         state -> Text,
-        category_id -> Text,
+        price -> Int,
         created_at -> BigInt,
         updated_at -> BigInt,
     }
 }
 
-diesel::joinable!(items -> item_categories (category_id));
+table! {
+    item_taxes (item_id, tax_id) {
+        item_id -> Text,
+        tax_id -> Text,
+    }
+}
+
+table! {
+    taxes (id) {
+        id -> Text,
+        name -> Text,
+        rate -> BigInt,
+        description -> Nullable<Text>,
+        created_at -> BigInt,
+        updated_at -> BigInt,
+    }
+}
+
+joinable!(items -> item_categories (category_id));
+joinable!(item_taxes -> items (item_id));
+joinable!(item_taxes -> taxes (tax_id));
