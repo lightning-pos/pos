@@ -28,7 +28,9 @@ pub struct DeleteItemCommand {
 
 // Command Implementations
 impl Command for CreateItemCommand {
-    fn exec(&self, service: &mut AppService) -> Result<()> {
+    type Output = ();
+
+    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
             // Verify category exists
             let cat = item_categories
@@ -57,7 +59,9 @@ impl Command for CreateItemCommand {
 }
 
 impl Command for UpdateItemCommand {
-    fn exec(&self, service: &mut AppService) -> Result<()> {
+    type Output = ();
+
+    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
             // Verify category exists
             let cat = item_categories
@@ -97,7 +101,9 @@ impl Command for UpdateItemCommand {
 }
 
 impl Command for DeleteItemCommand {
-    fn exec(&self, service: &mut AppService) -> Result<()> {
+    type Output = ();
+
+    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
             let result = diesel::delete(items.find(&self.item.id)).execute(conn)?;
 
@@ -115,60 +121,45 @@ mod tests {
     use super::*;
     use crate::core::{
         command::catalog::item_category::CreateItemCategoryCommand,
-        entities::catalog::{
-            item::{ItemNature, ItemState},
-            item_category::{ItemCategory, ItemCategoryState},
-        },
+        entities::catalog::item::{ItemNature, ItemState},
     };
     use uuid::Uuid;
 
     #[test]
     fn test_create_item() {
         let mut app_service = AppService::new(":memory:");
-        let c_id = Uuid::now_v7().to_string();
-        let cat = ItemCategory {
-            id: c_id.clone(),
+        let create_cat_command = CreateItemCategoryCommand {
             name: "test".to_string(),
-            description: Some("test description".to_string()),
-            state: ItemCategoryState::Active,
-            created_at: 0,
-            updated_at: 0,
+            description: None,
         };
-
-        let create_cat_command = CreateItemCategoryCommand { category: cat };
-        create_cat_command.exec(&mut app_service).unwrap();
-
+        let cat = create_cat_command.exec(&mut app_service).unwrap();
         let item = Item {
             id: Uuid::now_v7().to_string(),
             name: "test".to_string(),
             description: Some("test description".to_string()),
             nature: ItemNature::Goods,
             state: ItemState::Active,
-            category_id: c_id,
+            price: 0,
+            category_id: cat.id,
             created_at: 0,
             updated_at: 0,
         };
-
         let command = CreateItemCommand { item };
         let result = command.exec(&mut app_service);
+
+        println!("{:?}", result);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_update_item() {
         let mut app_service = AppService::new(":memory:");
-        let c_id = Uuid::now_v7().to_string();
-        let cat = ItemCategory {
-            id: c_id.clone(),
-            name: "test".to_string(),
-            description: Some("test description".to_string()),
-            state: ItemCategoryState::Active,
-            created_at: 0,
-            updated_at: 0,
-        };
 
-        let create_cat_command = CreateItemCategoryCommand { category: cat };
-        create_cat_command.exec(&mut app_service).unwrap();
+        let create_cat_command = CreateItemCategoryCommand {
+            name: "test".to_string(),
+            description: None,
+        };
+        let cat = create_cat_command.exec(&mut app_service).unwrap();
 
         let item_id = Uuid::now_v7().to_string();
         let item = Item {
@@ -177,7 +168,8 @@ mod tests {
             description: Some("test description".to_string()),
             nature: ItemNature::Goods,
             state: ItemState::Active,
-            category_id: c_id.clone(),
+            price: 0,
+            category_id: cat.id.clone(),
             created_at: 0,
             updated_at: 0,
         };
@@ -191,7 +183,8 @@ mod tests {
             description: Some("test description".to_string()),
             nature: ItemNature::Goods,
             state: ItemState::Inactive,
-            category_id: c_id,
+            price: 0,
+            category_id: cat.id.clone(),
             created_at: 0,
             updated_at: 0,
         };
@@ -210,6 +203,7 @@ mod tests {
             description: Some("test description".to_string()),
             nature: ItemNature::Goods,
             state: ItemState::Active,
+            price: 0,
             category_id: Uuid::now_v7().to_string(),
             created_at: 0,
             updated_at: 0,
@@ -223,18 +217,12 @@ mod tests {
     #[test]
     fn test_delete_item() {
         let mut app_service = AppService::new(":memory:");
-        let c_id = Uuid::now_v7().to_string();
-        let cat = ItemCategory {
-            id: c_id.clone(),
-            name: "test".to_string(),
-            description: Some("test description".to_string()),
-            state: ItemCategoryState::Active,
-            created_at: 0,
-            updated_at: 0,
-        };
 
-        let create_cat_command = CreateItemCategoryCommand { category: cat };
-        create_cat_command.exec(&mut app_service).unwrap();
+        let create_cat_command = CreateItemCategoryCommand {
+            name: "test".to_string(),
+            description: None,
+        };
+        let cat = create_cat_command.exec(&mut app_service).unwrap();
 
         let item = Item {
             id: Uuid::now_v7().to_string(),
@@ -242,7 +230,8 @@ mod tests {
             description: Some("test description".to_string()),
             nature: ItemNature::Goods,
             state: ItemState::Active,
-            category_id: c_id,
+            price: 0,
+            category_id: cat.id.clone(),
             created_at: 0,
             updated_at: 0,
         };
@@ -264,6 +253,7 @@ mod tests {
             description: Some("test description".to_string()),
             nature: ItemNature::Goods,
             state: ItemState::Active,
+            price: 0,
             category_id: Uuid::now_v7().to_string(),
             created_at: 0,
             updated_at: 0,

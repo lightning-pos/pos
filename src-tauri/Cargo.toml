@@ -15,6 +15,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.0.0-rc.12", features = [] }
 
 [dependencies]
+chrono = { version = "0.4.39", features = ["serde"] }
 derive_more = { version = "1.0.0", features = ["display", "from"] }
 diesel = { version = "2.2.6", features = [
     "sqlite",

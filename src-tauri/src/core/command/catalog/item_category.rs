@@ -1,10 +1,11 @@
+use chrono::Utc;
 use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
-use std::time::{SystemTime, UNIX_EPOCH};
+use uuid::Uuid;
 
 use crate::{
     core::{
         command::{app_service::AppService, Command},
-        entities::catalog::item_category::ItemCategory,
+        entities::catalog::item_category::{ItemCategory, ItemCategoryState},
     },
     error::{Error, Result},
     schema::item_categories::dsl::*,
@@ -12,7 +13,8 @@ use crate::{
 
 // Commands
 pub struct CreateItemCategoryCommand {
-    pub category: ItemCategory,
+    pub name: String,
+    pub description: Option<String>,
 }
 
 pub struct UpdateItemCategoryCommand {
@@ -25,10 +27,12 @@ pub struct DeleteItemCategoryCommand {
 
 // Command Implementations
 impl Command for CreateItemCategoryCommand {
-    fn exec(&self, service: &mut AppService) -> Result<()> {
+    type Output = ItemCategory;
+
+    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
             let existing_cat = item_categories
-                .filter(name.eq(&self.category.name))
+                .filter(name.eq(&self.name))
                 .select(ItemCategory::as_select())
                 .get_result::<ItemCategory>(conn);
 
@@ -36,26 +40,30 @@ impl Command for CreateItemCategoryCommand {
                 return Err(Error::UniqueConstraintError);
             }
 
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
+            let now = Utc::now().timestamp();
+            let new_cat = ItemCategory {
+                id: Uuid::now_v7().to_string(),
+                name: self.name.clone(),
+                description: self.description.clone(),
+                state: ItemCategoryState::Inactive,
+                created_at: now,
+                updated_at: now,
+            };
 
-            let mut category = self.category.clone();
-            category.created_at = now;
-            category.updated_at = now;
+            let cat = diesel::insert_into(item_categories)
+                .values(&new_cat)
+                .returning(ItemCategory::as_returning())
+                .get_result(conn)?;
 
-            diesel::insert_into(item_categories)
-                .values(&category)
-                .execute(conn)?;
-
-            Ok(())
+            Ok(cat)
         })
     }
 }
 
 impl Command for UpdateItemCategoryCommand {
-    fn exec(&self, service: &mut AppService) -> Result<()> {
+    type Output = ItemCategory;
+
+    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
             let existing_cat = item_categories
                 .filter(id.eq(&self.category.id))
@@ -66,25 +74,25 @@ impl Command for UpdateItemCategoryCommand {
                 return Err(Error::NotFoundError);
             }
 
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
+            let now = Utc::now().timestamp();
 
             let mut category = self.category.clone();
             category.updated_at = now;
 
-            diesel::update(item_categories.filter(id.eq(&self.category.id)))
+            let cat = diesel::update(item_categories.filter(id.eq(&self.category.id)))
                 .set(&category)
-                .execute(conn)?;
+                .returning(ItemCategory::as_returning())
+                .get_result(conn)?;
 
-            Ok(())
+            Ok(cat)
         })
     }
 }
 
 impl Command for DeleteItemCategoryCommand {
-    fn exec(&self, service: &mut AppService) -> Result<()> {
+    type Output = ();
+
+    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
             // Check if category has items
             let items = crate::schema::items::dsl::items
@@ -112,15 +120,10 @@ mod tests {
     #[test]
     fn test_create_item_category() {
         let mut app_service = AppService::new(":memory:");
-        let category = ItemCategory {
-            id: Uuid::now_v7().to_string(),
+        let command = CreateItemCategoryCommand {
             name: "test".to_string(),
             description: Some("test description".to_string()),
-            state: ItemCategoryState::Active,
-            created_at: 0,
-            updated_at: 0,
         };
-        let command = CreateItemCategoryCommand { category };
         let result = command.exec(&mut app_service);
         assert!(result.is_ok());
     }
@@ -128,42 +131,31 @@ mod tests {
     #[test]
     fn test_create_item_category_already_exists() {
         let mut app_service = AppService::new(":memory:");
-        let category = ItemCategory {
-            id: Uuid::now_v7().to_string(),
+        let command = CreateItemCategoryCommand {
             name: "test".to_string(),
             description: Some("test description".to_string()),
-            state: ItemCategoryState::Active,
-            created_at: 0,
-            updated_at: 0,
-        };
-
-        let command = CreateItemCategoryCommand {
-            category: category.clone(),
         };
         let result = command.exec(&mut app_service);
+
         assert!(result.is_ok());
 
-        let command = CreateItemCategoryCommand { category };
+        let command = CreateItemCategoryCommand {
+            name: "test".to_string(),
+            description: Some("test description".to_string()),
+        };
         let result = command.exec(&mut app_service);
+
         assert!(matches!(result, Err(Error::UniqueConstraintError)));
     }
 
     #[test]
     fn test_update_item_category() {
         let mut app_service = AppService::new(":memory:");
-        let category = ItemCategory {
-            id: Uuid::now_v7().to_string(),
+        let create_command = CreateItemCategoryCommand {
             name: "test".to_string(),
             description: Some("test description".to_string()),
-            state: ItemCategoryState::Active,
-            created_at: 0,
-            updated_at: 0,
         };
-
-        let create_command = CreateItemCategoryCommand {
-            category: category.clone(),
-        };
-        create_command.exec(&mut app_service).unwrap();
+        let category = create_command.exec(&mut app_service).unwrap();
 
         let mut updated_category = category;
         updated_category.name = "updated test".to_string();
@@ -173,6 +165,7 @@ mod tests {
         };
         let result = update_command.exec(&mut app_service);
         assert!(result.is_ok());
+        assert!(result.unwrap().name == "updated test");
     }
 
     #[test]
@@ -205,7 +198,8 @@ mod tests {
         };
 
         let create_command = CreateItemCategoryCommand {
-            category: category.clone(),
+            name: "test".to_string(),
+            description: Some("test description".to_string()),
         };
         create_command.exec(&mut app_service).unwrap();
 

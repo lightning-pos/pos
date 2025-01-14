@@ -6,13 +6,20 @@ use crate::AppState;
 use tauri::State;
 
 #[tauri::command]
-pub fn create_item_category(category: ItemCategory, state: State<'_, AppState>) -> Result<()> {
+pub fn create_item_category(
+    name: String,
+    description: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<ItemCategory> {
     let mut service = state.service.lock().unwrap();
-    CreateItemCategoryCommand { category }.exec(&mut service)
+    CreateItemCategoryCommand { name, description }.exec(&mut service)
 }
 
 #[tauri::command]
-pub fn update_item_category(category: ItemCategory, state: State<'_, AppState>) -> Result<()> {
+pub fn update_item_category(
+    category: ItemCategory,
+    state: State<'_, AppState>,
+) -> Result<ItemCategory> {
     let mut service = state.service.lock().unwrap();
     UpdateItemCategoryCommand { category }.exec(&mut service)
 }

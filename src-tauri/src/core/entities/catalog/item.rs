@@ -17,6 +17,7 @@ pub struct Item {
     pub description: Option<String>,
     pub nature: ItemNature,
     pub state: ItemState,
+    pub price: i32,
     pub category_id: String,
     pub created_at: i64,
     pub updated_at: i64,
