@@ -51,7 +51,7 @@ const Categories = () => {
         e.preventDefault()
         if (!editingCategory) return
 
-        await invoke('create_item_category', { name: editingCategory.name, description: editingCategory.description })
+        await invoke('graphql', { query: `mutation { createItemCategory(name: "${editingCategory.name}", description: "${editingCategory.description}") { id name description state createdAt updatedAt } }` })
 
         setIsModalOpen(false)
         setEditingCategory(null)

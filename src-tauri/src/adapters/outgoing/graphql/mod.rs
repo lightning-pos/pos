@@ -1,10 +1,13 @@
 pub mod catalog;
-use juniper::{Context, EmptyMutation, EmptySubscription, RootNode};
+pub mod mutations;
+use juniper::{Context, EmptySubscription, RootNode};
 
 use crate::AppState;
 
-pub type Schema = RootNode<'static, Query, EmptyMutation<AppState>, EmptySubscription<AppState>>;
+pub type Schema = RootNode<'static, Query, Mutation, EmptySubscription<AppState>>;
 
 impl Context for AppState {}
 
 pub struct Query;
+
+pub struct Mutation;

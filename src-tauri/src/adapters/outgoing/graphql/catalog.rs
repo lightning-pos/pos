@@ -82,3 +82,5 @@ impl Query {
         Ok(result)
     }
 }
+
+// Mutation implementation moved to mutations/catalog/item_category.rs

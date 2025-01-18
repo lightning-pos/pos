@@ -17,12 +17,7 @@ pub fn run() {
         .manage(AppState {
             service: Mutex::new(AppService::new("minnal.db")),
         })
-        .invoke_handler(tauri::generate_handler![
-            graphql,
-            create_item_category,
-            update_item_category,
-            delete_item_category,
-        ])
+        .invoke_handler(tauri::generate_handler![graphql])
         .plugin(tauri_plugin_fs::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
