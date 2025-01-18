@@ -43,9 +43,9 @@ pub enum ItemState {
 impl From<String> for ItemState {
     fn from(s: String) -> Self {
         match s.as_str() {
-            "Active" => ItemState::Active,
-            "Inactive" => ItemState::Inactive,
-            "Deleted" => ItemState::Deleted,
+            "active" => ItemState::Active,
+            "inactive" => ItemState::Inactive,
+            "deleted" => ItemState::Deleted,
             _ => ItemState::Inactive, // default case
         }
     }
@@ -54,8 +54,8 @@ impl From<String> for ItemState {
 impl From<String> for ItemNature {
     fn from(s: String) -> Self {
         match s.as_str() {
-            "Goods" => ItemNature::Goods,
-            "Service" => ItemNature::Service,
+            "goods" => ItemNature::Goods,
+            "service" => ItemNature::Service,
             _ => ItemNature::Goods, // default case
         }
     }
@@ -67,9 +67,9 @@ impl ToSql<Text, diesel::sqlite::Sqlite> for ItemState {
         out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
     ) -> diesel::serialize::Result {
         let s = match self {
-            ItemState::Active => "Active",
-            ItemState::Inactive => "Inactive",
-            ItemState::Deleted => "Deleted",
+            ItemState::Active => "active",
+            ItemState::Inactive => "unactive",
+            ItemState::Deleted => "deleted",
         };
         out.set_value(s);
         Ok(IsNull::No)
@@ -82,8 +82,8 @@ impl ToSql<Text, diesel::sqlite::Sqlite> for ItemNature {
         out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
     ) -> diesel::serialize::Result {
         let s = match self {
-            ItemNature::Goods => "Goods",
-            ItemNature::Service => "Service",
+            ItemNature::Goods => "goods",
+            ItemNature::Service => "service",
         };
         out.set_value(s);
         Ok(IsNull::No)

@@ -41,8 +41,8 @@ pub enum ItemCategoryState {
 impl From<String> for ItemCategoryState {
     fn from(s: String) -> Self {
         match s.as_str() {
-            "Active" => ItemCategoryState::Active,
-            "Inactive" => ItemCategoryState::Inactive,
+            "active" => ItemCategoryState::Active,
+            "inactive" => ItemCategoryState::Inactive,
             _ => ItemCategoryState::Inactive, // default case
         }
     }
@@ -62,8 +62,8 @@ impl ToSql<Text, diesel::sqlite::Sqlite> for ItemCategoryState {
         out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
     ) -> diesel::serialize::Result {
         let s = match self {
-            ItemCategoryState::Active => "Active",
-            ItemCategoryState::Inactive => "Inactive",
+            ItemCategoryState::Active => "active",
+            ItemCategoryState::Inactive => "inactive",
         };
         out.set_value(s);
         Ok(IsNull::No)
