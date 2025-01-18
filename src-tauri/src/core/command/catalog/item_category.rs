@@ -40,7 +40,7 @@ impl Command for CreateItemCategoryCommand {
                 return Err(Error::UniqueConstraintError);
             }
 
-            let now = Utc::now().timestamp();
+            let now = Utc::now().naive_utc();
             let new_cat = ItemCategory {
                 id: Uuid::now_v7().to_string(),
                 name: self.name.clone(),
@@ -74,7 +74,7 @@ impl Command for UpdateItemCategoryCommand {
                 return Err(Error::NotFoundError);
             }
 
-            let now = Utc::now().timestamp();
+            let now = Utc::now().naive_utc();
 
             let mut category = self.category.clone();
             category.updated_at = now;
@@ -171,13 +171,14 @@ mod tests {
     #[test]
     fn test_update_item_category_does_not_exist() {
         let mut app_service = AppService::new(":memory:");
+        let now = Utc::now().naive_utc();
         let category = ItemCategory {
             id: Uuid::now_v7().to_string(),
             name: "test".to_string(),
             description: Some("test description".to_string()),
             state: ItemCategoryState::Active,
-            created_at: 0,
-            updated_at: 0,
+            created_at: now,
+            updated_at: now,
         };
 
         let command = UpdateItemCategoryCommand { category };
@@ -188,13 +189,14 @@ mod tests {
     #[test]
     fn test_delete_item_category() {
         let mut app_service = AppService::new(":memory:");
+        let now = Utc::now().naive_utc();
         let category = ItemCategory {
             id: Uuid::now_v7().to_string(),
             name: "test".to_string(),
             description: Some("test description".to_string()),
             state: ItemCategoryState::Active,
-            created_at: 0,
-            updated_at: 0,
+            created_at: now,
+            updated_at: now,
         };
 
         let create_command = CreateItemCategoryCommand {

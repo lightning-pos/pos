@@ -20,8 +20,11 @@ derive_more = { version = "1.0.0", features = ["display", "from"] }
 diesel = { version = "2.2.6", features = [
     "sqlite",
     "returning_clauses_for_sqlite_3_35",
+    "chrono",
+    "uuid",
 ] }
 diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
+juniper = { version = "0.16.1", features = ["chrono", "uuid"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 tauri = { version = "2.2.2", features = [] }

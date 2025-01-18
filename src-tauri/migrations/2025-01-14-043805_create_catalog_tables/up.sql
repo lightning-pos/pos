@@ -4,8 +4,8 @@ CREATE TABLE item_categories (
     name TEXT NOT NULL,
     description TEXT,
     state TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
 );
 
 -- Create taxes table
@@ -14,8 +14,8 @@ CREATE TABLE taxes (
     name TEXT NOT NULL,
     rate INTEGER NOT NULL,
     description TEXT,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
 );
 
 -- Create items table
@@ -27,8 +27,8 @@ CREATE TABLE items (
     nature TEXT NOT NULL,
     state TEXT NOT NULL,
     price INTEGER NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
     FOREIGN KEY (category_id) REFERENCES item_categories(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 

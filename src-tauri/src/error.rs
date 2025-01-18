@@ -12,6 +12,7 @@ pub enum Error {
     HasChildrenError,
 
     // External Errors
+    GraphQLError(juniper::GraphQLError),
     DieselError(diesel::result::Error),
     SerdeJsonError(serde_json::Error),
     TauriError(tauri::Error),

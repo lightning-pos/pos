@@ -21,15 +21,25 @@ const Categories = () => {
     const [pageSize, setPageSize] = useState(10)
 
     const fetchCategories = useCallback(async (page: number, size: number) => {
-        // setLoading(true)
+        setLoading(false)
         try {
             const offset = (page - 1) * size
-            const result = await db.select().from(itemCategoriesTable).limit(size).offset(offset)
-            setCategories(result)
+            const result: Array<{ itemCategories: ItemCategory[] }> = await invoke('graphql', {
+                query:
+                    ` query {
+                        itemCategories(first: ${size}, offset: ${offset}) {
+                            id
+                            name
+                            description
+                            state
+                            createdAt
+                            updatedAt
+                        }
+                    }
+                ` })
+            setCategories(result[0].itemCategories)
         } catch (error) {
             console.error('Error fetching categories:', error)
-        } finally {
-            setLoading(false)
         }
     }, [db])
 

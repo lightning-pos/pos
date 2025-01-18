@@ -6,8 +6,8 @@ table! {
         name -> Text,
         description -> Nullable<Text>,
         state -> Text,
-        created_at -> BigInt,
-        updated_at -> BigInt,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
