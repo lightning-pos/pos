@@ -1,5 +1,5 @@
+use chrono::Utc;
 use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
     core::{
@@ -42,10 +42,7 @@ impl Command for CreateItemCommand {
                 return Err(Error::NotFoundError);
             }
 
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
+            let now = Utc::now().naive_utc();
 
             let mut item = self.item.clone();
             item.created_at = now;
@@ -83,10 +80,7 @@ impl Command for UpdateItemCommand {
                 return Err(Error::NotFoundError);
             }
 
-            let now = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
+            let now = Utc::now().naive_utc();
 
             let mut item = self.item.clone();
             item.updated_at = now;
@@ -133,6 +127,7 @@ mod tests {
             description: None,
         };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
+        let now = Utc::now().naive_utc();
         let item = Item {
             id: Uuid::now_v7().to_string(),
             name: "test".to_string(),
@@ -141,8 +136,8 @@ mod tests {
             state: ItemState::Active,
             price: 0,
             category_id: cat.id,
-            created_at: 0,
-            updated_at: 0,
+            created_at: now,
+            updated_at: now,
         };
         let command = CreateItemCommand { item };
         let result = command.exec(&mut app_service);
@@ -160,7 +155,7 @@ mod tests {
             description: None,
         };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
-
+        let now = Utc::now().naive_utc();
         let item_id = Uuid::now_v7().to_string();
         let item = Item {
             id: item_id.clone(),
@@ -170,8 +165,8 @@ mod tests {
             state: ItemState::Active,
             price: 0,
             category_id: cat.id.clone(),
-            created_at: 0,
-            updated_at: 0,
+            created_at: now,
+            updated_at: now,
         };
 
         let create_command = CreateItemCommand { item };
@@ -185,8 +180,8 @@ mod tests {
             state: ItemState::Inactive,
             price: 0,
             category_id: cat.id.clone(),
-            created_at: 0,
-            updated_at: 0,
+            created_at: now,
+            updated_at: now,
         };
 
         let update_command = UpdateItemCommand { item: updated_item };
@@ -197,6 +192,7 @@ mod tests {
     #[test]
     fn test_update_item_does_not_exist() {
         let mut app_service = AppService::new(":memory:");
+        let now = Utc::now().naive_utc();
         let item = Item {
             id: Uuid::now_v7().to_string(),
             name: "test".to_string(),
@@ -205,8 +201,8 @@ mod tests {
             state: ItemState::Active,
             price: 0,
             category_id: Uuid::now_v7().to_string(),
-            created_at: 0,
-            updated_at: 0,
+            created_at: now,
+            updated_at: now,
         };
 
         let command = UpdateItemCommand { item };
@@ -223,7 +219,7 @@ mod tests {
             description: None,
         };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
-
+        let now = Utc::now().naive_utc();
         let item = Item {
             id: Uuid::now_v7().to_string(),
             name: "test".to_string(),
@@ -232,8 +228,8 @@ mod tests {
             state: ItemState::Active,
             price: 0,
             category_id: cat.id.clone(),
-            created_at: 0,
-            updated_at: 0,
+            created_at: now,
+            updated_at: now,
         };
 
         let create_command = CreateItemCommand { item: item.clone() };
@@ -247,6 +243,7 @@ mod tests {
     #[test]
     fn test_delete_item_does_not_exist() {
         let mut app_service = AppService::new(":memory:");
+        let now = Utc::now().naive_utc();
         let item = Item {
             id: Uuid::now_v7().to_string(),
             name: "test".to_string(),
@@ -255,8 +252,8 @@ mod tests {
             state: ItemState::Active,
             price: 0,
             category_id: Uuid::now_v7().to_string(),
-            created_at: 0,
-            updated_at: 0,
+            created_at: now,
+            updated_at: now,
         };
 
         let command = DeleteItemCommand { item };

@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use derive_more::derive::{Display, From};
 use diesel::{
     expression::AsExpression,
@@ -6,10 +7,11 @@ use diesel::{
     sql_types::Text,
     Selectable,
 };
+use juniper::{GraphQLEnum, GraphQLObject};
 
 use crate::schema::items;
 
-#[derive(Debug, Clone, Queryable, Selectable, Insertable, AsChangeset)]
+#[derive(Debug, Clone, Queryable, Selectable, Insertable, AsChangeset, GraphQLObject)]
 #[diesel(table_name = items)]
 pub struct Item {
     pub id: String,
@@ -19,18 +21,18 @@ pub struct Item {
     pub state: ItemState,
     pub price: i32,
     pub category_id: String,
-    pub created_at: i64,
-    pub updated_at: i64,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone, Display, From, AsExpression, PartialEq)]
+#[derive(Debug, Clone, Display, From, AsExpression, PartialEq, GraphQLEnum)]
 #[diesel(sql_type = Text)]
 pub enum ItemNature {
     Goods,
     Service,
 }
 
-#[derive(Debug, Clone, Display, From, AsExpression, PartialEq)]
+#[derive(Debug, Clone, Display, From, AsExpression, PartialEq, GraphQLEnum)]
 #[diesel(sql_type = Text)]
 pub enum ItemState {
     Active,

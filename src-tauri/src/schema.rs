@@ -20,8 +20,8 @@ table! {
         nature -> Text,
         state -> Text,
         price -> Integer,
-        created_at -> BigInt,
-        updated_at -> BigInt,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
@@ -38,8 +38,8 @@ table! {
         name -> Text,
         rate -> BigInt,
         description -> Nullable<Text>,
-        created_at -> BigInt,
-        updated_at -> BigInt,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
