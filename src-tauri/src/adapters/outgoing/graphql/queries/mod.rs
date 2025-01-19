@@ -1,13 +1,14 @@
+pub mod catalog;
+
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
+    adapters::outgoing::graphql::Query,
     core::entities::catalog::{item::Item, item_category::ItemCategory},
     schema::{item_categories, items},
     AppState,
 };
-
-use super::Query;
 
 #[graphql_object(context = AppState)]
 impl Query {
@@ -82,5 +83,3 @@ impl Query {
         Ok(result)
     }
 }
-
-// Mutation implementation moved to mutations/catalog/item_category.rs

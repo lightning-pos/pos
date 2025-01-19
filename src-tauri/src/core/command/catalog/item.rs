@@ -1,111 +1,113 @@
 use chrono::Utc;
 use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use uuid::Uuid;
 
 use crate::{
     core::{
         command::{app_service::AppService, Command},
-        entities::catalog::{item::Item, item_category::ItemCategory},
+        entities::catalog::{
+            item::{Item, NewItem, UpdateItem},
+            item_category::ItemCategory,
+        },
     },
     error::{Error, Result},
-    schema::{
-        item_categories::dsl::{id as cat_id, item_categories},
-        items::dsl::*,
-    },
+    schema::{item_categories, items},
 };
 
 // Commands
 pub struct CreateItemCommand {
-    pub item: Item,
+    pub item: NewItem,
 }
 
 pub struct UpdateItemCommand {
-    pub item: Item,
+    pub item: UpdateItem,
 }
 
 pub struct DeleteItemCommand {
-    pub item: Item,
+    pub id: String,
 }
 
 // Command Implementations
 impl Command for CreateItemCommand {
-    type Output = ();
+    type Output = Item;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
             // Verify category exists
-            let cat = item_categories
-                .filter(cat_id.eq(&self.item.category_id))
+            item_categories::table
+                .filter(item_categories::id.eq(&self.item.category_id))
                 .select(ItemCategory::as_select())
-                .get_result::<ItemCategory>(conn);
-
-            if let Err(_) = cat {
-                return Err(Error::NotFoundError);
-            }
+                .get_result::<ItemCategory>(conn)?;
 
             let now = Utc::now().naive_utc();
+            let new_item = Item {
+                id: Uuid::now_v7().to_string(),
+                name: self.item.name.clone(),
+                description: self.item.description.clone(),
+                nature: self.item.nature,
+                state: self.item.state,
+                price: self.item.price,
+                category_id: self.item.category_id.clone(),
+                created_at: now,
+                updated_at: now,
+            };
 
-            let mut item = self.item.clone();
-            item.created_at = now;
-            item.updated_at = now;
+            let res = diesel::insert_into(items::table)
+                .values(&new_item)
+                .returning(Item::as_returning())
+                .get_result(conn)?;
 
-            diesel::insert_into(items).values(&item).execute(conn)?;
-
-            Ok(())
+            Ok(res)
         })
     }
 }
 
 impl Command for UpdateItemCommand {
-    type Output = ();
+    type Output = Item;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
             // Verify category exists
-            let cat = item_categories
-                .filter(cat_id.eq(&self.item.category_id))
-                .select(ItemCategory::as_select())
-                .get_result::<ItemCategory>(conn);
-
-            if let Err(_) = cat {
-                return Err(Error::NotFoundError);
+            if let Some(cat_id) = self.item.category_id.clone() {
+                item_categories::table
+                    .filter(item_categories::id.eq(&cat_id))
+                    .select(ItemCategory::as_select())
+                    .get_result::<ItemCategory>(conn)?;
             }
 
             // Verify item exists
-            let existing_item = items
+            items::table
                 .find(&self.item.id)
                 .select(Item::as_select())
-                .get_result::<Item>(conn);
-
-            if let Err(_) = existing_item {
-                return Err(Error::NotFoundError);
-            }
+                .get_result::<Item>(conn)?;
 
             let now = Utc::now().naive_utc();
 
             let mut item = self.item.clone();
-            item.updated_at = now;
+            item.updated_at = Some(now);
 
-            diesel::update(items.find(&self.item.id))
+            let res = diesel::update(items::table.find(&self.item.id))
                 .set(&item)
-                .execute(conn)?;
+                .returning(Item::as_returning())
+                .get_result(conn)?;
 
-            Ok(())
+            Ok(res)
         })
     }
 }
 
 impl Command for DeleteItemCommand {
-    type Output = ();
+    type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
-            let result = diesel::delete(items.find(&self.item.id)).execute(conn)?;
+            let result = diesel::delete(items::table.find(&self.id)).execute(conn)?;
 
             if result == 0 {
                 return Err(Error::NotFoundError);
             }
 
-            Ok(())
+            Ok(result as i32)
         })
     }
 }
@@ -120,33 +122,30 @@ mod tests {
             item_category::NewItemCategory,
         },
     };
+    use diesel::result::Error::NotFound;
     use uuid::Uuid;
 
     #[test]
     fn test_create_item() {
         let mut app_service = AppService::new(":memory:");
         let new_cat = NewItemCategory {
-            name: "test".to_string(),
+            name: String::from("test"),
             description: None,
         };
         let create_cat_command = CreateItemCategoryCommand { category: new_cat };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
-        let now = Utc::now().naive_utc();
-        let item = Item {
+        let new_item = NewItem {
             id: Uuid::now_v7().to_string(),
-            name: "test".to_string(),
-            description: Some("test description".to_string()),
+            name: String::from("test"),
+            description: Some(String::from("test description")),
             nature: ItemNature::Goods,
             state: ItemState::Active,
             price: 0,
             category_id: cat.id,
-            created_at: now,
-            updated_at: now,
         };
-        let command = CreateItemCommand { item };
+        let command = CreateItemCommand { item: new_item };
         let result = command.exec(&mut app_service);
 
-        println!("{:?}", result);
         assert!(result.is_ok());
     }
 
@@ -161,31 +160,28 @@ mod tests {
         let cat = create_cat_command.exec(&mut app_service).unwrap();
         let now = Utc::now().naive_utc();
         let item_id = Uuid::now_v7().to_string();
-        let item = Item {
+        let new_item = NewItem {
             id: item_id.clone(),
-            name: "test".to_string(),
-            description: Some("test description".to_string()),
+            name: String::from("test"),
+            description: Some(String::from("test description")),
             nature: ItemNature::Goods,
             state: ItemState::Active,
             price: 0,
             category_id: cat.id.clone(),
-            created_at: now,
-            updated_at: now,
         };
 
-        let create_command = CreateItemCommand { item };
-        create_command.exec(&mut app_service).unwrap();
+        let create_command = CreateItemCommand { item: new_item };
+        let item = create_command.exec(&mut app_service).unwrap();
 
-        let updated_item = Item {
-            id: item_id,
-            name: "test2".to_string(),
-            description: Some("test description".to_string()),
-            nature: ItemNature::Goods,
-            state: ItemState::Inactive,
-            price: 0,
-            category_id: cat.id.clone(),
-            created_at: now,
-            updated_at: now,
+        let updated_item = UpdateItem {
+            id: item.id,
+            name: Some(String::from("test2")),
+            description: None,
+            nature: None,
+            state: None,
+            price: None,
+            category_id: None,
+            updated_at: Some(now),
         };
 
         let update_command = UpdateItemCommand { item: updated_item };
@@ -197,21 +193,21 @@ mod tests {
     fn test_update_item_does_not_exist() {
         let mut app_service = AppService::new(":memory:");
         let now = Utc::now().naive_utc();
-        let item = Item {
+        let item = UpdateItem {
             id: Uuid::now_v7().to_string(),
-            name: "test".to_string(),
-            description: Some("test description".to_string()),
-            nature: ItemNature::Goods,
-            state: ItemState::Active,
-            price: 0,
-            category_id: Uuid::now_v7().to_string(),
-            created_at: now,
-            updated_at: now,
+            name: Some("test".to_string()),
+            description: None,
+            nature: None,
+            state: None,
+            price: None,
+            category_id: None,
+            updated_at: Some(now),
         };
 
         let command = UpdateItemCommand { item };
         let result = command.exec(&mut app_service);
-        assert!(matches!(result, Err(Error::NotFoundError)));
+
+        assert!(matches!(result, Err(Error::DieselError(NotFound))));
     }
 
     #[test]
@@ -224,7 +220,7 @@ mod tests {
         let create_cat_command = CreateItemCategoryCommand { category: new_cat };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
         let now = Utc::now().naive_utc();
-        let item = Item {
+        let item = NewItem {
             id: Uuid::now_v7().to_string(),
             name: "test".to_string(),
             description: Some("test description".to_string()),
@@ -232,14 +228,12 @@ mod tests {
             state: ItemState::Active,
             price: 0,
             category_id: cat.id.clone(),
-            created_at: now,
-            updated_at: now,
         };
 
         let create_command = CreateItemCommand { item: item.clone() };
-        create_command.exec(&mut app_service).unwrap();
+        let new_item = create_command.exec(&mut app_service).unwrap();
 
-        let delete_command = DeleteItemCommand { item };
+        let delete_command = DeleteItemCommand { id: new_item.id };
         let result = delete_command.exec(&mut app_service);
         assert!(result.is_ok());
     }
@@ -247,20 +241,9 @@ mod tests {
     #[test]
     fn test_delete_item_does_not_exist() {
         let mut app_service = AppService::new(":memory:");
-        let now = Utc::now().naive_utc();
-        let item = Item {
+        let command = DeleteItemCommand {
             id: Uuid::now_v7().to_string(),
-            name: "test".to_string(),
-            description: Some("test description".to_string()),
-            nature: ItemNature::Goods,
-            state: ItemState::Active,
-            price: 0,
-            category_id: Uuid::now_v7().to_string(),
-            created_at: now,
-            updated_at: now,
         };
-
-        let command = DeleteItemCommand { item };
         let result = command.exec(&mut app_service);
         assert!(matches!(result, Err(Error::NotFoundError)));
     }
