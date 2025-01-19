@@ -4,8 +4,7 @@ import { Content } from '@carbon/react'
 import DataTable from '@/components/ui/DataTable'
 import SaveCategoryModal from './save_category_modal'
 import DeleteCategoryModal from './delete_category_modal'
-import { itemCategoriesTable, ItemCategory, NewItemCategory } from '@/lib/db/sqlite/schema'
-import { eq } from 'drizzle-orm'
+import { ItemCategory, NewItemCategory } from '@/lib/db/sqlite/schema'
 import { useDb } from '@/components/providers/drizzle_provider'
 import { invoke } from '@tauri-apps/api/core'
 
@@ -51,7 +50,20 @@ const Categories = () => {
         e.preventDefault()
         if (!editingCategory) return
 
-        await invoke('graphql', { query: `mutation { createItemCategory(name: "${editingCategory.name}", description: "${editingCategory.description}") { id name description state createdAt updatedAt } }` })
+        await invoke('graphql', {
+            query: `
+            mutation {
+                createItemCategory(
+                    newCategory: { name: "${editingCategory.name}", description: "${editingCategory.description}"}
+                ) {
+                    id
+                    name
+                    description
+                    state
+                    createdAt
+                    updatedAt
+                }
+            }` })
 
         setIsModalOpen(false)
         setEditingCategory(null)
@@ -61,33 +73,43 @@ const Categories = () => {
     const handleEditCategory = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!editingCategory || !editingCategory.id) return
-        try {
-            await db.update(itemCategoriesTable)
-                .set({
-                    name: editingCategory.name,
-                    description: editingCategory.description,
-                    state: editingCategory.state
-                })
-                .where(eq(itemCategoriesTable.id, editingCategory.id))
-            setIsModalOpen(false)
-            setEditingCategory(null)
-            fetchCategories(currentPage, pageSize)
-        } catch (error) {
-            console.error('Error editing category:', error)
-        }
+
+        await invoke('graphql', {
+            query: `
+            mutation {
+                updateItemCategory(
+                    category: {
+                        id: "${editingCategory.id}",
+                        name: "${editingCategory.name}",
+                        description: "${editingCategory.description}",
+                        state: ${editingCategory.state}
+                    }
+                ) {
+                    id
+                    name
+                    description
+                    state
+                    createdAt
+                    updatedAt
+                }
+            }` }
+        )
+
+        setIsModalOpen(false)
+        setEditingCategory(null)
+        fetchCategories(currentPage, pageSize)
     }
 
     const handleDeleteCategory = async () => {
         if (!editingCategory?.id) return
-        try {
-            await db.delete(itemCategoriesTable)
-                .where(eq(itemCategoriesTable.id, editingCategory.id))
-            setIsDeleteModalOpen(false)
-            setEditingCategory(null)
-            fetchCategories(currentPage, pageSize)
-        } catch (error) {
-            console.error('Error deleting category:', error)
-        }
+
+        await invoke('graphql', {
+            query: `mutation { deleteItemCategory(id: "${editingCategory.id}") }`
+        })
+
+        setIsDeleteModalOpen(false)
+        setEditingCategory(null)
+        fetchCategories(currentPage, pageSize)
     }
 
     const headers = [

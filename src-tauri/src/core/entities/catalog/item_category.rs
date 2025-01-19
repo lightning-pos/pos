@@ -7,19 +7,11 @@ use diesel::{
     serialize::{IsNull, Output, ToSql},
     sql_types::Text,
 };
-use juniper::{GraphQLEnum, GraphQLObject};
+use juniper::{GraphQLEnum, GraphQLInputObject, GraphQLObject};
 use serde::{Deserialize, Serialize};
 
 #[derive(
-    Debug,
-    Clone,
-    Queryable,
-    Selectable,
-    Insertable,
-    AsChangeset,
-    Serialize,
-    Deserialize,
-    GraphQLObject,
+    Debug, Clone, Queryable, Selectable, Insertable, Serialize, Deserialize, GraphQLObject,
 )]
 #[diesel(table_name = item_categories)]
 pub struct ItemCategory {
@@ -29,6 +21,22 @@ pub struct ItemCategory {
     pub description: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
+}
+
+#[derive(Debug, Clone, GraphQLInputObject)]
+pub struct NewItemCategory {
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]
+#[diesel(table_name = item_categories)]
+pub struct UpdateItemCategory {
+    pub id: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub state: Option<ItemCategoryState>,
+    pub updated_at: Option<NaiveDateTime>,
 }
 
 #[derive(Debug, Clone, Display, AsExpression, PartialEq, Serialize, Deserialize, GraphQLEnum)]

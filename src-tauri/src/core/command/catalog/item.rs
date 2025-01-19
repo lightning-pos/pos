@@ -115,17 +115,21 @@ mod tests {
     use super::*;
     use crate::core::{
         command::catalog::item_category::CreateItemCategoryCommand,
-        entities::catalog::item::{ItemNature, ItemState},
+        entities::catalog::{
+            item::{ItemNature, ItemState},
+            item_category::NewItemCategory,
+        },
     };
     use uuid::Uuid;
 
     #[test]
     fn test_create_item() {
         let mut app_service = AppService::new(":memory:");
-        let create_cat_command = CreateItemCategoryCommand {
+        let new_cat = NewItemCategory {
             name: "test".to_string(),
             description: None,
         };
+        let create_cat_command = CreateItemCategoryCommand { category: new_cat };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
         let now = Utc::now().naive_utc();
         let item = Item {
@@ -149,11 +153,11 @@ mod tests {
     #[test]
     fn test_update_item() {
         let mut app_service = AppService::new(":memory:");
-
-        let create_cat_command = CreateItemCategoryCommand {
+        let new_cat = NewItemCategory {
             name: "test".to_string(),
             description: None,
         };
+        let create_cat_command = CreateItemCategoryCommand { category: new_cat };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
         let now = Utc::now().naive_utc();
         let item_id = Uuid::now_v7().to_string();
@@ -213,11 +217,11 @@ mod tests {
     #[test]
     fn test_delete_item() {
         let mut app_service = AppService::new(":memory:");
-
-        let create_cat_command = CreateItemCategoryCommand {
+        let new_cat = NewItemCategory {
             name: "test".to_string(),
             description: None,
         };
+        let create_cat_command = CreateItemCategoryCommand { category: new_cat };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
         let now = Utc::now().naive_utc();
         let item = Item {
