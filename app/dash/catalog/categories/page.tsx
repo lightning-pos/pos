@@ -24,18 +24,14 @@ const Categories = () => {
         try {
             const offset = (page - 1) * size
             const result: Array<{ itemCategories: ItemCategory[] }> = await invoke('graphql', {
-                query:
-                    ` query {
+                query: `#graphql
+                    query {
                         itemCategories(first: ${size}, offset: ${offset}) {
-                            id
-                            name
-                            description
-                            state
-                            createdAt
-                            updatedAt
+                            id name description state createdAt updatedAt
                         }
                     }
-                ` })
+                `,
+            })
             setCategories(result[0].itemCategories)
         } catch (error) {
             console.error('Error fetching categories:', error)
@@ -51,19 +47,16 @@ const Categories = () => {
         if (!editingCategory) return
 
         await invoke('graphql', {
-            query: `
-            mutation {
-                createItemCategory(
-                    newCategory: { name: "${editingCategory.name}", description: "${editingCategory.description}"}
-                ) {
-                    id
-                    name
-                    description
-                    state
-                    createdAt
-                    updatedAt
+            query: `#graphql
+                mutation {
+                    createItemCategory(
+                        newCategory: { name: "${editingCategory.name}", description: "${editingCategory.description}" }
+                    ) {
+                        id name description state createdAt updatedAt
+                    }
                 }
-            }` })
+            `,
+        })
 
         setIsModalOpen(false)
         setEditingCategory(null)
@@ -75,25 +68,21 @@ const Categories = () => {
         if (!editingCategory || !editingCategory.id) return
 
         await invoke('graphql', {
-            query: `
-            mutation {
-                updateItemCategory(
-                    category: {
-                        id: "${editingCategory.id}",
-                        name: "${editingCategory.name}",
-                        description: "${editingCategory.description}",
-                        state: ${editingCategory.state}
+            query: `#graphql
+                mutation {
+                    updateItemCategory(
+                        category: {
+                            id: "${editingCategory.id}",
+                            name: "${editingCategory.name}",
+                            description: "${editingCategory.description}",
+                            state: ${editingCategory.state}
+                        }
+                    ) {
+                        id name description state createdAt updatedAt
                     }
-                ) {
-                    id
-                    name
-                    description
-                    state
-                    createdAt
-                    updatedAt
                 }
-            }` }
-        )
+            `,
+        })
 
         setIsModalOpen(false)
         setEditingCategory(null)
@@ -104,7 +93,11 @@ const Categories = () => {
         if (!editingCategory?.id) return
 
         await invoke('graphql', {
-            query: `mutation { deleteItemCategory(id: "${editingCategory.id}") }`
+            query: `#graphql
+                mutation {
+                    deleteItemCategory(id: "${editingCategory.id}")
+                }
+            `,
         })
 
         setIsDeleteModalOpen(false)
