@@ -1,0 +1,101 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+enum ItemCategoryState {
+  ACTIVE
+  INACTIVE
+}
+
+enum ItemNature {
+  GOODS
+  SERVICE
+}
+
+enum ItemState {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+input NewItem {
+  id: String!
+  name: String!
+  description: String
+  nature: ItemNature!
+  state: ItemState!
+  price: Int!
+  categoryId: String!
+}
+
+input NewItemCategory {
+  name: String!
+  description: String
+}
+
+input UpdateItem {
+  id: String!
+  name: String
+  description: String
+  nature: ItemNature
+  state: ItemState
+  price: Int
+  categoryId: String
+  updatedAt: LocalDateTime
+}
+
+input UpdateItemCategory {
+  id: String!
+  name: String
+  description: String
+  state: ItemCategoryState
+  updatedAt: LocalDateTime
+}
+
+"""
+  Combined date and time (without time zone) in `yyyy-MM-dd HH:mm:ss` format.
+
+  See also [`chrono::NaiveDateTime`][1] for details.
+
+  [1]: https://docs.rs/chrono/latest/chrono/naive/struct.NaiveDateTime.html
+"""
+scalar LocalDateTime
+
+type Item {
+  id: String!
+  name: String!
+  description: String
+  nature: ItemNature!
+  state: ItemState!
+  price: Int!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+  category: ItemCategory!
+}
+
+type ItemCategory {
+  id: String!
+  name: String!
+  description: String
+  state: ItemCategoryState!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+}
+
+type Mutation {
+  createItem(item: NewItem!): Item!
+  updateItem(item: UpdateItem!): Item!
+  deleteItem(id: String!): Int!
+  createItemCategory(newCategory: NewItemCategory!): ItemCategory!
+  updateItemCategory(category: UpdateItemCategory!): ItemCategory!
+  deleteItemCategory(id: String!): Int!
+}
+
+type Query {
+  apiVersion: String!
+  itemCategories(first: Int, offset: Int): [ItemCategory!]!
+  itemsCategory(id: String!): ItemCategory!
+  items(first: Int, offset: Int): [Item!]!
+  item(id: String!): Item!
+}

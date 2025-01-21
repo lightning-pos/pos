@@ -10,7 +10,8 @@
         "start": "next start",
         "lint": "next lint",
         "tauri": "tauri",
-        "test": "vitest"
+        "test": "vitest",
+        "schema:export": "cd src-tauri && cargo run export-schema"
     },
     "dependencies": {
         "@carbon/icons-react": "^11.48.0",

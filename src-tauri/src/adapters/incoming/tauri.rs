@@ -18,3 +18,8 @@ pub fn graphql(
     )
     .map_err(|err| err.into())
 }
+
+#[tauri::command]
+pub fn schema() -> String {
+    Schema::new(Query, Mutation, EmptySubscription::new()).as_sdl()
+}
