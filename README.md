@@ -74,13 +74,3 @@ Modern businesses need modern solutions. Lightning POS was born from the realiza
 
 For support, please:
 - Create an issue in the repository
-- Contact our support team
-- Check the documentation
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details
-
-## Contributing
-
-We welcome contributions! Please read our contributing guidelines before submitting pull requests.
