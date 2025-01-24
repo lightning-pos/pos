@@ -1,5 +1,8 @@
+use std::str::FromStr;
+
 use crate::schema::item_categories;
 use chrono::NaiveDateTime;
+use derive_more::derive::FromStr;
 use diesel::{
     expression::AsExpression,
     prelude::{AsChangeset, Insertable, Queryable, Selectable},
@@ -35,28 +38,18 @@ pub struct UpdateItemCategory {
     pub updated_at: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Copy, AsExpression, GraphQLEnum)]
+#[derive(Debug, Clone, Copy, AsExpression, FromStr, GraphQLEnum)]
 #[diesel(sql_type = diesel::sql_types::Text)]
 pub enum ItemCategoryState {
     Active,
     Inactive,
 }
 
-impl From<String> for ItemCategoryState {
-    fn from(s: String) -> Self {
-        match s.as_str() {
-            "active" => ItemCategoryState::Active,
-            "inactive" => ItemCategoryState::Inactive,
-            _ => ItemCategoryState::Inactive, // default case
-        }
-    }
-}
-
 impl Queryable<Text, diesel::sqlite::Sqlite> for ItemCategoryState {
     type Row = String;
 
     fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
-        Ok(ItemCategoryState::from(row))
+        Ok(ItemCategoryState::from_str(&row)?)
     }
 }
 
