@@ -1,24 +1,31 @@
 use diesel::{joinable, table};
 
 table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp};
+    use crate::core::entities::catalog::item_category::ItemCategoryStateMapping;
+
     item_categories (id) {
         id -> Text,
         name -> Text,
         description -> Nullable<Text>,
-        state -> Text,
+        state -> ItemCategoryStateMapping,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
 }
 
 table! {
+    use diesel::sql_types::{Text, Integer, Nullable, Timestamp};
+    use crate::core::entities::catalog::item::ItemNatureMapping;
+    use crate::core::entities::catalog::item::ItemStateMapping;
+
     items (id) {
         id -> Text,
         category_id -> Text,
         name -> Text,
         description -> Nullable<Text>,
-        nature -> Text,
-        state -> Text,
+        nature -> ItemNatureMapping,
+        state -> ItemStateMapping,
         price -> Integer,
         created_at -> Timestamp,
         updated_at -> Timestamp,

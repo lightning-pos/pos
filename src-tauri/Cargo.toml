@@ -1,8 +1,5 @@
 [workspace]
-members = [
-    ".",
-    "crates/lightning-macros"
-]
+members = [".", "crates/lightning-macros"]
 
 [package]
 name = "lightning_pos"
@@ -30,6 +27,7 @@ diesel = { version = "2.2.6", features = [
     "chrono",
     "uuid",
 ] }
+diesel-derive-enum = { version = "2.1.0", features = ["sqlite"] }
 diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
 juniper = { version = "0.16.1", features = [
     "chrono",

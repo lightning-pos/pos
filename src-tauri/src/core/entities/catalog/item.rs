@@ -1,14 +1,10 @@
 use chrono::NaiveDateTime;
-use derive_more::FromStr;
 use diesel::{
-    expression::AsExpression,
     prelude::{AsChangeset, Associations, Insertable, Queryable},
-    serialize::{IsNull, Output, ToSql},
-    sql_types::Text,
     Selectable,
 };
+use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use lightning_macros::{QueryableEnum, ToSqlEnum};
 
 use crate::core::entities::catalog::item_category::ItemCategory;
 use crate::schema::items;
@@ -52,15 +48,13 @@ pub struct UpdateItem {
     pub updated_at: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Copy, AsExpression, FromStr, GraphQLEnum, ToSqlEnum, QueryableEnum)]
-#[diesel(sql_type = Text)]
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum)]
 pub enum ItemNature {
     Goods,
     Service,
 }
 
-#[derive(Debug, Clone, Copy, AsExpression, FromStr, GraphQLEnum, ToSqlEnum, QueryableEnum)]
-#[diesel(sql_type = Text)]
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum)]
 pub enum ItemState {
     Active,
     Inactive,
