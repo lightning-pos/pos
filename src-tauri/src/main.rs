@@ -15,6 +15,6 @@ fn main() {
 
 fn export_schema() {
     let schema = adapters::incoming::tauri::schema();
-    std::fs::write("../schema.graphql", schema).expect("Failed to write schema file");
+    std::fs::write("../src-ui/schema.graphql", schema).expect("Failed to write schema file");
     println!("Schema exported successfully!");
 }

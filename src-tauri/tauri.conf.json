@@ -28,10 +28,10 @@
         "withGlobalTauri": false
     },
     "build": {
-        "beforeBuildCommand": "yarn build",
-        "beforeDevCommand": "yarn dev",
+        "beforeBuildCommand": "cd src-ui && yarn build",
+        "beforeDevCommand": "cd src-ui && yarn dev",
         "devUrl": "http://localhost:3000",
-        "frontendDist": "../out"
+        "frontendDist": "src-ui/out"
     },
     "bundle": {
         "active": true,
