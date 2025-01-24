@@ -1,9 +1,12 @@
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
-    core::entities::catalog::{
-        item::{Item, NewItem, UpdateItem},
-        item_category::{ItemCategory, NewItemCategory, UpdateItemCategory},
+    core::{
+        entities::catalog::{
+            item::{Item, NewItem, UpdateItem},
+            item_category::{ItemCategory, NewItemCategory, UpdateItemCategory},
+        },
+        types::db_uuid::DbUuid,
     },
     AppState,
 };
@@ -22,7 +25,7 @@ impl Mutation {
         catalog::item::update_item(item, context)
     }
 
-    fn delete_item(id: String, context: &AppState) -> FieldResult<i32> {
+    fn delete_item(id: DbUuid, context: &AppState) -> FieldResult<i32> {
         catalog::item::delete_item(id, context)
     }
 
@@ -40,7 +43,7 @@ impl Mutation {
         catalog::item_category::update_item_category(category, context)
     }
 
-    fn delete_item_category(id: String, context: &AppState) -> FieldResult<i32> {
+    fn delete_item_category(id: DbUuid, context: &AppState) -> FieldResult<i32> {
         catalog::item_category::delete_item_category(id, context)
     }
 }

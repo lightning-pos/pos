@@ -5,6 +5,7 @@ use crate::{
             Command,
         },
         entities::catalog::item::{Item, NewItem, UpdateItem},
+        types::db_uuid::DbUuid,
     },
     AppState,
 };
@@ -22,7 +23,7 @@ pub fn update_item(item: UpdateItem, context: &AppState) -> FieldResult<Item> {
     Ok(res)
 }
 
-pub fn delete_item(id: String, context: &AppState) -> FieldResult<i32> {
+pub fn delete_item(id: DbUuid, context: &AppState) -> FieldResult<i32> {
     let mut service = context.service.lock().unwrap();
     let res = DeleteItemCommand { id }.exec(&mut service)?;
     Ok(res)

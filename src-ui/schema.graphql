@@ -6,6 +6,7 @@ schema {
 enum ItemCategoryState {
   ACTIVE
   INACTIVE
+  DELETED
 }
 
 enum ItemNature {
@@ -20,13 +21,13 @@ enum ItemState {
 }
 
 input NewItem {
-  id: String!
+  id: DbUuid!
   name: String!
   description: String
   nature: ItemNature!
   state: ItemState!
   price: Int!
-  categoryId: String!
+  categoryId: DbUuid!
 }
 
 input NewItemCategory {
@@ -35,23 +36,25 @@ input NewItemCategory {
 }
 
 input UpdateItem {
-  id: String!
+  id: DbUuid!
   name: String
   description: String
   nature: ItemNature
   state: ItemState
   price: Int
-  categoryId: String
+  categoryId: DbUuid
   updatedAt: LocalDateTime
 }
 
 input UpdateItemCategory {
-  id: String!
+  id: DbUuid!
   name: String
   description: String
   state: ItemCategoryState
   updatedAt: LocalDateTime
 }
+
+scalar DbUuid
 
 """
   Combined date and time (without time zone) in `yyyy-MM-dd HH:mm:ss` format.
@@ -63,7 +66,7 @@ input UpdateItemCategory {
 scalar LocalDateTime
 
 type Item {
-  id: String!
+  id: DbUuid!
   name: String!
   description: String
   nature: ItemNature!
@@ -75,7 +78,7 @@ type Item {
 }
 
 type ItemCategory {
-  id: String!
+  id: DbUuid!
   name: String!
   description: String
   state: ItemCategoryState!
@@ -86,10 +89,10 @@ type ItemCategory {
 type Mutation {
   createItem(item: NewItem!): Item!
   updateItem(item: UpdateItem!): Item!
-  deleteItem(id: String!): Int!
+  deleteItem(id: DbUuid!): Int!
   createItemCategory(newCategory: NewItemCategory!): ItemCategory!
   updateItemCategory(category: UpdateItemCategory!): ItemCategory!
-  deleteItemCategory(id: String!): Int!
+  deleteItemCategory(id: DbUuid!): Int!
 }
 
 type Query {

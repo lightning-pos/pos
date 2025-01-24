@@ -13,9 +13,11 @@ pub enum Error {
 
     // External Errors
     GraphQLError(juniper::GraphQLError),
+    ParseError(juniper::ParseError),
     DieselError(diesel::result::Error),
     SerdeJsonError(serde_json::Error),
     TauriError(tauri::Error),
+    UuidError(uuid::Error),
 }
 
 impl From<Error> for InvokeError {

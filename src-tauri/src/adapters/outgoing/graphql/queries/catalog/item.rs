@@ -6,9 +6,12 @@ use diesel::{
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
-    core::entities::catalog::{
-        item::{Item, ItemNature, ItemState},
-        item_category::ItemCategory,
+    core::{
+        entities::catalog::{
+            item::{Item, ItemNature, ItemState},
+            item_category::ItemCategory,
+        },
+        types::db_uuid::DbUuid,
     },
     schema::item_categories,
     AppState,
@@ -16,8 +19,8 @@ use crate::{
 
 #[graphql_object(context = AppState)]
 impl Item {
-    pub fn id(&self) -> String {
-        self.id.clone()
+    pub fn id(&self) -> DbUuid {
+        self.id
     }
 
     pub fn name(&self) -> String {

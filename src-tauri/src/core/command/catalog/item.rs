@@ -9,6 +9,7 @@ use crate::{
             item::{Item, NewItem, UpdateItem},
             item_category::ItemCategory,
         },
+        types::db_uuid::DbUuid,
     },
     error::{Error, Result},
     schema::{item_categories, items},
@@ -24,7 +25,7 @@ pub struct UpdateItemCommand {
 }
 
 pub struct DeleteItemCommand {
-    pub id: String,
+    pub id: DbUuid,
 }
 
 // Command Implementations
@@ -41,7 +42,7 @@ impl Command for CreateItemCommand {
 
             let now = Utc::now().naive_utc();
             let new_item = Item {
-                id: Uuid::now_v7().to_string(),
+                id: Uuid::now_v7().into(),
                 name: self.item.name.clone(),
                 description: self.item.description.clone(),
                 nature: self.item.nature,
@@ -121,6 +122,7 @@ mod tests {
             item::{ItemNature, ItemState},
             item_category::NewItemCategory,
         },
+        types::db_uuid::DbUuid,
     };
     use diesel::result::Error::NotFound;
     use uuid::Uuid;
@@ -135,7 +137,7 @@ mod tests {
         let create_cat_command = CreateItemCategoryCommand { category: new_cat };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
         let new_item = NewItem {
-            id: Uuid::now_v7().to_string(),
+            id: Uuid::now_v7().into(),
             name: String::from("test"),
             description: Some(String::from("test description")),
             nature: ItemNature::Goods,
@@ -159,7 +161,7 @@ mod tests {
         let create_cat_command = CreateItemCategoryCommand { category: new_cat };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
         let now = Utc::now().naive_utc();
-        let item_id = Uuid::now_v7().to_string();
+        let item_id: DbUuid = Uuid::now_v7().into();
         let new_item = NewItem {
             id: item_id.clone(),
             name: String::from("test"),
@@ -194,7 +196,7 @@ mod tests {
         let mut app_service = AppService::new(":memory:");
         let now = Utc::now().naive_utc();
         let item = UpdateItem {
-            id: Uuid::now_v7().to_string(),
+            id: Uuid::now_v7().into(),
             name: Some("test".to_string()),
             description: None,
             nature: None,
@@ -220,7 +222,7 @@ mod tests {
         let create_cat_command = CreateItemCategoryCommand { category: new_cat };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
         let item = NewItem {
-            id: Uuid::now_v7().to_string(),
+            id: Uuid::now_v7().into(),
             name: "test".to_string(),
             description: Some("test description".to_string()),
             nature: ItemNature::Goods,
@@ -241,7 +243,7 @@ mod tests {
     fn test_delete_item_does_not_exist() {
         let mut app_service = AppService::new(":memory:");
         let command = DeleteItemCommand {
-            id: Uuid::now_v7().to_string(),
+            id: Uuid::now_v7().into(),
         };
         let result = command.exec(&mut app_service);
         assert!(matches!(result, Err(Error::NotFoundError)));

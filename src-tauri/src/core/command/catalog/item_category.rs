@@ -8,6 +8,7 @@ use crate::{
         entities::catalog::item_category::{
             ItemCategory, ItemCategoryState, NewItemCategory, UpdateItemCategory,
         },
+        types::db_uuid::DbUuid,
     },
     error::{Error, Result},
     schema::{item_categories::dsl::*, items},
@@ -23,7 +24,7 @@ pub struct UpdateItemCategoryCommand {
 }
 
 pub struct DeleteItemCategoryCommand {
-    pub id: String,
+    pub id: DbUuid,
 }
 
 // Command Implementations
@@ -43,7 +44,7 @@ impl Command for CreateItemCategoryCommand {
 
             let now = Utc::now().naive_utc();
             let new_cat = ItemCategory {
-                id: Uuid::now_v7().to_string(),
+                id: Uuid::now_v7().into(),
                 name: self.category.name.clone(),
                 description: self.category.description.clone(),
                 state: ItemCategoryState::Inactive,
@@ -159,7 +160,7 @@ mod tests {
         let category = create_command.exec(&mut app_service).unwrap();
 
         let updated_category = UpdateItemCategory {
-            id: category.id.clone(),
+            id: category.id,
             name: Some("updated test".to_string()),
             description: None,
             state: None,
@@ -179,16 +180,16 @@ mod tests {
         let mut app_service = AppService::new(":memory:");
         let now = Utc::now().naive_utc();
         let category = UpdateItemCategory {
-            id: Uuid::now_v7().to_string(),
+            id: Uuid::now_v7().into(),
             name: Some("test".to_string()),
-            description: Some("test description".to_string()),
+            description: Some(Some("test description".to_string())),
             state: Some(ItemCategoryState::Active),
             updated_at: Some(now),
         };
 
         let command = UpdateItemCategoryCommand { category };
         let result = command.exec(&mut app_service);
-        assert!(matches!(result, Err(Error::DieselError(NotFound))));
+        assert!(matches!(result, Err(Error::DieselError(NotFound))))
     }
 
     #[test]

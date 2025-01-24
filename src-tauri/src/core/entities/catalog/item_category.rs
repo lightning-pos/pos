@@ -1,4 +1,4 @@
-use crate::schema::item_categories;
+use crate::{core::types::db_uuid::DbUuid, schema::item_categories};
 use chrono::NaiveDateTime;
 use diesel::prelude::{AsChangeset, Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
@@ -7,7 +7,7 @@ use juniper::{GraphQLEnum, GraphQLInputObject};
 #[derive(Debug, Queryable, Insertable, Selectable)]
 #[diesel(table_name = item_categories)]
 pub struct ItemCategory {
-    pub id: String,
+    pub id: DbUuid,
     pub name: String,
     pub description: Option<String>,
     pub state: ItemCategoryState,
@@ -24,9 +24,9 @@ pub struct NewItemCategory {
 #[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]
 #[diesel(table_name = item_categories)]
 pub struct UpdateItemCategory {
-    pub id: String,
+    pub id: DbUuid,
     pub name: Option<String>,
-    pub description: Option<String>,
+    pub description: Option<Option<String>>,
     pub state: Option<ItemCategoryState>,
     pub updated_at: Option<NaiveDateTime>,
 }

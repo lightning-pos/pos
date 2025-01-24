@@ -7,6 +7,7 @@ use crate::{
             Command,
         },
         entities::catalog::item_category::{ItemCategory, NewItemCategory, UpdateItemCategory},
+        types::db_uuid::DbUuid,
     },
     AppState,
 };
@@ -30,7 +31,7 @@ pub fn update_item_category(
     Ok(res)
 }
 
-pub fn delete_item_category(id: String, context: &AppState) -> FieldResult<i32> {
+pub fn delete_item_category(id: DbUuid, context: &AppState) -> FieldResult<i32> {
     let mut service = context.service.lock().unwrap();
     let res = DeleteItemCategoryCommand { id }.exec(&mut service)?;
     Ok(res)

@@ -5,7 +5,10 @@ use juniper::{graphql_object, FieldResult};
 
 use crate::{
     adapters::outgoing::graphql::Query,
-    core::entities::catalog::{item::Item, item_category::ItemCategory},
+    core::{
+        entities::catalog::{item::Item, item_category::ItemCategory},
+        types::db_uuid::DbUuid,
+    },
     schema::{item_categories, items},
     AppState,
 };
@@ -41,7 +44,7 @@ impl Query {
         Ok(result)
     }
 
-    fn items_category(&self, id: String, context: &AppState) -> FieldResult<ItemCategory> {
+    fn items_category(&self, id: DbUuid, context: &AppState) -> FieldResult<ItemCategory> {
         let mut service = context.service.lock().unwrap();
         let result = item_categories::table
             .filter(item_categories::id.eq(id))
@@ -74,7 +77,7 @@ impl Query {
         Ok(result)
     }
 
-    fn item(&self, id: String, context: &AppState) -> FieldResult<Item> {
+    fn item(&self, id: DbUuid, context: &AppState) -> FieldResult<Item> {
         let mut service = context.service.lock().unwrap();
         let result = items::table
             .filter(items::id.eq(id))
