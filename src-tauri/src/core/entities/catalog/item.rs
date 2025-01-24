@@ -1,5 +1,4 @@
 use chrono::NaiveDateTime;
-use derive_more::derive::{Display, From};
 use diesel::{
     expression::AsExpression,
     prelude::{AsChangeset, Associations, Insertable, Queryable},
@@ -51,14 +50,14 @@ pub struct UpdateItem {
     pub updated_at: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Copy, Display, From, AsExpression, PartialEq, GraphQLEnum)]
+#[derive(Debug, Clone, Copy, AsExpression, GraphQLEnum)]
 #[diesel(sql_type = Text)]
 pub enum ItemNature {
     Goods,
     Service,
 }
 
-#[derive(Debug, Clone, Copy, Display, From, AsExpression, PartialEq, GraphQLEnum)]
+#[derive(Debug, Clone, Copy, AsExpression, GraphQLEnum)]
 #[diesel(sql_type = Text)]
 pub enum ItemState {
     Active,

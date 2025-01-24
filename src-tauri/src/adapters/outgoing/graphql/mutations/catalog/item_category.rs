@@ -13,14 +13,11 @@ use crate::{
 use juniper::FieldResult;
 
 pub fn create_item_category(
-    new_category: NewItemCategory,
+    category: NewItemCategory,
     context: &AppState,
 ) -> FieldResult<ItemCategory> {
     let mut service = context.service.lock().unwrap();
-    let res = CreateItemCategoryCommand {
-        category: new_category,
-    }
-    .exec(&mut service)?;
+    let res = CreateItemCategoryCommand { category }.exec(&mut service)?;
     Ok(res)
 }
 

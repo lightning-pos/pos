@@ -219,7 +219,6 @@ mod tests {
         };
         let create_cat_command = CreateItemCategoryCommand { category: new_cat };
         let cat = create_cat_command.exec(&mut app_service).unwrap();
-        let now = Utc::now().naive_utc();
         let item = NewItem {
             id: Uuid::now_v7().to_string(),
             name: "test".to_string(),

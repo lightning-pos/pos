@@ -1,14 +1,12 @@
 use crate::schema::item_categories;
 use chrono::NaiveDateTime;
-use derive_more::derive::Display;
 use diesel::{
     expression::AsExpression,
-    prelude::*,
+    prelude::{AsChangeset, Insertable, Queryable, Selectable},
     serialize::{IsNull, Output, ToSql},
     sql_types::Text,
 };
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Queryable, Selectable, Insertable)]
 #[diesel(table_name = item_categories)]
@@ -37,9 +35,7 @@ pub struct UpdateItemCategory {
     pub updated_at: Option<NaiveDateTime>,
 }
 
-#[derive(
-    Debug, Clone, Copy, Display, AsExpression, PartialEq, Serialize, Deserialize, GraphQLEnum,
-)]
+#[derive(Debug, Clone, Copy, AsExpression, GraphQLEnum)]
 #[diesel(sql_type = diesel::sql_types::Text)]
 pub enum ItemCategoryState {
     Active,
