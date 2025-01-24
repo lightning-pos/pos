@@ -10,6 +10,7 @@ use diesel::{
     sql_types::Text,
 };
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use lightning_macros::{QueryableEnum, ToSqlEnum};
 
 #[derive(Debug, Queryable, Selectable, Insertable)]
 #[diesel(table_name = item_categories)]
@@ -38,31 +39,9 @@ pub struct UpdateItemCategory {
     pub updated_at: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Copy, AsExpression, FromStr, GraphQLEnum)]
+#[derive(Debug, Clone, Copy, AsExpression, FromStr, GraphQLEnum, ToSqlEnum, QueryableEnum)]
 #[diesel(sql_type = diesel::sql_types::Text)]
 pub enum ItemCategoryState {
     Active,
     Inactive,
-}
-
-impl Queryable<Text, diesel::sqlite::Sqlite> for ItemCategoryState {
-    type Row = String;
-
-    fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
-        Ok(ItemCategoryState::from_str(&row)?)
-    }
-}
-
-impl ToSql<Text, diesel::sqlite::Sqlite> for ItemCategoryState {
-    fn to_sql<'b>(
-        &'b self,
-        out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
-    ) -> diesel::serialize::Result {
-        let s = match self {
-            ItemCategoryState::Active => "active",
-            ItemCategoryState::Inactive => "inactive",
-        };
-        out.set_value(s);
-        Ok(IsNull::No)
-    }
 }

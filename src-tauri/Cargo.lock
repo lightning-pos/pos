@@ -1717,6 +1717,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "lightning-macros"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+]
+
+[[package]]
 name = "lightning_pos"
 version = "0.1.0"
 dependencies = [
@@ -1725,6 +1735,7 @@ dependencies = [
  "diesel",
  "diesel_migrations",
  "juniper",
+ "lightning-macros",
  "serde",
  "serde_json",
  "tauri",

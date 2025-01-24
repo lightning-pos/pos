@@ -8,6 +8,7 @@ use diesel::{
     Selectable,
 };
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use lightning_macros::{QueryableEnum, ToSqlEnum};
 
 use crate::core::entities::catalog::item_category::ItemCategory;
 use crate::schema::items;
@@ -51,60 +52,17 @@ pub struct UpdateItem {
     pub updated_at: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Copy, AsExpression, FromStr, GraphQLEnum)]
+#[derive(Debug, Clone, Copy, AsExpression, FromStr, GraphQLEnum, ToSqlEnum, QueryableEnum)]
 #[diesel(sql_type = Text)]
 pub enum ItemNature {
     Goods,
     Service,
 }
 
-#[derive(Debug, Clone, Copy, AsExpression, FromStr, GraphQLEnum)]
+#[derive(Debug, Clone, Copy, AsExpression, FromStr, GraphQLEnum, ToSqlEnum, QueryableEnum)]
 #[diesel(sql_type = Text)]
 pub enum ItemState {
     Active,
     Inactive,
     Deleted,
-}
-
-impl ToSql<Text, diesel::sqlite::Sqlite> for ItemState {
-    fn to_sql<'b>(
-        &'b self,
-        out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
-    ) -> diesel::serialize::Result {
-        let s = match self {
-            ItemState::Active => "active",
-            ItemState::Inactive => "inactive",
-            ItemState::Deleted => "deleted",
-        };
-        out.set_value(s);
-        Ok(IsNull::No)
-    }
-}
-
-impl ToSql<Text, diesel::sqlite::Sqlite> for ItemNature {
-    fn to_sql<'b>(
-        &'b self,
-        out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
-    ) -> diesel::serialize::Result {
-        let s = match self {
-            ItemNature::Goods => "goods",
-            ItemNature::Service => "service",
-        };
-        out.set_value(s);
-        Ok(IsNull::No)
-    }
-}
-
-impl Queryable<Text, diesel::sqlite::Sqlite> for ItemState {
-    type Row = String;
-    fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
-        Ok(ItemState::from_str(&row)?)
-    }
-}
-
-impl Queryable<Text, diesel::sqlite::Sqlite> for ItemNature {
-    type Row = String;
-    fn build(row: Self::Row) -> diesel::deserialize::Result<Self> {
-        Ok(ItemNature::from_str(&row)?)
-    }
 }
