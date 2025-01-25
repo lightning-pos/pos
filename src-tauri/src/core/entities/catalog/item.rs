@@ -6,7 +6,10 @@ use diesel::{
 use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
 
-use crate::core::{entities::catalog::item_category::ItemCategory, types::db_uuid::DbUuid};
+use crate::core::{
+    entities::catalog::item_category::ItemCategory,
+    types::{db_uuid::DbUuid, money::Money},
+};
 use crate::schema::items;
 
 #[derive(Debug, Queryable, Selectable, Insertable, Associations)]
@@ -18,7 +21,7 @@ pub struct Item {
     pub description: Option<String>,
     pub nature: ItemNature,
     pub state: ItemState,
-    pub price: i32,
+    pub price: Money,
     pub category_id: DbUuid,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -26,12 +29,11 @@ pub struct Item {
 
 #[derive(Debug, Clone, GraphQLInputObject)]
 pub struct NewItem {
-    pub id: DbUuid,
     pub name: String,
     pub description: Option<String>,
     pub nature: ItemNature,
     pub state: ItemState,
-    pub price: i32,
+    pub price: Money,
     pub category_id: DbUuid,
 }
 
@@ -43,7 +45,7 @@ pub struct UpdateItem {
     pub description: Option<Option<String>>,
     pub nature: Option<ItemNature>,
     pub state: Option<ItemState>,
-    pub price: Option<i32>,
+    pub price: Option<Money>,
     pub category_id: Option<DbUuid>,
     pub updated_at: Option<NaiveDateTime>,
 }

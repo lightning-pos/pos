@@ -1,7 +1,7 @@
 use diesel::{
-    deserialize::FromSqlRow,
+    deserialize::{self, FromSqlRow},
     expression::AsExpression,
-    serialize::{IsNull, Output, ToSql},
+    serialize::{self, IsNull, Output, ToSql},
     sql_types::Text,
     sqlite::Sqlite,
     Queryable,
@@ -10,7 +10,7 @@ use juniper::graphql_scalar;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, AsExpression, FromSqlRow)]
-#[diesel(sql_type = diesel::sql_types::Text)]
+#[diesel(sql_type = Text)]
 #[graphql_scalar]
 #[graphql(transparent)]
 pub struct DbUuid(Uuid);
@@ -21,16 +21,10 @@ impl From<Uuid> for DbUuid {
     }
 }
 
-impl Into<Uuid> for DbUuid {
-    fn into(self) -> Uuid {
-        self.0
-    }
-}
-
-impl Queryable<diesel::sql_types::Text, Sqlite> for DbUuid {
+impl Queryable<Text, Sqlite> for DbUuid {
     type Row = String;
 
-    fn build(row: String) -> diesel::deserialize::Result<Self> {
+    fn build(row: String) -> deserialize::Result<Self> {
         Ok(DbUuid(
             Uuid::parse_str(&row).map_err(|e| format!("Error parsing UUID: {}", e))?,
         ))
@@ -38,10 +32,7 @@ impl Queryable<diesel::sql_types::Text, Sqlite> for DbUuid {
 }
 
 impl ToSql<Text, Sqlite> for DbUuid {
-    fn to_sql<'b>(
-        &'b self,
-        out: &mut Output<'b, '_, diesel::sqlite::Sqlite>,
-    ) -> diesel::serialize::Result {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Sqlite>) -> serialize::Result {
         out.set_value(self.0.to_string());
         Ok(IsNull::No)
     }

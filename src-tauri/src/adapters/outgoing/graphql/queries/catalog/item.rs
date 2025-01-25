@@ -11,7 +11,7 @@ use crate::{
             item::{Item, ItemNature, ItemState},
             item_category::ItemCategory,
         },
-        types::db_uuid::DbUuid,
+        types::{db_uuid::DbUuid, money::Money},
     },
     schema::item_categories,
     AppState,
@@ -39,7 +39,7 @@ impl Item {
         self.state
     }
 
-    pub fn price(&self) -> i32 {
+    pub fn price(&self) -> Money {
         self.price
     }
 

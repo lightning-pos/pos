@@ -15,7 +15,7 @@ table! {
 }
 
 table! {
-    use diesel::sql_types::{Text, Integer, Nullable, Timestamp};
+    use diesel::sql_types::{BigInt, Text, Nullable, Timestamp};
     use crate::core::entities::catalog::item::ItemNatureMapping;
     use crate::core::entities::catalog::item::ItemStateMapping;
 
@@ -26,7 +26,7 @@ table! {
         description -> Nullable<Text>,
         nature -> ItemNatureMapping,
         state -> ItemStateMapping,
-        price -> Integer,
+        price -> BigInt,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }

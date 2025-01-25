@@ -9,5 +9,9 @@
     "devDependencies": {
         "@tauri-apps/cli": ">=2.0.0-rc.0"
     },
-    "packageManager": "yarn@1.22.22"
+    "packageManager": "yarn@1.22.22",
+    "graphql": {
+        "schema": "src-ui/schema.graphql",
+        "documents": "src-ui/app/**/*.{graphql,js,ts,jsx,tsx}"
+    }
 }

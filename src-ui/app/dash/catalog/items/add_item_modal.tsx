@@ -45,14 +45,13 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
 
     const addItem = async (e: React.FormEvent) => {
         await invoke('graphql', {
-            query: `
-                mutation {
+            query: `#graphql
+            mutation {
                     createItem(
                         item: {
-                            id: "${newItem.id}",
                             name: "${newItem.name}",
                             description: "${newItem.description}",
-                            price: ${newItem.price},
+                            price: "${newItem.price}",
                             nature: GOODS,
                             state: ACTIVE,
                             categoryId: "${newItem.categoryId}",
@@ -62,18 +61,6 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
                     }
                 }`
         })
-
-
-        // await db.transaction(async (tx) => {
-        //     newItem.id = uid()
-        //     await tx.insert(itemsTable).values(newItem).execute();
-        //     for (const taxId of selectedTaxIds || []) {
-        //         await tx.insert(itemTaxesTable).values({
-        //             itemId: newItem.id,
-        //             taxId: taxId,
-        //         }).execute();
-        //     }
-        // });
 
         onRequestSubmit?.(e as React.FormEvent<HTMLFormElement>);
     }
