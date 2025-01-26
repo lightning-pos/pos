@@ -1,18 +1,13 @@
 Code Style and Guidelines (General)
 - Use functional and declarative patterns. Avoid using classes.
 - Use hexagonal (ports and adapter) architecture for a clean code base.
-- When transforming columns of records from db for presentation, always extend the type from @schema.ts. The transformed key should be named "<column_name>_transformed"
-- Use money.ts to format and transform money related values. All add, sub, mul and div should happen using the util library
-- Entities having relations should have a field with Option enum with type of the related entity.
 
-
-Naming Conventions
+Naming Conventions - TypeScript
 - Use camelCase for variable names
 - Use PascalCase for component names
 - Use UPPERCASE for constants
-- Use kebab-case for folder names (eg. src-tauri)
+- Use kebab-case for folder names (eg. src-ui)
 - Use snake_case for file names
-- Use snake_case for database related things (tables, columns, indexes, etc.)
 
 UI Styling
 - Use carbon for ui components
@@ -24,11 +19,8 @@ Carbon Design System Guidelines
 - Use carbon docs to find the best practices for using carbon
 - Use carbon recommended colors, spacing, typography, icons, grid, layout, breakpoint, and theme systems
 
-Drizzle ORM
-- Use useDb() hook to get the database instance
-- Always use db.query to run select queries
-- Use uid() from the uid package to generate unique ids
-
 Make best developer experience and end user experience a priority.
+
+Update cascade memories automatically whenever an architecture desision is made.
 
 Make everything type safe whenever possible and utilize best practices for not repeating ourselves.
