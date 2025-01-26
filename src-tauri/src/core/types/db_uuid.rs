@@ -9,7 +9,7 @@ use diesel::{
 use juniper::graphql_scalar;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AsExpression, FromSqlRow)]
 #[diesel(sql_type = Text)]
 #[graphql_scalar]
 #[graphql(transparent)]

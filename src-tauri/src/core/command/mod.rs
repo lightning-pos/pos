@@ -1,4 +1,5 @@
 pub mod app_service;
+pub mod auth;
 pub mod catalog;
 
 use crate::error::Result;

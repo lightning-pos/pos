@@ -40,3 +40,16 @@ CREATE TABLE item_taxes (
     FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (tax_id) REFERENCES taxes(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+
+-- Create users table
+CREATE TABLE users (
+    id TEXT PRIMARY KEY NOT NULL,
+    username TEXT NOT NULL,
+    pin_hash TEXT NOT NULL,
+    full_name TEXT NOT NULL,
+    state TEXT NOT NULL,
+    last_login_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);

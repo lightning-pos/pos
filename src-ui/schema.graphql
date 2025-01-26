@@ -20,6 +20,12 @@ enum ItemState {
   DELETED
 }
 
+enum UserState {
+  ACTIVE
+  INACTIVE
+  LOCKED
+}
+
 input NewItem {
   name: String!
   description: String
@@ -51,6 +57,20 @@ input UpdateItemCategory {
   description: String
   state: ItemCategoryState
   updatedAt: LocalDateTime
+}
+
+input UserNewInput {
+  username: String!
+  pin: String!
+  fullName: String!
+}
+
+input UserUpdateInput {
+  id: DbUuid!
+  username: String
+  pin: String
+  fullName: String
+  state: UserState
 }
 
 scalar DbUuid
@@ -88,6 +108,11 @@ type ItemCategory {
 }
 
 type Mutation {
+  login(username: String!, password: String!): Boolean!
+  logout: Boolean!
+  addUser(user: UserNewInput!): User!
+  updateUser(user: UserUpdateInput!): User!
+  deleteUser(id: DbUuid!): Int!
   createItem(item: NewItem!): Item!
   updateItem(item: UpdateItem!): Item!
   deleteItem(id: DbUuid!): Int!
@@ -102,4 +127,16 @@ type Query {
   itemsCategory(id: DbUuid!): ItemCategory!
   items(first: Int, offset: Int): [Item!]!
   item(id: DbUuid!): Item!
+  users(first: Int, offset: Int): [User!]!
+  user(id: DbUuid!): User!
+}
+
+type User {
+  id: DbUuid!
+  username: String!
+  fullName: String!
+  state: UserState!
+  lastLoginAt: LocalDateTime
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
 }

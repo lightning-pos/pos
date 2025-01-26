@@ -1,16 +1,21 @@
-// use crate::core::common::interface::sql::SQLInterface;
-
-use std::error::Error;
-
 use diesel::{sqlite::Sqlite, Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use std::error::Error;
+
+use crate::core::types::db_uuid::DbUuid;
 
 pub struct AppService {
     pub conn: SqliteConnection,
+    pub state: SessionState,
+}
+
+pub struct SessionState {
+    pub current_user: Option<DbUuid>,
 }
 
 impl AppService {
     pub fn new(conn: &str) -> Self {
+        let state = SessionState { current_user: None };
         let mut conn = SqliteConnection::establish(conn).unwrap();
         let migration_result = Self::run_migrations(&mut conn);
 
@@ -18,7 +23,7 @@ impl AppService {
             Ok(_) => println!("Migration successful"),
             Err(e) => println!("Migration failed: {}", e),
         }
-        Self { conn }
+        Self { conn, state }
     }
 
     fn run_migrations(

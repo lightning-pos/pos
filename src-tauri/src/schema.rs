@@ -50,6 +50,22 @@ table! {
     }
 }
 
+table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp};
+    use crate::core::entities::auth::user::UserStateMapping;
+
+    users (id) {
+        id -> Text,
+        username -> Text,
+        pin_hash -> Text,
+        full_name -> Text,
+        state -> UserStateMapping,
+        last_login_at -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
 joinable!(items -> item_categories (category_id));
 joinable!(item_taxes -> items (item_id));
 joinable!(item_taxes -> taxes (tax_id));

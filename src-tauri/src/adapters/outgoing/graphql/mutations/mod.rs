@@ -1,10 +1,16 @@
+pub mod auth;
+pub mod catalog;
+
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
     core::{
-        entities::catalog::{
-            item::{Item, NewItem, UpdateItem},
-            item_category::{ItemCategory, NewItemCategory, UpdateItemCategory},
+        entities::{
+            auth::user::{User, UserNewInput, UserUpdateInput},
+            catalog::{
+                item::{Item, NewItem, UpdateItem},
+                item_category::{ItemCategory, NewItemCategory, UpdateItemCategory},
+            },
         },
         types::db_uuid::DbUuid,
     },
@@ -13,10 +19,30 @@ use crate::{
 
 use super::Mutation;
 
-pub mod catalog;
-
 #[graphql_object(context = AppState)]
 impl Mutation {
+    fn login(username: String, password: String, context: &AppState) -> FieldResult<bool> {
+        auth::auth_mutations::login(username, password, context)?;
+        Ok(true)
+    }
+
+    fn logout(context: &AppState) -> FieldResult<bool> {
+        auth::auth_mutations::logout(context)?;
+        Ok(true)
+    }
+
+    fn add_user(user: UserNewInput, context: &AppState) -> FieldResult<User> {
+        auth::user_mutations::add_user(user, context)
+    }
+
+    fn update_user(user: UserUpdateInput, context: &AppState) -> FieldResult<User> {
+        auth::user_mutations::update_user(user, context)
+    }
+
+    fn delete_user(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        auth::user_mutations::delete_user(id, context)
+    }
+
     fn create_item(item: NewItem, context: &AppState) -> FieldResult<Item> {
         catalog::item::create_item(item, context)
     }
