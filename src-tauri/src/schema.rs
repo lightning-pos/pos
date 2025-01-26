@@ -2,13 +2,13 @@ use diesel::{joinable, table};
 
 table! {
     use diesel::sql_types::{Text, Nullable, Timestamp};
-    use crate::core::entities::catalog::item_category::ItemCategoryStateMapping;
+    use crate::core::models::catalog::item_group_model::ItemGroupStateMapping;
 
     item_categories (id) {
         id -> Text,
         name -> Text,
         description -> Nullable<Text>,
-        state -> ItemCategoryStateMapping,
+        state -> ItemGroupStateMapping,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -16,8 +16,8 @@ table! {
 
 table! {
     use diesel::sql_types::{BigInt, Text, Nullable, Timestamp};
-    use crate::core::entities::catalog::item::ItemNatureMapping;
-    use crate::core::entities::catalog::item::ItemStateMapping;
+    use crate::core::models::catalog::item_model::ItemNatureMapping;
+    use crate::core::models::catalog::item_model::ItemStateMapping;
 
     items (id) {
         id -> Text,
@@ -52,7 +52,7 @@ table! {
 
 table! {
     use diesel::sql_types::{Text, Nullable, Timestamp};
-    use crate::core::entities::auth::user::UserStateMapping;
+    use crate::core::models::auth::user_model::UserStateMapping;
 
     users (id) {
         id -> Text,

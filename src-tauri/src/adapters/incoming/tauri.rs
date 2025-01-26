@@ -1,4 +1,4 @@
-use crate::adapters::outgoing::graphql::{Mutation, Query, Schema};
+use crate::adapters::graphql::{Mutation, Query, Schema};
 use crate::error::Result;
 use crate::AppState;
 use juniper::{DefaultScalarValue, EmptySubscription, ExecutionError, Variables};

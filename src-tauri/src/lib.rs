@@ -4,7 +4,7 @@ pub mod error;
 pub mod schema;
 
 use adapters::incoming::tauri::*;
-use core::command::app_service::AppService;
+use core::commands::app_service::AppService;
 use std::sync::Mutex;
 
 pub struct AppState {
