@@ -1,0 +1,82 @@
+use chrono::NaiveDateTime;
+use diesel::{
+    expression::AsExpression,
+    prelude::{AsChangeset, Insertable, Queryable},
+    sql_types::Text,
+    Selectable,
+};
+use diesel_derive_enum::DbEnum;
+use juniper::{GraphQLEnum, GraphQLInputObject};
+
+use crate::core::types::{db_uuid::DbUuid, money::Money};
+use crate::schema::sales_orders;
+
+#[derive(Debug, Queryable, Selectable, Insertable)]
+#[diesel(table_name = sales_orders)]
+pub struct SalesOrder {
+    pub id: DbUuid,
+    pub customer_id: DbUuid,
+    pub customer_name: String,
+    pub customer_phone_number: String,
+    pub order_date: NaiveDateTime,
+    pub net_amount: Money,
+    pub disc_amount: Money,
+    pub taxable_amount: Money,
+    pub tax_amount: Money,
+    pub total_amount: Money,
+    pub state: SalesOrderState,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
+#[derive(Debug, Clone, GraphQLInputObject)]
+pub struct SalesOrderNewInput {
+    pub customer_id: DbUuid,
+    pub customer_name: String,
+    pub customer_phone_number: String,
+    pub order_date: NaiveDateTime,
+    pub net_amount: Money,
+    pub disc_amount: Money,
+    pub taxable_amount: Money,
+    pub tax_amount: Money,
+    pub total_amount: Money,
+    pub state: SalesOrderState,
+}
+
+#[derive(Debug, Clone, GraphQLInputObject)]
+pub struct SalesOrderUpdateInput {
+    pub id: DbUuid,
+    pub customer_name: Option<String>,
+    pub customer_phone_number: Option<String>,
+    pub order_date: Option<NaiveDateTime>,
+    pub net_amount: Option<Money>,
+    pub disc_amount: Option<Money>,
+    pub taxable_amount: Option<Money>,
+    pub tax_amount: Option<Money>,
+    pub total_amount: Option<Money>,
+    pub state: Option<SalesOrderState>,
+}
+
+#[derive(Debug, Clone, AsChangeset)]
+#[diesel(table_name = sales_orders)]
+pub struct SalesOrderUpdateChangeset {
+    pub id: DbUuid,
+    pub customer_name: Option<String>,
+    pub customer_phone_number: Option<String>,
+    pub order_date: Option<NaiveDateTime>,
+    pub net_amount: Option<Money>,
+    pub disc_amount: Option<Money>,
+    pub taxable_amount: Option<Money>,
+    pub tax_amount: Option<Money>,
+    pub total_amount: Option<Money>,
+    pub state: Option<SalesOrderState>,
+    pub updated_at: NaiveDateTime,
+}
+
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, AsExpression)]
+#[diesel(sql_type = Text)]
+pub enum SalesOrderState {
+    Draft,
+    Completed,
+    Cancelled,
+}

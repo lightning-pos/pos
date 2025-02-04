@@ -73,31 +73,34 @@ table! {
         email -> Nullable<Text>,
         country_code -> Nullable<Text>,
         phone_number -> Nullable<Text>,
-        created_at -> BigInt,
-        updated_at -> BigInt,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
 table! {
-    orders (id) {
+    use diesel::sql_types::{BigInt, Text, Nullable, Timestamp};
+    use crate::core::models::sales::sales_order_model::SalesOrderStateMapping;
+
+    sales_orders (id) {
         id -> Text,
         customer_id -> Text,
         customer_name -> Text,
         customer_phone_number -> Text,
-        order_date -> BigInt,
+        order_date -> Timestamp,
         net_amount -> BigInt,
         disc_amount -> BigInt,
         taxable_amount -> BigInt,
         tax_amount -> BigInt,
         total_amount -> BigInt,
-        state -> Text,
-        created_at -> BigInt,
-        updated_at -> BigInt,
+        state -> SalesOrderStateMapping,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 
 table! {
-    order_items (id) {
+    sales_order_items (id) {
         id -> Text,
         order_id -> Text,
         item_id -> Text,
@@ -110,6 +113,18 @@ table! {
     }
 }
 
+table! {
+    use diesel::sql_types::{Text, Timestamp};
+
+    carts (id) {
+        id -> Text,
+        customer_id -> Text,
+        cart_data -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
 // ManyToOne (items, item_categories)
 joinable!(items -> item_categories (category_id));
 
@@ -118,8 +133,8 @@ joinable!(item_taxes -> items (item_id));
 joinable!(item_taxes -> taxes (tax_id));
 
 // ManyToOne (orders, customers)
-joinable!(orders -> customers (customer_id));
+joinable!(sales_orders -> customers (customer_id));
 
 // ManyToMany (orders, order_items)
-joinable!(order_items -> orders (order_id));
-joinable!(order_items -> items (item_id));
+joinable!(sales_order_items -> sales_orders (order_id));
+joinable!(sales_order_items -> items (item_id));
