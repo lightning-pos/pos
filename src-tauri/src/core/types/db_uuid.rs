@@ -1,5 +1,5 @@
 use diesel::{
-    deserialize::{self, FromSqlRow},
+    deserialize,
     expression::AsExpression,
     serialize::{self, IsNull, Output, ToSql},
     sql_types::Text,
@@ -9,7 +9,7 @@ use diesel::{
 use juniper::graphql_scalar;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, AsExpression, FromSqlRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, AsExpression)]
 #[diesel(sql_type = Text)]
 #[graphql_scalar]
 #[graphql(transparent)]
