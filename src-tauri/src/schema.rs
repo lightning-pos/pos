@@ -69,10 +69,10 @@ table! {
 table! {
     customers (id) {
         id -> Text,
-        name -> Nullable<Text>,
+        full_name -> Text,
         email -> Nullable<Text>,
-        country_code -> Nullable<Text>,
-        phone_number -> Nullable<Text>,
+        phone -> Nullable<Text>,
+        address -> Nullable<Text>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
