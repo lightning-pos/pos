@@ -73,7 +73,7 @@ pub struct SalesOrderUpdateChangeset {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, AsExpression)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, DbEnum, GraphQLEnum, AsExpression)]
 #[diesel(sql_type = Text)]
 pub enum SalesOrderState {
     Draft,

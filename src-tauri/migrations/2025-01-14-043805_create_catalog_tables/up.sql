@@ -74,3 +74,21 @@ CREATE TABLE carts (
     updated_at TIMESTAMP NOT NULL,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL ON UPDATE CASCADE
 );
+
+-- Create sales_orders table
+CREATE TABLE sales_orders (
+    id TEXT PRIMARY KEY NOT NULL,
+    customer_id TEXT NOT NULL,
+    customer_name TEXT NOT NULL,
+    customer_phone_number TEXT NOT NULL,
+    order_date TIMESTAMP NOT NULL,
+    net_amount INTEGER NOT NULL,
+    disc_amount INTEGER NOT NULL,
+    taxable_amount INTEGER NOT NULL,
+    tax_amount INTEGER NOT NULL,
+    total_amount INTEGER NOT NULL,
+    state TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT ON UPDATE CASCADE
+);
