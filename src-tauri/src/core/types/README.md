@@ -1,4 +1,4 @@
-# Core Type Implementation Guide
+# Core Type Guidelines
 
 ## Purpose
 Types in this directory enforce domain logic while integrating with:
@@ -43,13 +43,12 @@ Types in this directory enforce domain logic while integrating with:
    - `ToSql` for serialization
 
 ## Macro Explanations
-| Macro/Attribute                   | Purpose                                                          |
-| --------------------------------- | ---------------------------------------------------------------- |
-| `#[derive(diesel::AsExpression)]` | Diesel: Enables use in queries                                   |
-| `#[diesel(sql_type)]`             | Maps Rust type to SQL column type                                |
-| `#[graphql_scalar]`               | Exposes type as GraphQL scalar                                   |
-| `#[graphql(transparent)]`         | Delegates scalar representation                                  |
-| `#[graphql_scalar]`               | Requires manual parse_token/to_output/from_input implementations |
+| Macro/Attribute                   | Purpose                                                                                                         |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `#[derive(diesel::AsExpression)]` | Diesel: Enables use in queries                                                                                  |
+| `#[diesel(sql_type)]`             | Maps Rust type to SQL column type                                                                               |
+| `#[graphql_scalar]`               | Exposes type as GraphQL scalar                                                                                  |
+| `#[graphql(transparent)]`         | Delegates scalar representation, skipping this requires manual parse_token/to_output/from_input implementations |
 
 ## Testing Practices
 1. Unit test all operator overloads

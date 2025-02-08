@@ -1,4 +1,4 @@
-# Model Organization Guidelines
+# Model Guidelines
 
 This document outlines the guidelines for creating and organizing models in our codebase.
 
@@ -53,6 +53,7 @@ pub struct Item {
 - Used for GraphQL mutations
 - Contains only the fields needed for creation
 - Named as `{Model}NewInput`
+- For nullable fields, use `Option<T>`
 
 ```rust
 #[derive(Debug, Clone, GraphQLInputObject)]
