@@ -3,7 +3,7 @@ schema {
   mutation: Mutation
 }
 
-enum ItemCategoryState {
+enum ItemGroupState {
   ACTIVE
   INACTIVE
   DELETED
@@ -20,10 +20,54 @@ enum ItemState {
   DELETED
 }
 
+enum SalesOrderState {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
 enum UserState {
   ACTIVE
   INACTIVE
   LOCKED
+}
+
+input CartNewInput {
+  customerId: DbUuid
+  cartData: String!
+}
+
+input CartUpdateInput {
+  id: DbUuid!
+  cartData: String
+}
+
+input CustomerNewInput {
+  fullName: String!
+  email: String
+  phone: String
+  address: String
+}
+
+input CustomerUpdateInput {
+  id: DbUuid!
+  fullName: String
+  email: String
+  phone: String
+  address: String
+}
+
+input ItemGroupNew {
+  name: String!
+  description: String
+}
+
+input ItemGroupUpdate {
+  id: DbUuid!
+  name: String
+  description: String
+  state: ItemGroupState
+  updatedAt: LocalDateTime
 }
 
 input NewItem {
@@ -35,9 +79,26 @@ input NewItem {
   categoryId: DbUuid!
 }
 
-input NewItemCategory {
-  name: String!
-  description: String
+input SalesOrderItemInput {
+  itemId: DbUuid!
+  itemName: String!
+  quantity: Int!
+  priceAmount: Money!
+  taxAmount: Money!
+}
+
+input SalesOrderNewInput {
+  customerId: DbUuid!
+  customerName: String!
+  customerPhoneNumber: String!
+  orderDate: LocalDateTime!
+  netAmount: Money!
+  discAmount: Money!
+  taxableAmount: Money!
+  taxAmount: Money!
+  totalAmount: Money!
+  state: SalesOrderState!
+  items: [SalesOrderItemInput!]!
 }
 
 input UpdateItem {
@@ -48,14 +109,6 @@ input UpdateItem {
   state: ItemState
   price: Money
   categoryId: DbUuid
-  updatedAt: LocalDateTime
-}
-
-input UpdateItemCategory {
-  id: DbUuid!
-  name: String
-  description: String
-  state: ItemCategoryState
   updatedAt: LocalDateTime
 }
 
@@ -86,6 +139,25 @@ scalar LocalDateTime
 
 scalar Money
 
+type Cart {
+  id: DbUuid!
+  cartData: String!
+  customerId: DbUuid
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+  customer: Customer
+}
+
+type Customer {
+  id: DbUuid!
+  fullName: String!
+  email: String
+  phone: String
+  address: String
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+}
+
 type Item {
   id: DbUuid!
   name: String!
@@ -95,14 +167,14 @@ type Item {
   price: Money!
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
-  category: ItemCategory!
+  category: ItemGroup!
 }
 
-type ItemCategory {
+type ItemGroup {
   id: DbUuid!
   name: String!
   description: String
-  state: ItemCategoryState!
+  state: ItemGroupState!
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
 }
@@ -116,19 +188,64 @@ type Mutation {
   createItem(item: NewItem!): Item!
   updateItem(item: UpdateItem!): Item!
   deleteItem(id: DbUuid!): Int!
-  createItemCategory(newCategory: NewItemCategory!): ItemCategory!
-  updateItemCategory(category: UpdateItemCategory!): ItemCategory!
+  createItemCategory(newCategory: ItemGroupNew!): ItemGroup!
+  updateItemCategory(category: ItemGroupUpdate!): ItemGroup!
   deleteItemCategory(id: DbUuid!): Int!
+  createSalesOrder(salesOrder: SalesOrderNewInput!): SalesOrder!
+  voidSalesOrder(id: DbUuid!): SalesOrder!
+  createCart(cart: CartNewInput!): Cart!
+  updateCart(cart: CartUpdateInput!): Cart!
+  deleteCart(id: DbUuid!): Int!
+  createCustomer(customer: CustomerNewInput!): Customer!
+  updateCustomer(customer: CustomerUpdateInput!): Customer!
+  deleteCustomer(id: DbUuid!): Int!
 }
 
 type Query {
   apiVersion: String!
-  itemCategories(first: Int, offset: Int): [ItemCategory!]!
-  itemsCategory(id: DbUuid!): ItemCategory!
+  itemCategories(first: Int, offset: Int): [ItemGroup!]!
+  itemsCategory(id: DbUuid!): ItemGroup!
   items(first: Int, offset: Int): [Item!]!
   item(id: DbUuid!): Item!
   users(first: Int, offset: Int): [User!]!
   user(id: DbUuid!): User!
+  customers(first: Int, offset: Int): [Customer!]!
+  customer(id: DbUuid!): Customer!
+  customerByPhone(phone: String!): Customer!
+  salesOrders(first: Int, offset: Int): [SalesOrder!]!
+  salesOrder(id: DbUuid!): SalesOrder!
+  carts(first: Int, offset: Int): [Cart!]!
+  cart(id: DbUuid!): Cart!
+}
+
+type SalesOrder {
+  id: DbUuid!
+  customerId: DbUuid!
+  customerName: String!
+  customerPhoneNumber: String!
+  orderDate: LocalDateTime!
+  netAmount: Money!
+  discAmount: Money!
+  taxableAmount: Money!
+  taxAmount: Money!
+  totalAmount: Money!
+  state: SalesOrderState!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+  customer: Customer!
+  items: [SalesOrderItem!]!
+}
+
+type SalesOrderItem {
+  id: DbUuid!
+  orderId: DbUuid!
+  itemId: DbUuid!
+  itemName: String!
+  quantity: Int!
+  priceAmount: Money!
+  taxAmount: Money!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
 }
 
 type User {
