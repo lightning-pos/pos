@@ -105,11 +105,11 @@ table! {
         order_id -> Text,
         item_id -> Text,
         item_name -> Text,
-        quantity -> BigInt,
+        quantity -> Integer,
         price_amount -> BigInt,
         tax_amount -> BigInt,
-        created_at -> BigInt,
-        updated_at -> BigInt,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
     }
 }
 

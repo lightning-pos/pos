@@ -11,6 +11,8 @@ use juniper::{GraphQLEnum, GraphQLInputObject};
 use crate::core::types::{db_uuid::DbUuid, money::Money};
 use crate::schema::sales_orders;
 
+use super::sales_order_item_model::SalesOrderItemInput;
+
 #[derive(Debug, Queryable, Selectable, Insertable)]
 #[diesel(table_name = sales_orders)]
 pub struct SalesOrder {
@@ -41,6 +43,7 @@ pub struct SalesOrderNewInput {
     pub tax_amount: Money,
     pub total_amount: Money,
     pub state: SalesOrderState,
+    pub items: Vec<SalesOrderItemInput>,
 }
 
 #[derive(Debug, Clone, GraphQLInputObject)]

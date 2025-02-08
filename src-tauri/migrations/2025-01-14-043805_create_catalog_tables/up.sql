@@ -92,3 +92,18 @@ CREATE TABLE sales_orders (
     updated_at TIMESTAMP NOT NULL,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
+
+-- Create sales_order_items table
+CREATE TABLE sales_order_items (
+    id TEXT PRIMARY KEY NOT NULL,
+    order_id TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    item_name TEXT NOT NULL,
+    quantity BIGINT NOT NULL,
+    price_amount BIGINT NOT NULL,
+    tax_amount BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES sales_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT ON UPDATE CASCADE
+);

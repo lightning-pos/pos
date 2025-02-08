@@ -5,11 +5,14 @@ use uuid::Uuid;
 use crate::{
     core::{
         commands::{app_service::AppService, Command},
-        models::sales::sales_order_model::{SalesOrder, SalesOrderNewInput, SalesOrderState},
+        models::sales::{
+            sales_order_item_model::SalesOrderItem,
+            sales_order_model::{SalesOrder, SalesOrderNewInput, SalesOrderState},
+        },
         types::db_uuid::DbUuid,
     },
     error::Result,
-    schema::sales_orders,
+    schema::{sales_order_items, sales_orders},
 };
 
 // Commands
@@ -44,12 +47,35 @@ impl Command for CreateSalesOrderCommand {
                 updated_at: now,
             };
 
-            let res = diesel::insert_into(sales_orders::table)
+            // Insert the order first
+            let order = diesel::insert_into(sales_orders::table)
                 .values(&new_sales_order)
                 .returning(SalesOrder::as_returning())
                 .get_result(conn)?;
 
-            Ok(res)
+            // Then insert all order items
+            let order_items: Vec<SalesOrderItem> = self
+                .sales_order
+                .items
+                .iter()
+                .map(|item| SalesOrderItem {
+                    id: Uuid::now_v7().into(),
+                    order_id: order.id,
+                    item_id: item.item_id,
+                    item_name: item.item_name.clone(),
+                    quantity: item.quantity,
+                    price_amount: item.price_amount,
+                    tax_amount: item.tax_amount,
+                    created_at: now,
+                    updated_at: now,
+                })
+                .collect();
+
+            diesel::insert_into(sales_order_items::table)
+                .values(&order_items)
+                .execute(conn)?;
+
+            Ok(order)
         })
     }
 }
@@ -78,6 +104,8 @@ impl Command for VoidSalesOrderCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::models::sales::sales_order_item_model::SalesOrderItemInput;
+
     use super::*;
 
     #[test]
@@ -96,6 +124,22 @@ mod tests {
             tax_amount: 90.into(),
             total_amount: 990.into(),
             state: SalesOrderState::Completed,
+            items: vec![
+                SalesOrderItemInput {
+                    item_id: Uuid::now_v7().into(),
+                    item_name: "Item 1".to_string(),
+                    quantity: 2,
+                    price_amount: 500.into(),
+                    tax_amount: 50.into(),
+                },
+                SalesOrderItemInput {
+                    item_id: Uuid::now_v7().into(),
+                    item_name: "Item 2".to_string(),
+                    quantity: 1,
+                    price_amount: 100.into(),
+                    tax_amount: 40.into(),
+                },
+            ],
         };
 
         let cmd = CreateSalesOrderCommand { sales_order: input };
@@ -122,6 +166,13 @@ mod tests {
             tax_amount: 90.into(),
             total_amount: 990.into(),
             state: SalesOrderState::Completed,
+            items: vec![SalesOrderItemInput {
+                item_id: Uuid::now_v7().into(),
+                item_name: "Item 1".to_string(),
+                quantity: 2,
+                price_amount: 500.into(),
+                tax_amount: 50.into(),
+            }],
         };
 
         let create_cmd = CreateSalesOrderCommand { sales_order: input };
@@ -151,6 +202,13 @@ mod tests {
             tax_amount: 90.into(),
             total_amount: 990.into(),
             state: SalesOrderState::Completed,
+            items: vec![SalesOrderItemInput {
+                item_id: Uuid::now_v7().into(),
+                item_name: "Item 1".to_string(),
+                quantity: 2,
+                price_amount: 500.into(),
+                tax_amount: 50.into(),
+            }],
         };
 
         let create_cmd = CreateSalesOrderCommand { sales_order: input };
