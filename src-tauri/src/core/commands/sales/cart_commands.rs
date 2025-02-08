@@ -102,9 +102,9 @@ mod tests {
     use uuid::Uuid;
 
     #[test]
-    fn test_create_cart() {
+    fn test_create_cart_with_customer() {
         let mut app_service = AppService::new(":memory:");
-        let customer_id = Uuid::now_v7().into();
+        let customer_id = Some(Uuid::now_v7().into());
         let cart_data = r#"{"items": []}"#.to_string();
 
         let command = CreateCartCommand {
@@ -123,15 +123,34 @@ mod tests {
     }
 
     #[test]
+    fn test_create_cart_without_customer() {
+        let mut app_service = AppService::new(":memory:");
+        let cart_data = r#"{"items": []}"#.to_string();
+
+        let command = CreateCartCommand {
+            cart: CartNewInput {
+                customer_id: None,
+                cart_data: cart_data.clone(),
+            },
+        };
+
+        let result = command.exec(&mut app_service).unwrap();
+
+        assert_eq!(result.customer_id, None);
+        assert_eq!(result.cart_data, cart_data);
+        assert!(result.created_at <= Utc::now().naive_utc());
+        assert_eq!(result.created_at, result.updated_at);
+    }
+
+    #[test]
     fn test_update_cart() {
         let mut app_service = AppService::new(":memory:");
 
-        // First create a cart
-        let customer_id = Uuid::now_v7().into();
+        // First create a cart without customer
         let initial_cart_data = r#"{"items": []}"#.to_string();
         let create_command = CreateCartCommand {
             cart: CartNewInput {
-                customer_id,
+                customer_id: None,
                 cart_data: initial_cart_data,
             },
         };
@@ -174,10 +193,9 @@ mod tests {
         let mut app_service = AppService::new(":memory:");
 
         // First create a cart
-        let customer_id = Uuid::now_v7().into();
         let create_command = CreateCartCommand {
             cart: CartNewInput {
-                customer_id,
+                customer_id: None,
                 cart_data: "{}".to_string(),
             },
         };

@@ -68,9 +68,9 @@ CREATE TABLE customers (
 -- Create carts table
 CREATE TABLE carts (
     id TEXT PRIMARY KEY NOT NULL,
-    customer_id TEXT,
+    customer_id TEXT NULL,
     cart_data TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL ON UPDATE CASCADE
 );

@@ -114,11 +114,11 @@ table! {
 }
 
 table! {
-    use diesel::sql_types::{Text, Timestamp};
+    use diesel::sql_types::{Nullable, Text, Timestamp};
 
     carts (id) {
         id -> Text,
-        customer_id -> Text,
+        customer_id -> Nullable<Text>,
         cart_data -> Text,
         created_at -> Timestamp,
         updated_at -> Timestamp,

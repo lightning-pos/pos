@@ -12,15 +12,15 @@ use crate::schema::carts;
 #[diesel(table_name = carts)]
 pub struct Cart {
     pub id: DbUuid,
-    pub customer_id: DbUuid,
     pub cart_data: String,
+    pub customer_id: Option<DbUuid>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
 
 #[derive(Debug, Clone, GraphQLInputObject)]
 pub struct CartNewInput {
-    pub customer_id: DbUuid,
+    pub customer_id: Option<DbUuid>,
     pub cart_data: String,
 }
 

@@ -1,15 +1,14 @@
 use diesel::{
-    deserialize,
+    deserialize::{self, FromSql, FromSqlRow},
     expression::AsExpression,
     serialize::{self, IsNull, Output, ToSql},
     sql_types::Text,
-    sqlite::Sqlite,
-    Queryable,
+    sqlite::{Sqlite, SqliteValue},
 };
 use juniper::graphql_scalar;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, AsExpression)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, AsExpression, FromSqlRow)]
 #[diesel(sql_type = Text)]
 #[graphql_scalar]
 #[graphql(transparent)]
@@ -21,13 +20,10 @@ impl From<Uuid> for DbUuid {
     }
 }
 
-impl Queryable<Text, Sqlite> for DbUuid {
-    type Row = String;
-
-    fn build(row: String) -> deserialize::Result<Self> {
-        Ok(DbUuid(
-            Uuid::parse_str(&row).map_err(|e| format!("Error parsing UUID: {}", e))?,
-        ))
+impl FromSql<Text, Sqlite> for DbUuid {
+    fn from_sql(bytes: SqliteValue<'_, '_, '_>) -> deserialize::Result<Self> {
+        let id = <String as FromSql<Text, Sqlite>>::from_sql(bytes)?;
+        Ok(DbUuid::from(Uuid::parse_str(&id)?))
     }
 }
 
