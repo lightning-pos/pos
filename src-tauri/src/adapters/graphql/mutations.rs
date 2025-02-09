@@ -8,6 +8,7 @@ use crate::{
                 item_group_model::{ItemGroup, ItemGroupNew, ItemGroupUpdate},
                 item_model::{Item, NewItem, UpdateItem},
             },
+            common::tax_model::{ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
             sales::{
                 cart_model::{Cart, CartNewInput, CartUpdateInput},
                 customer_model::{Customer, CustomerNewInput, CustomerUpdateInput},
@@ -111,5 +112,30 @@ impl Mutation {
 
     fn delete_customer(id: DbUuid, context: &AppState) -> FieldResult<i32> {
         super::sales::customer_mutations::delete_customer(id, context)
+    }
+
+    // Tax Mutations
+    fn create_tax(input: TaxNewInput, context: &AppState) -> FieldResult<Tax> {
+        super::common::tax_mutations::create_tax(input, context)
+    }
+
+    fn update_tax(input: TaxUpdateInput, context: &AppState) -> FieldResult<Tax> {
+        super::common::tax_mutations::update_tax(input, context)
+    }
+
+    fn delete_tax(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::common::tax_mutations::delete_tax(id, context)
+    }
+
+    fn assign_tax_to_item(input: ItemTaxNewInput, context: &AppState) -> FieldResult<i32> {
+        super::common::tax_mutations::assign_tax_to_item(input, context)
+    }
+
+    fn remove_tax_from_item(
+        item_id: DbUuid,
+        tax_id: DbUuid,
+        context: &AppState,
+    ) -> FieldResult<i32> {
+        super::common::tax_mutations::remove_tax_from_item(item_id, tax_id, context)
     }
 }

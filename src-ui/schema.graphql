@@ -70,6 +70,11 @@ input ItemGroupUpdate {
   updatedAt: LocalDateTime
 }
 
+input ItemTaxNewInput {
+  itemId: DbUuid!
+  taxId: DbUuid!
+}
+
 input NewItem {
   name: String!
   description: String
@@ -100,6 +105,20 @@ input SalesOrderNewInput {
   totalAmount: Money!
   state: SalesOrderState!
   items: [SalesOrderItemInput!]!
+}
+
+input TaxNewInput {
+  name: String!
+  rate: Int!
+  description: String
+  itemIds: [DbUuid!]
+}
+
+input TaxUpdateInput {
+  id: DbUuid!
+  name: String
+  rate: Int
+  description: String
 }
 
 input UpdateItem {
@@ -201,6 +220,11 @@ type Mutation {
   createCustomer(customer: CustomerNewInput!): Customer!
   updateCustomer(customer: CustomerUpdateInput!): Customer!
   deleteCustomer(id: DbUuid!): Int!
+  createTax(input: TaxNewInput!): Tax!
+  updateTax(input: TaxUpdateInput!): Tax!
+  deleteTax(id: DbUuid!): Int!
+  assignTaxToItem(input: ItemTaxNewInput!): Int!
+  removeTaxFromItem(itemId: DbUuid!, taxId: DbUuid!): Int!
 }
 
 type Query {

@@ -140,7 +140,7 @@ impl Command for DeleteTaxCommand {
 }
 
 impl Command for AssignTaxToItemCommand {
-    type Output = ItemTax;
+    type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
@@ -172,11 +172,11 @@ impl Command for AssignTaxToItemCommand {
                 tax_id: self.item_tax.tax_id,
             };
 
-            diesel::insert_into(item_taxes::table)
+            let rows_affected = diesel::insert_into(item_taxes::table)
                 .values(&item_tax)
                 .execute(conn)?;
 
-            Ok(item_tax)
+            Ok(rows_affected as i32)
         })
     }
 }
@@ -411,9 +411,8 @@ mod tests {
             },
         };
 
-        let item_tax = command.exec(&mut service).unwrap();
-        assert_eq!(item_tax.item_id, item.id);
-        assert_eq!(item_tax.tax_id, tax.id);
+        let result = command.exec(&mut service).unwrap();
+        assert_eq!(result, 1);
     }
 
     #[test]
