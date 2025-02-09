@@ -1,3 +1,8 @@
+pub mod auth;
+pub mod catalog;
+pub mod common;
+pub mod sales;
+
 pub mod mutations;
 pub mod queries;
 use juniper::{Context, EmptySubscription, RootNode};

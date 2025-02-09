@@ -1,8 +1,3 @@
-pub mod auth;
-pub mod catalog;
-pub mod common;
-pub mod sales;
-
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
 use juniper::{graphql_object, FieldResult};
 
