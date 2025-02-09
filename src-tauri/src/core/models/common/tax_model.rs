@@ -5,7 +5,7 @@ use diesel::{
 };
 use juniper::GraphQLInputObject;
 
-use crate::core::types::db_uuid::DbUuid;
+use crate::core::{models::item_model::Item, types::db_uuid::DbUuid};
 use crate::schema::{item_taxes, taxes};
 
 #[derive(Debug, Clone, Queryable, Selectable, Insertable)]
@@ -46,7 +46,7 @@ pub struct TaxUpdateChangeset {
 
 #[derive(Debug, Clone, Queryable, Insertable, Associations)]
 #[diesel(belongs_to(Tax, foreign_key = tax_id))]
-#[diesel(belongs_to(crate::core::models::catalog::item_model::Item, foreign_key = item_id))]
+#[diesel(belongs_to(Item, foreign_key = item_id))]
 #[diesel(table_name = item_taxes)]
 pub struct ItemTax {
     pub item_id: DbUuid,

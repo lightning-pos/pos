@@ -77,6 +77,7 @@ input NewItem {
   state: ItemState!
   price: Money!
   categoryId: DbUuid!
+  taxIds: [DbUuid!]
 }
 
 input SalesOrderItemInput {
@@ -168,6 +169,7 @@ type Item {
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
   category: ItemGroup!
+  taxes: [Tax!]!
 }
 
 type ItemGroup {
@@ -244,6 +246,15 @@ type SalesOrderItem {
   quantity: Int!
   priceAmount: Money!
   taxAmount: Money!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+}
+
+type Tax {
+  id: DbUuid!
+  name: String!
+  rate: Int!
+  description: String
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
 }
