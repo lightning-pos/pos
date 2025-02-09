@@ -1,33 +1,56 @@
 import React, { useState, useEffect } from 'react'
-import { ClickableTile, Column } from '@carbon/react'
-import { useDb } from '@/components/providers/drizzle_provider'
-import { itemCategoriesTable, ItemCategory } from '@/lib/db/sqlite/schema'
+import { ClickableTile } from '@carbon/react'
+import { invoke } from '@tauri-apps/api/core'
+
+interface ItemGroup {
+    id: string
+    name: string
+    description?: string
+    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
+}
 
 interface CategoriesSectionProps {
-  onCategorySelect: (categoryId: string) => void
+    onCategorySelect: (categoryId: string) => void
 }
 
 const CategoriesSection: React.FC<CategoriesSectionProps> = ({ onCategorySelect }) => {
-  const db = useDb()
-  const [categories, setCategories] = useState<Array<ItemCategory>>([])
+    const [categories, setCategories] = useState<Array<ItemGroup>>([])
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const result = await db.select().from(itemCategoriesTable).execute()
-      setCategories(result)
-    }
-    fetchCategories()
-  }, [db])
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const result: Array<{ itemCategories: ItemGroup[] }> = await invoke('graphql', {
+                    query: `#graphql
+            query {
+              itemCategories(first: 100) {
+                id
+                name
+                description
+                state
+              }
+            }
+          `,
+                })
 
-  return (
-    <>
-      {categories.map((category) => (
-        <ClickableTile key={category.id} onClick={() => onCategorySelect(category.id)}>
-          {category.name}
-        </ClickableTile>
-      ))}
-    </>
-  )
+                if (result[0]?.itemCategories) {
+                    setCategories(result[0].itemCategories)
+                }
+            } catch (error) {
+                console.error('Error fetching categories:', error)
+            }
+        }
+        fetchCategories()
+    }, [])
+
+    return (
+        <>
+            {categories.map((category) => (
+                <ClickableTile key={category.id} onClick={() => onCategorySelect(category.id)}>
+                    {category.name}
+                </ClickableTile>
+            ))}
+        </>
+    )
 }
 
 export default CategoriesSection
