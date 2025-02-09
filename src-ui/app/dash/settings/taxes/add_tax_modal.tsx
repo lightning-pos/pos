@@ -1,16 +1,19 @@
 import React, { useState } from 'react'
 import { Modal, TextInput, Form, ModalProps } from '@carbon/react'
-import { Tax, taxesTable } from '@/lib/db/sqlite/schema'
-import { useDb } from '@/components/providers/drizzle_provider'
-import { uid } from 'uid'
+import { invoke } from '@tauri-apps/api/core'
+
+interface NewTax {
+    name: string;
+    rate: number;
+    description?: string;
+}
 
 const AddTaxModal: React.FC<ModalProps> = ({
     open,
     onRequestSubmit,
     onRequestClose,
 }) => {
-    const db = useDb()
-    const [newTax, setNewTax] = useState<Partial<Tax>>({
+    const [newTax, setNewTax] = useState<NewTax>({
         name: '',
         rate: 0,
         description: ''
@@ -24,13 +27,22 @@ const AddTaxModal: React.FC<ModalProps> = ({
     const handleSaveTax = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            await db.insert(taxesTable).values({
-                id: uid(),
-                name: newTax.name ?? '',  // Provide a default value
-                rate: newTax.rate ?? 0,   // Provide a default value
-                description: newTax.description,
-                createdAt: new Date(),
-                updatedAt: new Date()
+            await invoke('graphql', {
+                query: `#graphql
+                mutation {
+                    createTax(
+                        input: {
+                            name: "${newTax.name}",
+                            rate: ${Math.round(newTax.rate * 100)},
+                            description: "${newTax.description || ''}"
+                        }
+                    ) {
+                        id
+                        name
+                        rate
+                        description
+                    }
+                }`
             })
             onRequestSubmit?.(e as React.FormEvent<HTMLFormElement>)
         } catch (error) {
@@ -51,7 +63,7 @@ const AddTaxModal: React.FC<ModalProps> = ({
                     id="tax-name"
                     name="name"
                     labelText="Tax Name"
-                    value={newTax.name || ''}
+                    value={newTax.name}
                     onChange={handleInputChange}
                     required
                 />

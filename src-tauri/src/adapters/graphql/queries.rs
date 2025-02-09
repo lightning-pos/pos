@@ -7,11 +7,12 @@ use crate::{
         models::{
             auth::user_model::User,
             catalog::{item_group_model::ItemGroup, item_model::Item},
+            common::tax_model::Tax,
             sales::{cart_model::Cart, customer_model::Customer, sales_order_model::SalesOrder},
         },
         types::db_uuid::DbUuid,
     },
-    schema::{carts, customers, item_categories, items, sales_orders, users},
+    schema::{carts, customers, item_categories, items, sales_orders, taxes, users},
     AppState,
 };
 
@@ -207,9 +208,46 @@ impl Query {
     fn cart(&self, id: DbUuid, context: &AppState) -> FieldResult<Cart> {
         let mut service = context.service.lock().unwrap();
         let result = carts::table
-            .filter(carts::id.eq(id))
+            .find(id)
             .select(Cart::as_select())
-            .get_result(&mut service.conn)?;
+            .get_result::<Cart>(&mut service.conn)?;
+        Ok(result)
+    }
+
+    // Tax Queries
+    fn taxes(
+        &self,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<Tax>> {
+        let mut service = context.service.lock().unwrap();
+
+        let mut query = taxes::table
+            .order(taxes::created_at.desc())
+            .into_boxed();
+
+        // Apply pagination if parameters are provided
+        if let Some(limit) = first {
+            query = query.limit(limit as i64);
+        }
+        if let Some(off) = offset {
+            query = query.offset(off as i64);
+        }
+
+        let result = query
+            .select(Tax::as_select())
+            .load::<Tax>(&mut service.conn)?;
+
+        Ok(result)
+    }
+
+    fn tax(&self, id: DbUuid, context: &AppState) -> FieldResult<Tax> {
+        let mut service = context.service.lock().unwrap();
+        let result = taxes::table
+            .find(id)
+            .select(Tax::as_select())
+            .get_result::<Tax>(&mut service.conn)?;
         Ok(result)
     }
 }
