@@ -43,7 +43,7 @@ table! {
     taxes (id) {
         id -> Text,
         name -> Text,
-        rate -> BigInt,
+        rate -> Integer,
         description -> Nullable<Text>,
         created_at -> Timestamp,
         updated_at -> Timestamp,

@@ -10,6 +10,7 @@ pub enum Error {
     ForeignKeyConstraintError,
     UniqueConstraintError,
     HasChildrenError,
+    AlreadyExistsError,
 
     // External Errors
     GraphQLError(juniper::GraphQLError),
