@@ -1,12 +1,35 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@carbon/react'
 import { ShoppingCart, Close } from '@carbon/icons-react'
+import { invoke } from '@tauri-apps/api/core'
 import CheckoutModal from './checkout_modal'
-import { useDb } from '@/components/providers/drizzle_provider'
-import { Customer, Item, Tax, taxesTable } from '@/lib/db/sqlite/schema'
 import CustomerSelect from './customer_select'
 import CartItem from './cart_item'
 import { money, Money } from '@/lib/util/money'
+
+interface Tax {
+  id: string
+  name: string
+  rate: number
+  description?: string
+}
+
+interface Customer {
+  id: string
+  fullName: string
+  email?: string
+  phone?: string
+  address?: string
+}
+
+interface Item {
+  id: string
+  name: string
+  description?: string
+  price: number
+  nature: 'GOODS' | 'SERVICE'
+  state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
+}
 
 export interface CartItem extends Item {
   quantity: number;
@@ -19,7 +42,6 @@ interface CartSectionProps {
 }
 
 const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
-  const db = useDb()
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
   const [checkoutModalKey, setCheckoutModalKey] = useState(0)
   const [taxes, setTaxes] = useState<Tax[]>([])
@@ -27,11 +49,26 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
 
   useEffect(() => {
     const fetchTaxes = async () => {
-      const taxesResult = await db.select().from(taxesTable).execute()
-      setTaxes(taxesResult)
+      try {
+        const result = await invoke('graphql', {
+          query: `#graphql
+            query {
+              taxes {
+                id
+                name
+                rate
+                description
+              }
+            }
+          `
+        }) as { data: { taxes: Tax[] } };
+        setTaxes(result[0].taxes)
+      } catch (error) {
+        console.error('Error fetching taxes:', error)
+      }
     }
     fetchTaxes()
-  }, [db])
+  }, [])
 
   const updateQuantity = (itemId: string, change: number) => {
     setCart(prevCart => {
@@ -51,7 +88,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
       const itemTaxes = taxes.filter(tax => item.taxIds?.some(t => t === tax.id))
       const itemPrice = money(item.price || 0, 'INR')
       const itemTax = itemTaxes.reduce((taxSum, tax) => {
-        const taxRate = (tax.rate || 0) / 100
+        const taxRate = (tax.rate || 0) / 10000 // Convert from basis points to decimal
         return taxSum.add(itemPrice.multiply(item.quantity).multiply(taxRate))
       }, money(0, 'INR'))
       return sum.add(itemTax)

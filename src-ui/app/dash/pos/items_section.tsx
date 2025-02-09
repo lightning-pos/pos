@@ -4,6 +4,13 @@ import { Corn } from '@carbon/icons-react'
 import { invoke } from '@tauri-apps/api/core'
 import { money } from '@/lib/util/money'
 
+interface Tax {
+    id: string
+    name: string
+    rate: number
+    description?: string
+}
+
 interface Item {
     id: string
     name: string
@@ -15,6 +22,7 @@ interface Item {
         id: string
         name: string
     }
+    taxes: Tax[]
 }
 
 interface ItemsSectionProps {
@@ -42,6 +50,12 @@ const ItemsSection: React.FC<ItemsSectionProps> = ({ selectedCategoryId, addItem
                                     category {
                                         id
                                         name
+                                    }
+                                    taxes {
+                                        id
+                                        name
+                                        rate
+                                        description
                                     }
                                 }
                             }
