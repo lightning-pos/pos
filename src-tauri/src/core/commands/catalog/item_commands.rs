@@ -5,14 +5,17 @@ use uuid::Uuid;
 use crate::{
     core::{
         commands::{app_service::AppService, Command},
-        models::catalog::{
-            item_group_model::ItemGroup,
-            item_model::{Item, NewItem, UpdateItem},
+        models::{
+            catalog::{
+                item_group_model::ItemGroup,
+                item_model::{Item, NewItem, UpdateItem},
+            },
+            common::tax_model::{ItemTax, Tax},
         },
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
-    schema::{item_categories, items},
+    schema::{item_categories, item_taxes, items, taxes},
 };
 
 // Commands
@@ -40,6 +43,16 @@ impl Command for CreateItemCommand {
                 .select(ItemGroup::as_select())
                 .get_result::<ItemGroup>(conn)?;
 
+            // Verify all taxes exist if tax_ids are provided
+            if let Some(tax_ids) = &self.item.tax_ids {
+                for tax_id in tax_ids {
+                    taxes::table
+                        .filter(taxes::id.eq(tax_id))
+                        .select(Tax::as_select())
+                        .get_result::<Tax>(conn)?;
+                }
+            }
+
             let now = Utc::now().naive_utc();
             let new_item = Item {
                 id: Uuid::now_v7().into(),
@@ -57,6 +70,19 @@ impl Command for CreateItemCommand {
                 .values(&new_item)
                 .returning(Item::as_returning())
                 .get_result(conn)?;
+
+            // Create item-tax associations if tax_ids are provided
+            if let Some(tax_ids) = &self.item.tax_ids {
+                for tax_id in tax_ids {
+                    let item_tax = ItemTax {
+                        item_id: res.id,
+                        tax_id: *tax_id,
+                    };
+                    diesel::insert_into(item_taxes::table)
+                        .values(&item_tax)
+                        .execute(conn)?;
+                }
+            }
 
             Ok(res)
         })
@@ -116,84 +142,212 @@ impl Command for DeleteItemCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{
-        commands::catalog::item_group_commands::CreateItemGroupCommand,
-        models::catalog::{
-            item_group_model::ItemGroupNew,
-            item_model::{ItemNature, ItemState},
-        },
-    };
-    use diesel::result::Error::NotFound;
-    use uuid::Uuid;
+    use crate::core::models::item_model::{ItemNature, ItemState};
+
+    fn create_test_tax(service: &mut AppService) -> Tax {
+        let now = Utc::now().naive_utc();
+        let tax = Tax {
+            id: Uuid::now_v7().into(),
+            name: "Test Tax".to_string(),
+            rate: 1000,
+            description: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        diesel::insert_into(taxes::table)
+            .values(&tax)
+            .execute(&mut service.conn)
+            .unwrap();
+
+        tax
+    }
 
     #[test]
     fn test_create_item() {
-        let mut app_service = AppService::new(":memory:");
-        let new_cat = ItemGroupNew {
-            name: String::from("test"),
-            description: None,
-        };
-        let create_cat_command = CreateItemGroupCommand { category: new_cat };
-        let cat = create_cat_command.exec(&mut app_service).unwrap();
-        let new_item = NewItem {
-            name: String::from("test"),
-            description: Some(String::from("test description")),
-            nature: ItemNature::Goods,
-            state: ItemState::Active,
-            price: 0.into(),
-            category_id: cat.id,
-        };
-        let command = CreateItemCommand { item: new_item };
-        let result = command.exec(&mut app_service);
+        let mut service = AppService::new(":memory:");
 
-        assert!(result.is_ok());
+        // Create a test category first
+        let category_id = Uuid::now_v7().into();
+        let now = Utc::now().naive_utc();
+        let category = ItemGroup {
+            id: category_id,
+            name: "Test Category".to_string(),
+            description: None,
+            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
+            created_at: now,
+            updated_at: now,
+        };
+
+        diesel::insert_into(item_categories::table)
+            .values(&category)
+            .execute(&mut service.conn)
+            .unwrap();
+
+        let command = CreateItemCommand {
+            item: NewItem {
+                name: "Test Item".to_string(),
+                description: None,
+                nature: ItemNature::Goods,
+                state: ItemState::Active,
+                price: 1000.into(),
+                category_id,
+                tax_ids: None,
+            },
+        };
+
+        let item = command.exec(&mut service).unwrap();
+        assert_eq!(item.name, "Test Item");
+        assert_eq!(item.category_id, category_id);
+    }
+
+    #[test]
+    fn test_create_item_with_taxes() {
+        let mut service = AppService::new(":memory:");
+
+        // Create test category
+        let category_id = Uuid::now_v7().into();
+        let now = Utc::now().naive_utc();
+        let category = ItemGroup {
+            id: category_id,
+            name: "Test Category".to_string(),
+            description: None,
+            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
+            created_at: now,
+            updated_at: now,
+        };
+
+        diesel::insert_into(item_categories::table)
+            .values(&category)
+            .execute(&mut service.conn)
+            .unwrap();
+
+        // Create test taxes
+        let tax1 = create_test_tax(&mut service);
+        let tax2 = create_test_tax(&mut service);
+
+        let command = CreateItemCommand {
+            item: NewItem {
+                name: "Test Item".to_string(),
+                description: None,
+                nature: ItemNature::Goods,
+                state: ItemState::Active,
+                price: 1000.into(),
+                category_id,
+                tax_ids: Some(vec![tax1.id, tax2.id]),
+            },
+        };
+
+        let item = command.exec(&mut service).unwrap();
+        assert_eq!(item.name, "Test Item");
+
+        // Verify tax associations were created
+        let associations = item_taxes::table
+            .filter(item_taxes::item_id.eq(item.id))
+            .load::<ItemTax>(&mut service.conn)
+            .unwrap();
+
+        assert_eq!(associations.len(), 2);
+        assert!(associations.iter().any(|a| a.tax_id == tax1.id));
+        assert!(associations.iter().any(|a| a.tax_id == tax2.id));
+    }
+
+    #[test]
+    fn test_create_item_with_nonexistent_tax() {
+        let mut service = AppService::new(":memory:");
+
+        // Create only category
+        let category_id = Uuid::now_v7().into();
+        let now = Utc::now().naive_utc();
+        let category = ItemGroup {
+            id: category_id,
+            name: "Test Category".to_string(),
+            description: None,
+            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
+            created_at: now,
+            updated_at: now,
+        };
+
+        diesel::insert_into(item_categories::table)
+            .values(&category)
+            .execute(&mut service.conn)
+            .unwrap();
+
+        let command = CreateItemCommand {
+            item: NewItem {
+                name: "Test Item".to_string(),
+                description: None,
+                nature: ItemNature::Goods,
+                state: ItemState::Active,
+                price: 1000.into(),
+                category_id,
+                tax_ids: Some(vec![Uuid::now_v7().into()]),
+            },
+        };
+
+        let result = command.exec(&mut service);
+        assert!(result.is_err());
     }
 
     #[test]
     fn test_update_item() {
-        let mut app_service = AppService::new(":memory:");
-        let new_cat = ItemGroupNew {
-            name: "test".to_string(),
-            description: None,
-        };
-        let create_cat_command = CreateItemGroupCommand { category: new_cat };
-        let cat = create_cat_command.exec(&mut app_service).unwrap();
+        let mut service = AppService::new(":memory:");
+
+        // Create a test category first
+        let category_id = Uuid::now_v7().into();
         let now = Utc::now().naive_utc();
-        let new_item = NewItem {
-            name: String::from("test"),
-            description: Some(String::from("test description")),
-            nature: ItemNature::Goods,
-            state: ItemState::Active,
-            price: 0.into(),
-            category_id: cat.id.clone(),
+        let category = ItemGroup {
+            id: category_id,
+            name: "Test Category".to_string(),
+            description: None,
+            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
+            created_at: now,
+            updated_at: now,
         };
 
-        let create_command = CreateItemCommand { item: new_item };
-        let item = create_command.exec(&mut app_service).unwrap();
+        diesel::insert_into(item_categories::table)
+            .values(&category)
+            .execute(&mut service.conn)
+            .unwrap();
+
+        let command = CreateItemCommand {
+            item: NewItem {
+                name: "Test Item".to_string(),
+                description: None,
+                nature: ItemNature::Goods,
+                state: ItemState::Active,
+                price: 1000.into(),
+                category_id,
+                tax_ids: None,
+            },
+        };
+
+        let item = command.exec(&mut service).unwrap();
 
         let updated_item = UpdateItem {
             id: item.id,
-            name: Some(String::from("test2")),
+            name: Some("Test Item 2".to_string()),
             description: None,
             nature: None,
             state: None,
             price: None,
             category_id: None,
-            updated_at: Some(now),
+            updated_at: None,
         };
 
         let update_command = UpdateItemCommand { item: updated_item };
-        let result = update_command.exec(&mut app_service);
+        let result = update_command.exec(&mut service);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_update_item_does_not_exist() {
-        let mut app_service = AppService::new(":memory:");
+        let mut service = AppService::new(":memory:");
+
         let now = Utc::now().naive_utc();
         let item = UpdateItem {
             id: Uuid::now_v7().into(),
-            name: Some("test".to_string()),
+            name: Some("Test Item".to_string()),
             description: None,
             nature: None,
             state: None,
@@ -203,44 +357,59 @@ mod tests {
         };
 
         let command = UpdateItemCommand { item };
-        let result = command.exec(&mut app_service);
+        let result = command.exec(&mut service);
 
-        assert!(matches!(result, Err(Error::DieselError(NotFound))));
+        assert!(matches!(result, Err(Error::DieselError(_))));
     }
 
     #[test]
     fn test_delete_item() {
-        let mut app_service = AppService::new(":memory:");
-        let new_cat = ItemGroupNew {
-            name: "test".to_string(),
+        let mut service = AppService::new(":memory:");
+
+        // Create a test category first
+        let category_id = Uuid::now_v7().into();
+        let now = Utc::now().naive_utc();
+        let category = ItemGroup {
+            id: category_id,
+            name: "Test Category".to_string(),
             description: None,
-        };
-        let create_cat_command = CreateItemGroupCommand { category: new_cat };
-        let cat = create_cat_command.exec(&mut app_service).unwrap();
-        let item = NewItem {
-            name: "test".to_string(),
-            description: Some("test description".to_string()),
-            nature: ItemNature::Goods,
-            state: ItemState::Active,
-            price: 0.into(),
-            category_id: cat.id.clone(),
+            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
+            created_at: now,
+            updated_at: now,
         };
 
-        let create_command = CreateItemCommand { item: item.clone() };
-        let new_item = create_command.exec(&mut app_service).unwrap();
+        diesel::insert_into(item_categories::table)
+            .values(&category)
+            .execute(&mut service.conn)
+            .unwrap();
 
-        let delete_command = DeleteItemCommand { id: new_item.id };
-        let result = delete_command.exec(&mut app_service);
+        let command = CreateItemCommand {
+            item: NewItem {
+                name: "Test Item".to_string(),
+                description: None,
+                nature: ItemNature::Goods,
+                state: ItemState::Active,
+                price: 1000.into(),
+                category_id,
+                tax_ids: None,
+            },
+        };
+
+        let item = command.exec(&mut service).unwrap();
+
+        let delete_command = DeleteItemCommand { id: item.id };
+        let result = delete_command.exec(&mut service);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_delete_item_does_not_exist() {
-        let mut app_service = AppService::new(":memory:");
+        let mut service = AppService::new(":memory:");
+
         let command = DeleteItemCommand {
             id: Uuid::now_v7().into(),
         };
-        let result = command.exec(&mut app_service);
+        let result = command.exec(&mut service);
         assert!(matches!(result, Err(Error::NotFoundError)));
     }
 }

@@ -43,6 +43,16 @@ impl Command for CreateTaxCommand {
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.conn.transaction(|conn| {
+            // Verify all items exist if item_ids are provided
+            if let Some(item_ids) = &self.tax.item_ids {
+                for item_id in item_ids {
+                    items::table
+                        .filter(items::id.eq(item_id))
+                        .select(Item::as_select())
+                        .get_result::<Item>(conn)?;
+                }
+            }
+
             let now = Utc::now().naive_utc();
             let new_tax = Tax {
                 id: Uuid::now_v7().into(),
@@ -53,9 +63,23 @@ impl Command for CreateTaxCommand {
                 updated_at: now,
             };
 
+            // Insert the tax
             diesel::insert_into(taxes::table)
                 .values(&new_tax)
                 .execute(conn)?;
+
+            // Create item-tax associations if item_ids are provided
+            if let Some(item_ids) = &self.tax.item_ids {
+                for item_id in item_ids {
+                    let item_tax = ItemTax {
+                        item_id: *item_id,
+                        tax_id: new_tax.id,
+                    };
+                    diesel::insert_into(item_taxes::table)
+                        .values(&item_tax)
+                        .execute(conn)?;
+                }
+            }
 
             Ok(new_tax)
         })
@@ -191,8 +215,9 @@ mod tests {
         let command = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800, // 18%
+                rate: 1800,
                 description: Some("Goods and Services Tax".to_string()),
+                item_ids: None,
             },
         };
 
@@ -200,6 +225,57 @@ mod tests {
         assert_eq!(tax.name, "GST");
         assert_eq!(tax.rate, 1800);
         assert_eq!(tax.description, Some("Goods and Services Tax".to_string()));
+    }
+
+    #[test]
+    fn test_create_tax_with_items() {
+        let mut service = AppService::new(":memory:");
+
+        // Create test items
+        let item1 = create_test_item(&mut service);
+        let item2 = create_test_item(&mut service);
+
+        let command = CreateTaxCommand {
+            tax: TaxNewInput {
+                name: "GST".to_string(),
+                rate: 1800,
+                description: Some("Goods and Services Tax".to_string()),
+                item_ids: Some(vec![item1.id, item2.id]),
+            },
+        };
+
+        let tax = command.exec(&mut service).unwrap();
+
+        // Verify tax was created
+        assert_eq!(tax.name, "GST");
+        assert_eq!(tax.rate, 1800);
+
+        // Verify item-tax associations were created
+        let associations = item_taxes::table
+            .filter(item_taxes::tax_id.eq(tax.id))
+            .load::<ItemTax>(&mut service.conn)
+            .unwrap();
+
+        assert_eq!(associations.len(), 2);
+        assert!(associations.iter().any(|a| a.item_id == item1.id));
+        assert!(associations.iter().any(|a| a.item_id == item2.id));
+    }
+
+    #[test]
+    fn test_create_tax_with_nonexistent_item() {
+        let mut service = AppService::new(":memory:");
+
+        let command = CreateTaxCommand {
+            tax: TaxNewInput {
+                name: "GST".to_string(),
+                rate: 1800,
+                description: Some("Goods and Services Tax".to_string()),
+                item_ids: Some(vec![Uuid::now_v7().into()]),
+            },
+        };
+
+        let result = command.exec(&mut service);
+        assert!(result.is_err());
     }
 
     #[test]
@@ -212,6 +288,7 @@ mod tests {
                 name: "GST".to_string(),
                 rate: 1800,
                 description: Some("Goods and Services Tax".to_string()),
+                item_ids: None,
             },
         };
         let created_tax = create_command.exec(&mut service).unwrap();
@@ -262,6 +339,7 @@ mod tests {
                 name: "GST".to_string(),
                 rate: 1800,
                 description: Some("Goods and Services Tax".to_string()),
+                item_ids: None,
             },
         };
         let created_tax = create_command.exec(&mut service).unwrap();
@@ -317,6 +395,7 @@ mod tests {
                 name: "GST".to_string(),
                 rate: 1800,
                 description: Some("Goods and Services Tax".to_string()),
+                item_ids: None,
             },
         }
         .exec(&mut service)
@@ -347,6 +426,7 @@ mod tests {
                 name: "GST".to_string(),
                 rate: 1800,
                 description: Some("Goods and Services Tax".to_string()),
+                item_ids: None,
             },
         }
         .exec(&mut service)
@@ -393,6 +473,7 @@ mod tests {
                 name: "GST".to_string(),
                 rate: 1800,
                 description: Some("Goods and Services Tax".to_string()),
+                item_ids: None,
             },
         }
         .exec(&mut service)
@@ -424,6 +505,7 @@ mod tests {
                 name: "GST".to_string(),
                 rate: 1800,
                 description: Some("Goods and Services Tax".to_string()),
+                item_ids: None,
             },
         }
         .exec(&mut service)

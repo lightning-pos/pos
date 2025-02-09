@@ -24,6 +24,7 @@ pub struct TaxNewInput {
     pub name: String,
     pub rate: i32,
     pub description: Option<String>,
+    pub item_ids: Option<Vec<DbUuid>>, // Optional list of items to initially assign this tax to
 }
 
 #[derive(Debug, Clone, GraphQLInputObject)]

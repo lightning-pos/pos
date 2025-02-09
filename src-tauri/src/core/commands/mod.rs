@@ -11,7 +11,6 @@ pub use common::*;
 pub use sales::*;
 
 use crate::error::Result;
-use app_service::AppService;
 
 pub trait Command {
     type Output;

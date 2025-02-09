@@ -35,6 +35,7 @@ pub struct NewItem {
     pub state: ItemState,
     pub price: Money,
     pub category_id: DbUuid,
+    pub tax_ids: Option<Vec<DbUuid>>, // Optional list of tax IDs to assign to this item
 }
 
 #[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]
