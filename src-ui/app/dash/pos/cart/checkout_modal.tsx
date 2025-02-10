@@ -1,122 +1,145 @@
 import React, { useState } from 'react'
 import { Modal, RadioButtonGroup, RadioButton, ModalProps } from '@carbon/react'
-import { CartItem } from './cart_section'
-import { uid } from 'uid'
-import { Customer, OrderItem, orderItemsTable, ordersTable, taxesTable } from '@/lib/db/sqlite/schema'
-import { useDb } from '@/components/providers/drizzle_provider'
+import { invoke } from '@tauri-apps/api/core'
 import { money, Money } from '@/lib/util/money'
 
+interface Tax {
+    id: string
+    name: string
+    rate: number
+    description?: string
+}
+
+interface Customer {
+    id: string
+    fullName: string
+    email?: string
+    phone?: string
+    address?: string
+}
+
+interface CartItem {
+    id: string
+    name: string
+    description?: string
+    price: number
+    quantity: number
+    taxIds?: string[]
+}
+
 interface CheckoutModalProps extends ModalProps {
-  cart: CartItem[]
-  subtotal: Money
-  tax: Money
-  total: Money
-  customer: Customer | null
+    cart: CartItem[]
+    subtotal: Money
+    tax: Money
+    total: Money
+    customer: Customer | null
 }
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
-  open,
-  onRequestClose,
-  onRequestSubmit,
-  cart,
-  subtotal,
-  tax,
-  total,
-  customer
+    open,
+    onRequestClose,
+    onRequestSubmit,
+    cart,
+    subtotal,
+    tax,
+    total,
+    customer
 }) => {
-  const db = useDb()
+    const [paymentMethod, setPaymentMethod] = useState('cash')
 
-  const [paymentMethod, setPaymentMethod] = useState('cash')
+    const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        if (!customer) {
+            alert('No customer selected')
+            return
+        }
 
-  const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!customer) {
-      alert('No customer selected')
-      return
+        try {
+            const orderItems = cart.map(item => ({
+                itemId: item.id,
+                itemName: item.name,
+                quantity: item.quantity,
+                priceAmount: item.price.toString(),
+                taxAmount: (item.taxIds?.reduce((sum, taxId) => {
+                    // We'll calculate tax amount in the backend to ensure consistency
+                    return sum
+                }, 0) || 0).toString()
+            }))
+
+            const result: Array<{ createSalesOrder: { id: string } }> = await invoke('graphql', {
+                query: `#graphql
+                    mutation {
+                        createSalesOrder(
+                            salesOrder: {
+                                customerId: "${customer.id}",
+                                customerName: "${customer.fullName}",
+                                customerPhoneNumber: "${customer.phone || ''}",
+                                orderDate: "${new Date().toISOString().split('.')[0].replace('T', ' ')}",
+                                netAmount: "${subtotal.toBaseUnits().toString()}",
+                                discAmount: "0",
+                                taxableAmount: "${subtotal.toBaseUnits().toString()}",
+                                taxAmount: "${tax.toBaseUnits().toString()}",
+                                totalAmount: "${total.toBaseUnits().toString()}",
+                                state: COMPLETED,
+                                items: [${orderItems.map(item => `{
+                                    itemId: "${item.itemId}",
+                                    itemName: "${item.itemName}",
+                                    quantity: ${item.quantity},
+                                    priceAmount: "${item.priceAmount}",
+                                    taxAmount: "${item.taxAmount}"
+                                }`).join(',')}]
+                            }
+                        ) {
+                            id
+                        }
+                    }
+                `
+            })
+
+            if (result[0]?.createSalesOrder?.id) {
+                onRequestSubmit?.(e)
+            } else {
+                throw new Error('Failed to create sales order')
+            }
+        } catch (error) {
+            console.error('Error during checkout:', error)
+            alert('An error occurred during checkout. Please try again.')
+        }
     }
 
-    const orderId = uid()
-    const taxes = await db.select().from(taxesTable)
-    const orderItems: OrderItem[] = cart.map(item => {
-      const itemTaxAmount = item.taxIds?.reduce((sum, taxId) => {
-        const tax = taxes.find(t => t.id === taxId)
-        return sum.add(money(item.price || 0, 'INR').multiply(item.quantity).multiply((tax?.rate || 0) / 100))
-      }, money(0, 'INR')).toBaseUnits() || money(0, 'INR').toBaseUnits()
-
-      return {
-        id: uid(),
-        orderId: orderId,
-        itemId: item.id,
-        itemName: item.name,
-        quantity: item.quantity,
-        priceAmount: item.price,
-        taxAmount: itemTaxAmount,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-    })
-
-    try {
-      // Insert the order
-      await db.insert(ordersTable).values({
-        id: orderId,
-        customerId: customer.id,
-        customerName: customer.name,
-        customerPhoneNumber: customer.phoneNumber,
-        orderDate: new Date(),
-        netAmount: subtotal.toBaseUnits(),
-        discAmount: 0, // Assuming no discount for now
-        taxableAmount: subtotal.toBaseUnits(),
-        taxAmount: tax.toBaseUnits(),
-        totalAmount: total.toBaseUnits(),
-        state: 'closed',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).execute()
-
-      // Insert order items
-      await db.insert(orderItemsTable).values(orderItems).execute()
-
-      onRequestSubmit?.(e)
-    } catch (error) {
-      console.error('Error during checkout:', error)
-      alert('An error occurred during checkout. Please try again.')
-    }
-  }
-
-  return (
-    <Modal
-      open={open}
-      onRequestClose={onRequestClose}
-      modalHeading="Checkout"
-      primaryButtonText="Complete Order"
-      secondaryButtonText="Cancel"
-      onRequestSubmit={handleCheckout}
-    >
-      <div className='mb-4'>
-        <strong>Customer:</strong> {customer?.name} ({customer?.phoneNumber})
-      </div>
-      <div className='mb-4'>
-        <strong>Subtotal:</strong> {subtotal.format()}
-      </div>
-      <div className='mb-4'>
-        <strong>Tax:</strong> {tax.format()}
-      </div>
-      <div className='mb-4'>
-        <strong>Total:</strong> {total.format()}
-      </div>
-      <RadioButtonGroup
-        legendText="Payment Method"
-        name="payment-method"
-        valueSelected={paymentMethod}
-        onChange={(value) => setPaymentMethod(value as string)}
-      >
-        <RadioButton labelText="Cash" value="cash" id="cash" />
-        <RadioButton labelText="Card" value="card" id="card" />
-        <RadioButton labelText="UPI" value="upi" id="upi" />
-      </RadioButtonGroup>
-    </Modal>
-  )
+    return (
+        <Modal
+            open={open}
+            onRequestClose={onRequestClose}
+            modalHeading="Checkout"
+            primaryButtonText="Complete Order"
+            secondaryButtonText="Cancel"
+            onRequestSubmit={handleCheckout}
+        >
+            <div className='mb-4'>
+                <strong>Customer:</strong> {customer?.fullName} ({customer?.phone})
+            </div>
+            <div className='mb-4'>
+                <strong>Subtotal:</strong> {subtotal.format()}
+            </div>
+            <div className='mb-4'>
+                <strong>Tax:</strong> {tax.format()}
+            </div>
+            <div className='mb-4'>
+                <strong>Total:</strong> {total.format()}
+            </div>
+            <RadioButtonGroup
+                legendText="Payment Method"
+                name="payment-method"
+                valueSelected={paymentMethod}
+                onChange={(value) => setPaymentMethod(value as string)}
+            >
+                <RadioButton labelText="Cash" value="cash" id="cash" />
+                <RadioButton labelText="Card" value="card" id="card" />
+                <RadioButton labelText="UPI" value="upi" id="upi" />
+            </RadioButtonGroup>
+        </Modal>
+    )
 }
 
 export default CheckoutModal

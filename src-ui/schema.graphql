@@ -242,6 +242,8 @@ type Query {
   salesOrder(id: DbUuid!): SalesOrder!
   carts(first: Int, offset: Int): [Cart!]!
   cart(id: DbUuid!): Cart!
+  taxes(first: Int, offset: Int): [Tax!]!
+  tax(id: DbUuid!): Tax!
 }
 
 type SalesOrder {
