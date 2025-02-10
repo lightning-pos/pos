@@ -4,13 +4,25 @@ import { Content } from '@carbon/react'
 import DataTable from '@/components/ui/DataTable'
 import SaveCategoryModal from './save_category_modal'
 import DeleteCategoryModal from './delete_category_modal'
-import { ItemCategory, NewItemCategory } from '@/lib/db/sqlite/schema'
-import { useDb } from '@/components/providers/drizzle_provider'
 import { invoke } from '@tauri-apps/api/core'
 
-const Categories = () => {
-    const db = useDb()
+interface ItemCategory {
+    id: string
+    name: string
+    description?: string
+    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
+    createdAt: string
+    updatedAt: string
+}
 
+interface NewItemCategory {
+    id?: string
+    name: string
+    description?: string
+    state?: 'ACTIVE' | 'INACTIVE' | 'DELETED'
+}
+
+const Categories = () => {
     const [categories, setCategories] = useState<ItemCategory[]>([])
     const [loading, setLoading] = useState(true)
     const [editingCategory, setEditingCategory] = useState<NewItemCategory | null>(null)
@@ -20,7 +32,7 @@ const Categories = () => {
     const [pageSize, setPageSize] = useState(10)
 
     const fetchCategories = useCallback(async (page: number, size: number) => {
-        setLoading(false)
+        setLoading(true)
         try {
             const offset = (page - 1) * size
             const result: Array<{ itemCategories: ItemCategory[] }> = await invoke('graphql', {
@@ -35,8 +47,10 @@ const Categories = () => {
             setCategories(result[0].itemCategories)
         } catch (error) {
             console.error('Error fetching categories:', error)
+        } finally {
+            setLoading(false)
         }
-    }, [db])
+    }, [])
 
     useEffect(() => {
         fetchCategories(currentPage, pageSize)
@@ -46,63 +60,78 @@ const Categories = () => {
         e.preventDefault()
         if (!editingCategory) return
 
-        await invoke('graphql', {
-            query: `#graphql
-                mutation {
-                    createItemCategory(
-                        newCategory: { name: "${editingCategory.name}", description: "${editingCategory.description}" }
-                    ) {
-                        id name description state createdAt updatedAt
+        try {
+            await invoke('graphql', {
+                query: `#graphql
+                    mutation {
+                        createItemCategory(
+                            newCategory: { name: "${editingCategory.name}", description: "${editingCategory.description || ''}" }
+                        ) {
+                            id name description state createdAt updatedAt
+                        }
                     }
-                }
-            `,
-        })
+                `,
+            })
 
-        setIsModalOpen(false)
-        setEditingCategory(null)
-        fetchCategories(currentPage, pageSize)
+            setIsModalOpen(false)
+            setEditingCategory(null)
+            fetchCategories(currentPage, pageSize)
+        } catch (error) {
+            console.error('Error creating category:', error)
+            alert('Failed to create category')
+        }
     }
 
     const handleEditCategory = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!editingCategory || !editingCategory.id) return
 
-        await invoke('graphql', {
-            query: `#graphql
-                mutation {
-                    updateItemCategory(
-                        category: {
-                            id: "${editingCategory.id}",
-                            name: "${editingCategory.name}",
-                            description: "${editingCategory.description}",
-                            state: ${editingCategory.state}
+        try {
+            await invoke('graphql', {
+                query: `#graphql
+                    mutation {
+                        updateItemCategory(
+                            category: {
+                                id: "${editingCategory.id}",
+                                name: "${editingCategory.name}",
+                                description: "${editingCategory.description || ''}",
+                                state: ${editingCategory.state || 'ACTIVE'}
+                            }
+                        ) {
+                            id name description state createdAt updatedAt
                         }
-                    ) {
-                        id name description state createdAt updatedAt
                     }
-                }
-            `,
-        })
+                `,
+            })
 
-        setIsModalOpen(false)
-        setEditingCategory(null)
-        fetchCategories(currentPage, pageSize)
+            setIsModalOpen(false)
+            setEditingCategory(null)
+            fetchCategories(currentPage, pageSize)
+        } catch (error) {
+            console.error('Error updating category:', error)
+            alert('Failed to update category')
+        }
     }
 
     const handleDeleteCategory = async () => {
         if (!editingCategory?.id) return
 
-        await invoke('graphql', {
-            query: `#graphql
-                mutation {
-                    deleteItemCategory(id: "${editingCategory.id}")
-                }
-            `,
-        })
+        try {
+            await invoke('graphql', {
+                query: `#graphql
+                    mutation {
+                        deleteItemCategory(id: "${editingCategory.id}")
+                    }
+                `,
+            })
 
-        setIsDeleteModalOpen(false)
-        setEditingCategory(null)
-        fetchCategories(currentPage, pageSize)
+            setIsDeleteModalOpen(false)
+            setEditingCategory(null)
+            fetchCategories(currentPage, pageSize)
+        } catch (error) {
+            console.error('Error deleting category:', error)
+            alert('Failed to delete category')
+        }
     }
 
     const headers = [
@@ -112,11 +141,11 @@ const Categories = () => {
     ]
 
     const handleOpenAddModal = () => {
-        setEditingCategory({} as NewItemCategory)
+        setEditingCategory({ name: '', description: '', state: 'ACTIVE' })
         setIsModalOpen(true)
     }
 
-    const handleOpenEditModal = (category: NewItemCategory) => {
+    const handleOpenEditModal = (category: ItemCategory) => {
         setEditingCategory(category)
         setIsModalOpen(true)
     }

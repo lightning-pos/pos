@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { Modal, RadioButtonGroup, RadioButton, ModalProps } from '@carbon/react'
 import { invoke } from '@tauri-apps/api/core'
-import { money, Money } from '@/lib/util/money'
 
 interface Tax {
     id: string
@@ -29,11 +28,23 @@ interface CartItem {
 
 interface CheckoutModalProps extends ModalProps {
     cart: CartItem[]
-    subtotal: Money
-    tax: Money
-    total: Money
+    subtotal: number
+    tax: number
+    total: number
     customer: Customer | null
 }
+
+const formatPrice = (price: number): string => {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR'
+    }).format(price);
+};
+
+// Convert a number to base units (paise) for storage
+const toBaseUnits = (amount: number): number => {
+    return Math.round(amount * 100);
+};
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
     open,
@@ -59,8 +70,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 itemId: item.id,
                 itemName: item.name,
                 quantity: item.quantity,
-                priceAmount: item.price.toString(),
-                taxAmount: (item.taxIds?.reduce((sum, taxId) => {
+                priceAmount: toBaseUnits(item.price).toString(),
+                taxAmount: toBaseUnits(item.taxIds?.reduce((sum, taxId) => {
                     // We'll calculate tax amount in the backend to ensure consistency
                     return sum
                 }, 0) || 0).toString()
@@ -75,11 +86,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 customerName: "${customer.fullName}",
                                 customerPhoneNumber: "${customer.phone || ''}",
                                 orderDate: "${new Date().toISOString().split('.')[0].replace('T', ' ')}",
-                                netAmount: "${subtotal.toBaseUnits().toString()}",
+                                netAmount: "${toBaseUnits(subtotal)}",
                                 discAmount: "0",
-                                taxableAmount: "${subtotal.toBaseUnits().toString()}",
-                                taxAmount: "${tax.toBaseUnits().toString()}",
-                                totalAmount: "${total.toBaseUnits().toString()}",
+                                taxableAmount: "${toBaseUnits(subtotal)}",
+                                taxAmount: "${toBaseUnits(tax)}",
+                                totalAmount: "${toBaseUnits(total)}",
                                 state: COMPLETED,
                                 items: [${orderItems.map(item => `{
                                     itemId: "${item.itemId}",
@@ -95,6 +106,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     }
                 `
             })
+
+            console.log(result)
 
             if (result[0]?.createSalesOrder?.id) {
                 onRequestSubmit?.(e)
@@ -120,13 +133,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <strong>Customer:</strong> {customer?.fullName} ({customer?.phone})
             </div>
             <div className='mb-4'>
-                <strong>Subtotal:</strong> {subtotal.format()}
+                <strong>Subtotal:</strong> {formatPrice(subtotal)}
             </div>
             <div className='mb-4'>
-                <strong>Tax:</strong> {tax.format()}
+                <strong>Tax:</strong> {formatPrice(tax)}
             </div>
             <div className='mb-4'>
-                <strong>Total:</strong> {total.format()}
+                <strong>Total:</strong> {formatPrice(total)}
             </div>
             <RadioButtonGroup
                 legendText="Payment Method"

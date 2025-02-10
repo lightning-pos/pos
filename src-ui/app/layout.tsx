@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.scss";
 import "./tailwind.css";
-import DynamicDrizzleProvider from "@/components/providers/dynamic_drizzle_provider";
 
 const ibmPlexSans = IBM_Plex_Sans({ weight: "400", subsets: ["latin"] });
 
@@ -19,9 +18,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={ibmPlexSans.className}>
-                <DynamicDrizzleProvider>
-                    {children}
-                </DynamicDrizzleProvider>
+                {children}
             </body>
         </html >
     );

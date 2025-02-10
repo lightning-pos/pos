@@ -5,28 +5,50 @@ import DataTable from "@/components/ui/DataTable";
 import AddItemModal from "./add_item_modal";
 import EditItemModal from "./edit_item_modal";
 import DeleteItemModal from "./delete_item_modal";
-import {
-    Item,
-    NewItem,
-    ItemCategory,
-    Tax,
-    ItemTax,
-    itemCategoriesTable,
-    taxesTable,
-} from "@/lib/db/sqlite/schema";
-import { useDb } from "@/components/providers/drizzle_provider";
-import { money } from "@/lib/util/money";
 import { invoke } from "@tauri-apps/api/core";
+
+interface Tax {
+    id: string
+    name: string
+    rate: number
+    description?: string
+}
+
+interface ItemCategory {
+    id: string
+    name: string
+    description?: string
+    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
+}
+
+interface Item {
+    id: string
+    name: string
+    description?: string
+    price: number
+    nature: 'GOODS' | 'SERVICE'
+    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
+    categoryId: string
+    category: {
+        name: string
+    }
+    taxes: Tax[]
+}
 
 interface TableRow extends Item {
     priceTransformed: string;
-    category: ItemCategory;
     categoryTransformed: string;
+    taxesTransformed: string;
 }
 
-const Items = () => {
-    const db = useDb()
+const formatPrice = (price: number): string => {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR'
+    }).format(price);
+};
 
+const Items = () => {
     // Model States
     const [itemsList, setItemsList] = useState<TableRow[]>([]);
     const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -43,49 +65,82 @@ const Items = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const fetchData = useCallback(async (page: number, size: number) => {
-        // setLoading(true);
-        const offset = (page - 1) * size
+        setLoading(true);
+        try {
+            const offset = (page - 1) * size
 
-        const result: Array<{ items: Item[] }> = await invoke('graphql', {
-            query: `query {
-                items(first: ${size}, offset: ${offset}) {
-                    id
-                    name
-                    description
-                    price
-                    state
-                    createdAt
-                    updatedAt
-                    category {
-                        name
+            const result: Array<{ items: Item[] }> = await invoke('graphql', {
+                query: `#graphql
+                    query {
+                        items(first: ${size}, offset: ${offset}) {
+                            id
+                            name
+                            description
+                            price
+                            state
+                            nature
+                            categoryId
+                            createdAt
+                            updatedAt
+                            category {
+                                name
+                            }
+                            taxes {
+                                id
+                                name
+                                rate
+                            }
+                        }
                     }
-                }
-            }`
-        })
+                `
+            })
 
-        // Fetch items with category and taxes
-        const itemsResult = result[0].items
+            const itemsResult = result[0].items
 
-        // Transform the itemsResult to the TableRow type
-        const tableRows = itemsResult.map((item) => ({
-            ...item,
-            priceTransformed: money(item.price, 'INR').format(),
-            categoryTransformed: item.category.name || "Unknown",
-            // taxesTransformed: item.taxes.map((tax) => tax.tax?.name || "Unknown").join(", "),
-        }));
-        setItemsList(tableRows);
+            // Transform the itemsResult to the TableRow type
+            const tableRows = itemsResult.map((item) => ({
+                ...item,
+                priceTransformed: formatPrice(item.price),
+                categoryTransformed: item.category.name || "Unknown",
+                taxesTransformed: item.taxes.map((tax) => tax.name).join(", "),
+            }));
+            setItemsList(tableRows);
 
-        const categoriesResult: Array<{ itemCategories: ItemCategory[] }> = await invoke('graphql', {
-            query: `query {
-                itemCategories {
-                    id
-                    name
-                }
-            }`
-        })
-        setCategories(categoriesResult[0].itemCategories);
-        setLoading(false);
-    }, [db])
+            // Fetch categories
+            const categoriesResult: Array<{ itemCategories: ItemCategory[] }> = await invoke('graphql', {
+                query: `#graphql
+                    query {
+                        itemCategories {
+                            id
+                            name
+                            description
+                            state
+                        }
+                    }
+                `
+            })
+            setCategories(categoriesResult[0].itemCategories);
+
+            // Fetch taxes
+            const taxesResult: Array<{ taxes: Tax[] }> = await invoke('graphql', {
+                query: `#graphql
+                    query {
+                        taxes {
+                            id
+                            name
+                            rate
+                            description
+                        }
+                    }
+                `
+            })
+            setTaxesList(taxesResult[0].taxes);
+        } catch (error) {
+            console.error('Error fetching data:', error)
+        } finally {
+            setLoading(false);
+        }
+    }, [])
 
     useEffect(() => {
         fetchData(currentPage, pageSize);
@@ -95,28 +150,17 @@ const Items = () => {
         { key: "name", header: "Name" },
         { key: "priceTransformed", header: "Price" },
         { key: "categoryTransformed", header: "Category" },
-        // { key: "taxesTransformed", header: "Taxes" },
+        { key: "taxesTransformed", header: "Taxes" },
     ];
 
     const handleOpenEditModal = (item: TableRow) => {
-        const editItem = {
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            price: item.price,
-            categoryId: item.categoryId,
-        };
-        setSelectedItem(editItem as Item);
-        // setSelectedTaxIds(item.taxes.map((tax) => tax.taxId));
+        setSelectedItem(item);
+        setSelectedTaxIds(item.taxes.map(tax => tax.id));
         setIsEditModalOpen(true);
     };
 
     const handleOpenDeleteModal = (item: TableRow) => {
-        const deleteItem = {
-            id: item.id,
-            name: item.name,
-        };
-        setSelectedItem(deleteItem as Item);
+        setSelectedItem(item);
         setIsDeleteModalOpen(true);
     };
 

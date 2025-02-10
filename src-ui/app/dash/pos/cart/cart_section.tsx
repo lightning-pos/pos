@@ -5,7 +5,6 @@ import { invoke } from '@tauri-apps/api/core'
 import CheckoutModal from './checkout_modal'
 import CustomerSelect from './customer_select'
 import CartItem from './cart_item'
-import { money, Money } from '@/lib/util/money'
 
 interface Tax {
     id: string
@@ -40,6 +39,13 @@ interface CartSectionProps {
     cart: CartItem[]
     setCart: React.Dispatch<React.SetStateAction<CartItem[]>>
 }
+
+const formatPrice = (price: number): string => {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR'
+    }).format(price / 100);
+};
 
 const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
@@ -82,26 +88,25 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
         })
     }
 
-    const calculateTotalTax = (): Money => {
+    const calculateTotalTax = (): number => {
         return cart.reduce((sum, item) => {
             if (!item.taxIds) return sum
             const itemTaxes = taxes.filter(tax => item.taxIds?.some(t => t === tax.id))
-            const itemPrice = money(item.price || 0, 'INR')
+            const itemPrice = item.price || 0
             const itemTax = itemTaxes.reduce((taxSum, tax) => {
                 const taxRate = (tax.rate || 0) / 10000 // Convert from basis points to decimal
-                return taxSum.add(itemPrice.multiply(item.quantity).multiply(taxRate))
-            }, money(0, 'INR'))
-            return sum.add(itemTax)
-        }, money(0, 'INR'))
+                return taxSum + (itemPrice * item.quantity * taxRate)
+            }, 0)
+            return sum + itemTax
+        }, 0)
     }
 
     const subtotal = cart.reduce((sum, item) => {
-        const itemPrice = money(item.price || 0, 'INR')
-        return sum.add(itemPrice.multiply(item.quantity))
-    }, money(0, 'INR'))
+        return sum + ((item.price || 0) * item.quantity)
+    }, 0)
 
     const totalTax = calculateTotalTax()
-    const totalAmount = subtotal.add(totalTax)
+    const totalAmount = subtotal + totalTax
 
     const handleCheckout = () => {
         if (!selectedCustomer) {
@@ -134,15 +139,15 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
             <div className='mt-4 py-4'>
                 <div className='flex justify-between items-center'>
                     <span>Subtotal:</span>
-                    <span>{subtotal.format()}</span>
+                    <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className='flex justify-between items-center'>
                     <span>Tax:</span>
-                    <span>{totalTax.format()}</span>
+                    <span>{formatPrice(totalTax)}</span>
                 </div>
                 <div className='flex justify-between items-center font-bold'>
                     <span>Total:</span>
-                    <span>{totalAmount.format()}</span>
+                    <span>{formatPrice(totalAmount)}</span>
                 </div>
             </div>
             <div className='flex flex-row items-center my-4 w-full p-0'>
