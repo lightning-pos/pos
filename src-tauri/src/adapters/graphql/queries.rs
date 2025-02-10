@@ -1,4 +1,4 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use diesel::{dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -138,6 +138,14 @@ impl Query {
         Ok(result)
     }
 
+    fn total_customers(&self, context: &AppState) -> FieldResult<i32> {
+        let mut service = context.service.lock().unwrap();
+        let result: i64 = customers::table
+            .select(count(customers::id))
+            .get_result(&mut service.conn)?;
+        Ok(result as i32)
+    }
+
     fn customer(&self, id: DbUuid, context: &AppState) -> FieldResult<Customer> {
         let mut service = context.service.lock().unwrap();
         let result = customers::table
@@ -176,6 +184,14 @@ impl Query {
         Ok(result)
     }
 
+    fn total_sales_orders(&self, context: &AppState) -> FieldResult<i32> {
+        let mut service = context.service.lock().unwrap();
+        let result: i64 = sales_orders::table
+            .select(count(sales_orders::id))
+            .get_result(&mut service.conn)?;
+        Ok(result as i32)
+    }
+
     fn sales_order(&self, id: DbUuid, context: &AppState) -> FieldResult<SalesOrder> {
         let mut service = context.service.lock().unwrap();
         let result = sales_orders::table
@@ -205,6 +221,14 @@ impl Query {
         Ok(result)
     }
 
+    fn total_carts(&self, context: &AppState) -> FieldResult<i32> {
+        let mut service = context.service.lock().unwrap();
+        let result: i64 = carts::table
+            .select(count(carts::id))
+            .get_result(&mut service.conn)?;
+        Ok(result as i32)
+    }
+
     fn cart(&self, id: DbUuid, context: &AppState) -> FieldResult<Cart> {
         let mut service = context.service.lock().unwrap();
         let result = carts::table
@@ -223,9 +247,7 @@ impl Query {
     ) -> FieldResult<Vec<Tax>> {
         let mut service = context.service.lock().unwrap();
 
-        let mut query = taxes::table
-            .order(taxes::created_at.desc())
-            .into_boxed();
+        let mut query = taxes::table.order(taxes::created_at.desc()).into_boxed();
 
         // Apply pagination if parameters are provided
         if let Some(limit) = first {
@@ -249,5 +271,13 @@ impl Query {
             .select(Tax::as_select())
             .get_result::<Tax>(&mut service.conn)?;
         Ok(result)
+    }
+
+    fn total_taxes(&self, context: &AppState) -> FieldResult<i32> {
+        let mut service = context.service.lock().unwrap();
+        let result: i64 = taxes::table
+            .select(count(taxes::id))
+            .get_result(&mut service.conn)?;
+        Ok(result as i32)
     }
 }

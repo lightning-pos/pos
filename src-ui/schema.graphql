@@ -236,14 +236,18 @@ type Query {
   users(first: Int, offset: Int): [User!]!
   user(id: DbUuid!): User!
   customers(first: Int, offset: Int): [Customer!]!
+  totalCustomers: Int!
   customer(id: DbUuid!): Customer!
   customerByPhone(phone: String!): Customer!
   salesOrders(first: Int, offset: Int): [SalesOrder!]!
+  totalSalesOrders: Int!
   salesOrder(id: DbUuid!): SalesOrder!
   carts(first: Int, offset: Int): [Cart!]!
+  totalCarts: Int!
   cart(id: DbUuid!): Cart!
   taxes(first: Int, offset: Int): [Tax!]!
   tax(id: DbUuid!): Tax!
+  totalTaxes: Int!
 }
 
 type SalesOrder {

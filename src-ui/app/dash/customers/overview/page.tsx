@@ -1,7 +1,6 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
 import { Content } from '@carbon/react'
-import { uid } from 'uid'
 import SaveCustomerModal from './save_customer_modal'
 import DataTable from '@/components/ui/DataTable'
 import DeleteCustomerModal from './delete_customer_modal'
@@ -9,10 +8,10 @@ import { invoke } from '@tauri-apps/api/core'
 
 interface Customer {
     id: string
-    name: string
+    fullName: string
     email?: string | null
-    phoneNumber?: string | null
-    countryCode?: string | null
+    phone?: string | null
+    address?: string | null
     createdAt: string
     updatedAt: string
 }
@@ -38,10 +37,10 @@ const CustomersOverview = () => {
                     query {
                         customers(first: ${size}, offset: ${offset}) {
                             id
-                            name
+                            fullName
                             email
-                            phoneNumber
-                            countryCode
+                            phone
+                            address
                             createdAt
                             updatedAt
                         }
@@ -68,27 +67,22 @@ const CustomersOverview = () => {
         if (!editingCustomer) return
 
         try {
-            const newCustomer = {
-                id: uid(),
-                name: editingCustomer.name || '',
-                email: editingCustomer.email,
-                phoneNumber: editingCustomer.phoneNumber,
-                countryCode: editingCustomer.countryCode,
-            }
-
-            await invoke('graphql', {
+            const result: Array<{ createCustomer: Customer }> = await invoke('graphql', {
                 query: `#graphql
                     mutation {
-                        createCustomer(
-                            input: {
-                                id: "${newCustomer.id}",
-                                name: "${newCustomer.name}",
-                                email: ${newCustomer.email ? `"${newCustomer.email}"` : 'null'},
-                                phoneNumber: ${newCustomer.phoneNumber ? `"${newCustomer.phoneNumber}"` : 'null'},
-                                countryCode: ${newCustomer.countryCode ? `"${newCustomer.countryCode}"` : 'null'}
-                            }
-                        ) {
+                        createCustomer(input: {
+                            fullName: "${editingCustomer.fullName || ''}"
+                            email: ${editingCustomer.email ? `"${editingCustomer.email}"` : 'null'}
+                            phone: ${editingCustomer.phone ? `"${editingCustomer.phone}"` : 'null'}
+                            address: ${editingCustomer.address ? `"${editingCustomer.address}"` : 'null'}
+                        }) {
                             id
+                            fullName
+                            email
+                            phone
+                            address
+                            createdAt
+                            updatedAt
                         }
                     }
                 `
@@ -106,19 +100,23 @@ const CustomersOverview = () => {
         if (!editingCustomer || !editingCustomer.id) return
 
         try {
-            await invoke('graphql', {
+            const result: Array<{ updateCustomer: Customer }> = await invoke('graphql', {
                 query: `#graphql
                     mutation {
-                        updateCustomer(
-                            id: "${editingCustomer.id}",
-                            input: {
-                                name: "${editingCustomer.name}",
-                                email: ${editingCustomer.email ? `"${editingCustomer.email}"` : 'null'},
-                                phoneNumber: ${editingCustomer.phoneNumber ? `"${editingCustomer.phoneNumber}"` : 'null'},
-                                countryCode: ${editingCustomer.countryCode ? `"${editingCustomer.countryCode}"` : 'null'}
-                            }
-                        ) {
+                        updateCustomer(input: {
+                            id: "${editingCustomer.id}"
+                            fullName: ${editingCustomer.fullName ? `"${editingCustomer.fullName}"` : 'null'}
+                            email: ${editingCustomer.email ? `"${editingCustomer.email}"` : 'null'}
+                            phone: ${editingCustomer.phone ? `"${editingCustomer.phone}"` : 'null'}
+                            address: ${editingCustomer.address ? `"${editingCustomer.address}"` : 'null'}
+                        }) {
                             id
+                            fullName
+                            email
+                            phone
+                            address
+                            createdAt
+                            updatedAt
                         }
                     }
                 `
@@ -136,10 +134,13 @@ const CustomersOverview = () => {
         try {
             await invoke('graphql', {
                 query: `#graphql
-                    mutation {
-                        deleteCustomer(id: "${id}")
+                    mutation DeleteCustomer($id: DbUuid!) {
+                        deleteCustomer(id: $id)
                     }
-                `
+                `,
+                variables: {
+                    id
+                }
             })
             setIsDeleteModalOpen(false)
             setEditingCustomer(null)
@@ -150,9 +151,10 @@ const CustomersOverview = () => {
     }
 
     const headers = [
-        { key: 'name', header: 'Name' },
+        { key: 'fullName', header: 'Name' },
         { key: 'email', header: 'Email' },
-        { key: 'phoneNumber', header: 'Phone Number' },
+        { key: 'phone', header: 'Phone' },
+        { key: 'address', header: 'Address' }
     ]
 
     return (
@@ -202,7 +204,7 @@ const CustomersOverview = () => {
                 editingCustomer={editingCustomer}
                 onClose={() => {
                     setIsDeleteModalOpen(false)
-                    setEditingCustomer({})
+                    setEditingCustomer(null)
                 }}
                 onDelete={() => editingCustomer?.id && handleDeleteCustomer(editingCustomer.id)}
             />

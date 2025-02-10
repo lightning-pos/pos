@@ -54,7 +54,7 @@ const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR'
-    }).format(price);
+    }).format(price / 100);
 };
 
 const Orders = () => {
@@ -104,7 +104,6 @@ const Orders = () => {
                                 updatedAt
                             }
                         }
-                        totalOrders
                     }
                 `
             })
@@ -159,7 +158,7 @@ const Orders = () => {
     const rows = orders.map(order => ({
         id: order.id,
         totalAmount: formatPrice(order.totalAmount ?? 0),
-        customerName: order.customerName,
+        customerName: order.customerPhoneNumber,
         createdAt: new Date(order.createdAt ?? 0).toLocaleString(),
         status: order.state,
     }))
