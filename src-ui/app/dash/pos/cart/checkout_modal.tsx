@@ -38,12 +38,7 @@ const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR'
-    }).format(price);
-};
-
-// Convert a number to base units (paise) for storage
-const toBaseUnits = (amount: number): number => {
-    return Math.round(amount * 100);
+    }).format(price / 100);
 };
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -70,8 +65,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 itemId: item.id,
                 itemName: item.name,
                 quantity: item.quantity,
-                priceAmount: toBaseUnits(item.price).toString(),
-                taxAmount: toBaseUnits(item.taxIds?.reduce((sum, taxId) => {
+                priceAmount: item.price.toString(),
+                taxAmount: (item.taxIds?.reduce((sum, taxId) => {
                     // We'll calculate tax amount in the backend to ensure consistency
                     return sum
                 }, 0) || 0).toString()
@@ -86,11 +81,11 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                                 customerName: "${customer.fullName}",
                                 customerPhoneNumber: "${customer.phone || ''}",
                                 orderDate: "${new Date().toISOString().split('.')[0].replace('T', ' ')}",
-                                netAmount: "${toBaseUnits(subtotal)}",
+                                netAmount: "${subtotal}",
                                 discAmount: "0",
-                                taxableAmount: "${toBaseUnits(subtotal)}",
-                                taxAmount: "${toBaseUnits(tax)}",
-                                totalAmount: "${toBaseUnits(total)}",
+                                taxableAmount: "${subtotal}",
+                                taxAmount: "${tax}",
+                                totalAmount: "${total}",
                                 state: COMPLETED,
                                 items: [${orderItems.map(item => `{
                                     itemId: "${item.itemId}",
