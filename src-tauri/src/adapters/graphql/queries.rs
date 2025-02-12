@@ -1,15 +1,9 @@
-use bigdecimal::BigDecimal;
-use diesel::{
-    dsl::{count, sum},
-    ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper,
-};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
     adapters::graphql::Query,
     core::{
         models::{
-            analytics::overview_model::AnalyticsOverview,
             auth::user_model::User,
             catalog::{item_group_model::ItemGroup, item_model::Item},
             common::tax_model::Tax,
@@ -17,9 +11,10 @@ use crate::{
         },
         types::db_uuid::DbUuid,
     },
-    schema::{carts, customers, item_categories, items, sales_orders, taxes, users},
     AppState,
 };
+
+use super::analytics::analytics_overview_model::AnalyticsOverview;
 
 #[graphql_object(context = AppState)]
 impl Query {
@@ -33,32 +28,11 @@ impl Query {
         offset: Option<i32>,
         context: &AppState,
     ) -> FieldResult<Vec<ItemGroup>> {
-        let mut service = context.service.lock().unwrap();
-
-        let mut query = item_categories::table.into_boxed();
-
-        // Apply pagination if parameters are provided
-        if let Some(limit) = first {
-            query = query.limit(limit as i64);
-        }
-        if let Some(off) = offset {
-            query = query.offset(off as i64);
-        }
-
-        let result = query
-            .select(ItemGroup::as_select())
-            .load::<ItemGroup>(&mut service.conn)?;
-
-        Ok(result)
+        super::catalog::item_group_queries::item_categories(first, offset, context)
     }
 
     fn items_category(&self, id: DbUuid, context: &AppState) -> FieldResult<ItemGroup> {
-        let mut service = context.service.lock().unwrap();
-        let result = item_categories::table
-            .filter(item_categories::id.eq(id))
-            .select(ItemGroup::as_select())
-            .get_result(&mut service.conn)?;
-        Ok(result)
+        super::catalog::item_group_queries::items_category(id, context)
     }
 
     fn items(
@@ -67,31 +41,11 @@ impl Query {
         offset: Option<i32>,
         context: &AppState,
     ) -> FieldResult<Vec<Item>> {
-        let mut service = context.service.lock().unwrap();
-
-        let mut query = items::table.into_boxed();
-
-        if let Some(limit) = first {
-            query = query.limit(limit as i64);
-        }
-
-        if let Some(off) = offset {
-            query = query.offset(off as i64);
-        }
-
-        let result = query
-            .select(Item::as_select())
-            .load::<Item>(&mut service.conn)?;
-        Ok(result)
+        super::catalog::item_queries::items(first, offset, context)
     }
 
     fn item(&self, id: DbUuid, context: &AppState) -> FieldResult<Item> {
-        let mut service = context.service.lock().unwrap();
-        let result = items::table
-            .filter(items::id.eq(id))
-            .select(Item::as_select())
-            .get_result(&mut service.conn)?;
-        Ok(result)
+        super::catalog::item_queries::item(id, context)
     }
 
     fn users(
@@ -100,27 +54,11 @@ impl Query {
         offset: Option<i32>,
         context: &AppState,
     ) -> FieldResult<Vec<User>> {
-        let mut service = context.service.lock().unwrap();
-        let mut query = users::table.into_boxed();
-        if let Some(limit) = first {
-            query = query.limit(limit as i64);
-        }
-        if let Some(off) = offset {
-            query = query.offset(off as i64);
-        }
-        let result = query
-            .select(User::as_select())
-            .load::<User>(&mut service.conn)?;
-        Ok(result)
+        super::auth::user_queries::users(first, offset, context)
     }
 
     fn user(&self, id: DbUuid, context: &AppState) -> FieldResult<User> {
-        let mut service = context.service.lock().unwrap();
-        let result = users::table
-            .filter(users::id.eq(id))
-            .select(User::as_select())
-            .get_result(&mut service.conn)?;
-        Ok(result)
+        super::auth::user_queries::user(id, context)
     }
 
     fn customers(
@@ -129,44 +67,19 @@ impl Query {
         offset: Option<i32>,
         context: &AppState,
     ) -> FieldResult<Vec<Customer>> {
-        let mut service = context.service.lock().unwrap();
-        let mut query = customers::table.into_boxed();
-        if let Some(limit) = first {
-            query = query.limit(limit as i64);
-        }
-        if let Some(off) = offset {
-            query = query.offset(off as i64);
-        }
-        let result = query
-            .select(Customer::as_select())
-            .load::<Customer>(&mut service.conn)?;
-        Ok(result)
+        super::sales::customer_queries::customers(first, offset, context)
     }
 
     fn total_customers(&self, context: &AppState) -> FieldResult<i32> {
-        let mut service = context.service.lock().unwrap();
-        let result: i64 = customers::table
-            .select(count(customers::id))
-            .get_result(&mut service.conn)?;
-        Ok(result as i32)
+        super::sales::customer_queries::total_customers(context)
     }
 
     fn customer(&self, id: DbUuid, context: &AppState) -> FieldResult<Customer> {
-        let mut service = context.service.lock().unwrap();
-        let result = customers::table
-            .filter(customers::id.eq(id))
-            .select(Customer::as_select())
-            .get_result(&mut service.conn)?;
-        Ok(result)
+        super::sales::customer_queries::customer(id, context)
     }
 
     fn customer_by_phone(&self, phone: String, context: &AppState) -> FieldResult<Customer> {
-        let mut service = context.service.lock().unwrap();
-        let result = customers::table
-            .filter(customers::phone.eq(phone))
-            .select(Customer::as_select())
-            .get_result(&mut service.conn)?;
-        Ok(result)
+        super::sales::customer_queries::customer_by_phone(phone, context)
     }
 
     fn sales_orders(
@@ -175,35 +88,15 @@ impl Query {
         offset: Option<i32>,
         context: &AppState,
     ) -> FieldResult<Vec<SalesOrder>> {
-        let mut service = context.service.lock().unwrap();
-        let mut query = sales_orders::table.into_boxed();
-        if let Some(limit) = first {
-            query = query.limit(limit as i64);
-        }
-        if let Some(off) = offset {
-            query = query.offset(off as i64);
-        }
-        let result = query
-            .select(SalesOrder::as_select())
-            .load::<SalesOrder>(&mut service.conn)?;
-        Ok(result)
+        super::sales::sales_order_queries::sales_orders(first, offset, context)
     }
 
     fn total_sales_orders(&self, context: &AppState) -> FieldResult<i32> {
-        let mut service = context.service.lock().unwrap();
-        let result: i64 = sales_orders::table
-            .select(count(sales_orders::id))
-            .get_result(&mut service.conn)?;
-        Ok(result as i32)
+        super::sales::sales_order_queries::total_sales_orders(context)
     }
 
     fn sales_order(&self, id: DbUuid, context: &AppState) -> FieldResult<SalesOrder> {
-        let mut service = context.service.lock().unwrap();
-        let result = sales_orders::table
-            .filter(sales_orders::id.eq(id))
-            .select(SalesOrder::as_select())
-            .get_result(&mut service.conn)?;
-        Ok(result)
+        super::sales::sales_order_queries::sales_order(id, context)
     }
 
     fn carts(
@@ -212,78 +105,32 @@ impl Query {
         offset: Option<i32>,
         context: &AppState,
     ) -> FieldResult<Vec<Cart>> {
-        let mut service = context.service.lock().unwrap();
-        let mut query = carts::table.into_boxed();
-        if let Some(limit) = first {
-            query = query.limit(limit as i64);
-        }
-        if let Some(off) = offset {
-            query = query.offset(off as i64);
-        }
-        let result = query
-            .select(Cart::as_select())
-            .load::<Cart>(&mut service.conn)?;
-        Ok(result)
+        super::sales::cart_queries::carts(first, offset, context)
     }
 
     fn total_carts(&self, context: &AppState) -> FieldResult<i32> {
-        let mut service = context.service.lock().unwrap();
-        let result: i64 = carts::table
-            .select(count(carts::id))
-            .get_result(&mut service.conn)?;
-        Ok(result as i32)
+        super::sales::cart_queries::total_carts(context)
     }
 
     fn cart(&self, id: DbUuid, context: &AppState) -> FieldResult<Cart> {
-        let mut service = context.service.lock().unwrap();
-        let result = carts::table
-            .find(id)
-            .select(Cart::as_select())
-            .get_result::<Cart>(&mut service.conn)?;
-        Ok(result)
+        super::sales::cart_queries::cart(id, context)
     }
 
-    // Tax Queries
     fn taxes(
         &self,
         first: Option<i32>,
         offset: Option<i32>,
         context: &AppState,
     ) -> FieldResult<Vec<Tax>> {
-        let mut service = context.service.lock().unwrap();
-
-        let mut query = taxes::table.order(taxes::created_at.desc()).into_boxed();
-
-        // Apply pagination if parameters are provided
-        if let Some(limit) = first {
-            query = query.limit(limit as i64);
-        }
-        if let Some(off) = offset {
-            query = query.offset(off as i64);
-        }
-
-        let result = query
-            .select(Tax::as_select())
-            .load::<Tax>(&mut service.conn)?;
-
-        Ok(result)
-    }
-
-    fn tax(&self, id: DbUuid, context: &AppState) -> FieldResult<Tax> {
-        let mut service = context.service.lock().unwrap();
-        let result = taxes::table
-            .find(id)
-            .select(Tax::as_select())
-            .get_result::<Tax>(&mut service.conn)?;
-        Ok(result)
+        super::common::tax_queries::taxes(first, offset, context)
     }
 
     fn total_taxes(&self, context: &AppState) -> FieldResult<i32> {
-        let mut service = context.service.lock().unwrap();
-        let result: i64 = taxes::table
-            .select(count(taxes::id))
-            .get_result(&mut service.conn)?;
-        Ok(result as i32)
+        super::common::tax_queries::total_taxes(context)
+    }
+
+    fn tax(&self, id: DbUuid, context: &AppState) -> FieldResult<Tax> {
+        super::common::tax_queries::tax(id, context)
     }
 
     fn analytics_overview(
@@ -291,49 +138,6 @@ impl Query {
         days: Option<i32>,
         context: &AppState,
     ) -> FieldResult<AnalyticsOverview> {
-        use crate::schema::{customers, items, sales_orders};
-        use chrono::{Duration, Utc};
-
-        let mut service = context.service.lock().unwrap();
-
-        // Calculate the start date based on the days parameter
-        let start_date = match days {
-            Some(d) => Utc::now() - Duration::days(d as i64),
-            None => Utc::now() - Duration::days(365 * 10), // Default to 10 years if no days specified
-        };
-
-        // Get total sales with date filter
-        let total_sales = sales_orders::table
-            .select(sum(sales_orders::total_amount))
-            .filter(sales_orders::created_at.ge(start_date.naive_utc()))
-            .first::<Option<BigDecimal>>(&mut service.conn)
-            .unwrap()
-            .unwrap_or_default();
-
-        // Get total orders with date filter
-        let total_orders = sales_orders::table
-            .select(count(sales_orders::id))
-            .filter(sales_orders::created_at.ge(start_date.naive_utc()))
-            .first::<i64>(&mut service.conn)
-            .unwrap();
-
-        // Get total customers (not filtered by date since it's current inventory)
-        let total_customers = customers::table
-            .select(count(customers::id))
-            .first::<i64>(&mut service.conn)
-            .unwrap();
-
-        // Get total products (not filtered by date since it's current inventory)
-        let total_products = items::table
-            .select(count(items::id))
-            .first::<i64>(&mut service.conn)
-            .unwrap();
-
-        Ok(AnalyticsOverview {
-            total_sales: total_sales.into(),
-            total_orders: total_orders as i32,
-            total_customers: total_customers as i32,
-            total_products: total_products as i32,
-        })
+        super::analytics::analytics_queries::analytics_overview(days, context)
     }
 }

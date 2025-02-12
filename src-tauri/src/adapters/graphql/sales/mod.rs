@@ -1,7 +1,10 @@
 pub mod cart_mutations;
-pub mod cart_query;
+pub mod cart_object;
+pub mod cart_queries;
 pub mod customer_mutations;
-pub mod customer_query;
-pub mod sales_order_item_query;
+pub mod customer_object;
+pub mod customer_queries;
+pub mod sales_order_item_object;
 pub mod sales_order_mutations;
-pub mod sales_order_query;
+pub mod sales_order_object;
+pub mod sales_order_queries;

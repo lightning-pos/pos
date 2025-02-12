@@ -141,8 +141,9 @@ impl Command for DeleteItemCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::models::catalog::item_model::{ItemNature, ItemState};
+
     use super::*;
-    use crate::core::models::item_model::{ItemNature, ItemState};
 
     fn create_test_tax(service: &mut AppService) -> Tax {
         let now = Utc::now().naive_utc();

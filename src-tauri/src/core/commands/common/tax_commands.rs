@@ -205,7 +205,7 @@ mod tests {
     use super::*;
     use crate::core::{
         commands::app_service::AppService,
-        models::item_model::{ItemNature, ItemState},
+        models::catalog::item_model::{ItemNature, ItemState},
     };
 
     #[test]

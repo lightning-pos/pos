@@ -5,7 +5,7 @@ use diesel::{
 };
 use juniper::GraphQLInputObject;
 
-use crate::core::{models::item_model::Item, types::db_uuid::DbUuid};
+use crate::core::{models::catalog::item_model::Item, types::db_uuid::DbUuid};
 use crate::schema::{item_taxes, taxes};
 
 #[derive(Debug, Clone, Queryable, Selectable, Insertable)]
