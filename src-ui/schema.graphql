@@ -255,7 +255,7 @@ type Query {
   taxes(first: Int, offset: Int): [Tax!]!
   tax(id: DbUuid!): Tax!
   totalTaxes: Int!
-  analyticsOverview: AnalyticsOverview!
+  analyticsOverview(days: Int): AnalyticsOverview!
 }
 
 type SalesOrder {

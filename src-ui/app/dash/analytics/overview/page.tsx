@@ -12,13 +12,14 @@ interface AnalyticsOverview {
 
 const AnalyticsOverview = () => {
     const [overview, setOverview] = useState<AnalyticsOverview | null>(null)
+    const days = 7
 
     const fetchOverview = useCallback(async () => {
         try {
             const result: Array<{ analyticsOverview: AnalyticsOverview }> = await invoke('graphql', {
                 query: `#graphql
                     query {
-                        analyticsOverview {
+                        analyticsOverview(days: ${days}) {
                             totalSales
                             totalOrders
                             totalCustomers
@@ -43,11 +44,11 @@ const AnalyticsOverview = () => {
             {overview ? (
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
                     <Tile>
-                        <h3 className='text-lg'>Total Sales</h3>
-                        <p className='text-3xl font-medium mt-4'>Rs. {overview.totalSales}</p>
+                        <h3 className='text-lg'>{days} Days Sales</h3>
+                        <p className='text-3xl font-medium mt-4'>Rs. {overview.totalSales / 100}</p>
                     </Tile>
                     <Tile>
-                        <h3 className='text-lg'>Total Orders</h3>
+                        <h3 className='text-lg'>{days} Days Orders</h3>
                         <p className='text-3xl font-medium mt-4'>{overview.totalOrders}</p>
                     </Tile>
                     <Tile>
