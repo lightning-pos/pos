@@ -3,6 +3,7 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
+use bigdecimal::{BigDecimal, ToPrimitive};
 use diesel::{
     deserialize,
     expression::AsExpression,
@@ -51,6 +52,12 @@ impl Money {
 impl From<i64> for Money {
     fn from(value: i64) -> Self {
         Money(value)
+    }
+}
+
+impl From<BigDecimal> for Money {
+    fn from(value: BigDecimal) -> Self {
+        Money(value.to_i64().unwrap())
     }
 }
 

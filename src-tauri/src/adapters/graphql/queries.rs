@@ -1,10 +1,15 @@
-use diesel::{dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use bigdecimal::BigDecimal;
+use diesel::{
+    dsl::{count, sum},
+    ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper,
+};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
     adapters::graphql::Query,
     core::{
         models::{
+            analytics::overview_model::AnalyticsOverview,
             auth::user_model::User,
             catalog::{item_group_model::ItemGroup, item_model::Item},
             common::tax_model::Tax,
@@ -279,5 +284,40 @@ impl Query {
             .select(count(taxes::id))
             .get_result(&mut service.conn)?;
         Ok(result as i32)
+    }
+
+    fn analytics_overview(&self, context: &AppState) -> FieldResult<AnalyticsOverview> {
+        let mut service = context.service.lock().unwrap();
+        // Get total sales
+        let total_sales = sales_orders::table
+            .select(sum(sales_orders::total_amount))
+            .first::<Option<BigDecimal>>(&mut service.conn)
+            .unwrap()
+            .unwrap_or_default();
+
+        // Get total orders
+        let total_orders = sales_orders::table
+            .select(count(sales_orders::id))
+            .first::<i64>(&mut service.conn)
+            .unwrap();
+
+        // Get total customers
+        let total_customers = customers::table
+            .select(count(customers::id))
+            .first::<i64>(&mut service.conn)
+            .unwrap();
+
+        // Get total products
+        let total_products = items::table
+            .select(count(items::id))
+            .first::<i64>(&mut service.conn)
+            .unwrap();
+
+        Ok(AnalyticsOverview {
+            total_sales: total_sales.into(),
+            total_orders: total_orders as i32,
+            total_customers: total_customers as i32,
+            total_products: total_products as i32,
+        })
     }
 }
