@@ -1,0 +1,532 @@
+/* eslint-disable */
+export type Maybe<T> = T | null;
+export type InputMaybe<T> = Maybe<T>;
+export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
+export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
+export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+/** All built-in and custom scalars, mapped to their actual values */
+export type Scalars = {
+  ID: { input: string; output: string; }
+  String: { input: string; output: string; }
+  Boolean: { input: boolean; output: boolean; }
+  Int: { input: number; output: number; }
+  Float: { input: number; output: number; }
+  DbUuid: { input: any; output: any; }
+  /**
+   * Combined date and time (without time zone) in `yyyy-MM-dd HH:mm:ss` format.
+   *
+   * See also [`chrono::NaiveDateTime`][1] for details.
+   *
+   * [1]: https://docs.rs/chrono/latest/chrono/naive/struct.NaiveDateTime.html
+   */
+  LocalDateTime: { input: any; output: any; }
+  Money: { input: any; output: any; }
+};
+
+export type AnalyticsOverview = {
+  __typename?: 'AnalyticsOverview';
+  totalCustomers: Scalars['Int']['output'];
+  totalOrders: Scalars['Int']['output'];
+  totalProducts: Scalars['Int']['output'];
+  totalSales: Scalars['Money']['output'];
+};
+
+export type Cart = {
+  __typename?: 'Cart';
+  cartData: Scalars['String']['output'];
+  createdAt: Scalars['LocalDateTime']['output'];
+  customer?: Maybe<Customer>;
+  customerId?: Maybe<Scalars['DbUuid']['output']>;
+  id: Scalars['DbUuid']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type CartNewInput = {
+  cartData: Scalars['String']['input'];
+  customerId?: InputMaybe<Scalars['DbUuid']['input']>;
+};
+
+export type CartUpdateInput = {
+  cartData?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+};
+
+export type Customer = {
+  __typename?: 'Customer';
+  address?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['LocalDateTime']['output'];
+  email?: Maybe<Scalars['String']['output']>;
+  fullName: Scalars['String']['output'];
+  id: Scalars['DbUuid']['output'];
+  phone?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type CustomerNewInput = {
+  address?: InputMaybe<Scalars['String']['input']>;
+  email?: InputMaybe<Scalars['String']['input']>;
+  fullName: Scalars['String']['input'];
+  phone?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CustomerUpdateInput = {
+  address?: InputMaybe<Scalars['String']['input']>;
+  email?: InputMaybe<Scalars['String']['input']>;
+  fullName?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  phone?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type Item = {
+  __typename?: 'Item';
+  category: ItemGroup;
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  nature: ItemNature;
+  price: Scalars['Money']['output'];
+  state: ItemState;
+  taxes: Array<Tax>;
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type ItemGroup = {
+  __typename?: 'ItemGroup';
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  state: ItemGroupState;
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type ItemGroupNew = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export enum ItemGroupState {
+  Active = 'ACTIVE',
+  Deleted = 'DELETED',
+  Inactive = 'INACTIVE'
+}
+
+export type ItemGroupUpdate = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  state?: InputMaybe<ItemGroupState>;
+  updatedAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
+};
+
+export enum ItemNature {
+  Goods = 'GOODS',
+  Service = 'SERVICE'
+}
+
+export enum ItemState {
+  Active = 'ACTIVE',
+  Deleted = 'DELETED',
+  Inactive = 'INACTIVE'
+}
+
+export type ItemTaxNewInput = {
+  itemId: Scalars['DbUuid']['input'];
+  taxId: Scalars['DbUuid']['input'];
+};
+
+export type Mutation = {
+  __typename?: 'Mutation';
+  addUser: User;
+  assignTaxToItem: Scalars['Int']['output'];
+  createCart: Cart;
+  createCustomer: Customer;
+  createItem: Item;
+  createItemCategory: ItemGroup;
+  createSalesOrder: SalesOrder;
+  createTax: Tax;
+  deleteCart: Scalars['Int']['output'];
+  deleteCustomer: Scalars['Int']['output'];
+  deleteItem: Scalars['Int']['output'];
+  deleteItemCategory: Scalars['Int']['output'];
+  deleteTax: Scalars['Int']['output'];
+  deleteUser: Scalars['Int']['output'];
+  login: Scalars['Boolean']['output'];
+  logout: Scalars['Boolean']['output'];
+  removeTaxFromItem: Scalars['Int']['output'];
+  updateCart: Cart;
+  updateCustomer: Customer;
+  updateItem: Item;
+  updateItemCategory: ItemGroup;
+  updateTax: Tax;
+  updateUser: User;
+  voidSalesOrder: SalesOrder;
+};
+
+
+export type MutationAddUserArgs = {
+  user: UserNewInput;
+};
+
+
+export type MutationAssignTaxToItemArgs = {
+  input: ItemTaxNewInput;
+};
+
+
+export type MutationCreateCartArgs = {
+  cart: CartNewInput;
+};
+
+
+export type MutationCreateCustomerArgs = {
+  customer: CustomerNewInput;
+};
+
+
+export type MutationCreateItemArgs = {
+  item: NewItem;
+};
+
+
+export type MutationCreateItemCategoryArgs = {
+  newCategory: ItemGroupNew;
+};
+
+
+export type MutationCreateSalesOrderArgs = {
+  salesOrder: SalesOrderNewInput;
+};
+
+
+export type MutationCreateTaxArgs = {
+  input: TaxNewInput;
+};
+
+
+export type MutationDeleteCartArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteCustomerArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteItemArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteItemCategoryArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteTaxArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteUserArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationLoginArgs = {
+  password: Scalars['String']['input'];
+  username: Scalars['String']['input'];
+};
+
+
+export type MutationRemoveTaxFromItemArgs = {
+  itemId: Scalars['DbUuid']['input'];
+  taxId: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationUpdateCartArgs = {
+  cart: CartUpdateInput;
+};
+
+
+export type MutationUpdateCustomerArgs = {
+  customer: CustomerUpdateInput;
+};
+
+
+export type MutationUpdateItemArgs = {
+  item: UpdateItem;
+};
+
+
+export type MutationUpdateItemCategoryArgs = {
+  category: ItemGroupUpdate;
+};
+
+
+export type MutationUpdateTaxArgs = {
+  input: TaxUpdateInput;
+};
+
+
+export type MutationUpdateUserArgs = {
+  user: UserUpdateInput;
+};
+
+
+export type MutationVoidSalesOrderArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+export type NewItem = {
+  categoryId: Scalars['DbUuid']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  nature: ItemNature;
+  price: Scalars['Money']['input'];
+  state: ItemState;
+  taxIds?: InputMaybe<Array<Scalars['DbUuid']['input']>>;
+};
+
+export type Query = {
+  __typename?: 'Query';
+  analyticsOverview: AnalyticsOverview;
+  apiVersion: Scalars['String']['output'];
+  cart: Cart;
+  carts: Array<Cart>;
+  customer: Customer;
+  customerByPhone: Customer;
+  customers: Array<Customer>;
+  item: Item;
+  itemCategories: Array<ItemGroup>;
+  items: Array<Item>;
+  itemsCategory: ItemGroup;
+  salesOrder: SalesOrder;
+  salesOrders: Array<SalesOrder>;
+  tax: Tax;
+  taxes: Array<Tax>;
+  totalCarts: Scalars['Int']['output'];
+  totalCustomers: Scalars['Int']['output'];
+  totalSalesOrders: Scalars['Int']['output'];
+  totalTaxes: Scalars['Int']['output'];
+  user: User;
+  users: Array<User>;
+};
+
+
+export type QueryAnalyticsOverviewArgs = {
+  days?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryCartArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryCartsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryCustomerArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryCustomerByPhoneArgs = {
+  phone: Scalars['String']['input'];
+};
+
+
+export type QueryCustomersArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryItemArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryItemCategoriesArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryItemsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryItemsCategoryArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QuerySalesOrderArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QuerySalesOrdersArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryTaxArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryTaxesArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryUserArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryUsersArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type SalesOrder = {
+  __typename?: 'SalesOrder';
+  createdAt: Scalars['LocalDateTime']['output'];
+  customer: Customer;
+  customerId: Scalars['DbUuid']['output'];
+  customerName: Scalars['String']['output'];
+  customerPhoneNumber: Scalars['String']['output'];
+  discAmount: Scalars['Money']['output'];
+  id: Scalars['DbUuid']['output'];
+  items: Array<SalesOrderItem>;
+  netAmount: Scalars['Money']['output'];
+  orderDate: Scalars['LocalDateTime']['output'];
+  state: SalesOrderState;
+  taxAmount: Scalars['Money']['output'];
+  taxableAmount: Scalars['Money']['output'];
+  totalAmount: Scalars['Money']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type SalesOrderItem = {
+  __typename?: 'SalesOrderItem';
+  createdAt: Scalars['LocalDateTime']['output'];
+  id: Scalars['DbUuid']['output'];
+  itemId: Scalars['DbUuid']['output'];
+  itemName: Scalars['String']['output'];
+  orderId: Scalars['DbUuid']['output'];
+  priceAmount: Scalars['Money']['output'];
+  quantity: Scalars['Int']['output'];
+  taxAmount: Scalars['Money']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type SalesOrderItemInput = {
+  itemId: Scalars['DbUuid']['input'];
+  itemName: Scalars['String']['input'];
+  priceAmount: Scalars['Money']['input'];
+  quantity: Scalars['Int']['input'];
+  taxAmount: Scalars['Money']['input'];
+};
+
+export type SalesOrderNewInput = {
+  customerId: Scalars['DbUuid']['input'];
+  customerName: Scalars['String']['input'];
+  customerPhoneNumber: Scalars['String']['input'];
+  discAmount: Scalars['Money']['input'];
+  items: Array<SalesOrderItemInput>;
+  netAmount: Scalars['Money']['input'];
+  orderDate: Scalars['LocalDateTime']['input'];
+  state: SalesOrderState;
+  taxAmount: Scalars['Money']['input'];
+  taxableAmount: Scalars['Money']['input'];
+  totalAmount: Scalars['Money']['input'];
+};
+
+export enum SalesOrderState {
+  Cancelled = 'CANCELLED',
+  Completed = 'COMPLETED',
+  Draft = 'DRAFT'
+}
+
+export type Tax = {
+  __typename?: 'Tax';
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  rate: Scalars['Int']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type TaxNewInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  itemIds?: InputMaybe<Array<Scalars['DbUuid']['input']>>;
+  name: Scalars['String']['input'];
+  rate: Scalars['Int']['input'];
+};
+
+export type TaxUpdateInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  rate?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type UpdateItem = {
+  categoryId?: InputMaybe<Scalars['DbUuid']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  nature?: InputMaybe<ItemNature>;
+  price?: InputMaybe<Scalars['Money']['input']>;
+  state?: InputMaybe<ItemState>;
+  updatedAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
+};
+
+export type User = {
+  __typename?: 'User';
+  createdAt: Scalars['LocalDateTime']['output'];
+  fullName: Scalars['String']['output'];
+  id: Scalars['DbUuid']['output'];
+  lastLoginAt?: Maybe<Scalars['LocalDateTime']['output']>;
+  state: UserState;
+  updatedAt: Scalars['LocalDateTime']['output'];
+  username: Scalars['String']['output'];
+};
+
+export type UserNewInput = {
+  fullName: Scalars['String']['input'];
+  pin: Scalars['String']['input'];
+  username: Scalars['String']['input'];
+};
+
+export enum UserState {
+  Active = 'ACTIVE',
+  Inactive = 'INACTIVE',
+  Locked = 'LOCKED'
+}
+
+export type UserUpdateInput = {
+  fullName?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  pin?: InputMaybe<Scalars['String']['input']>;
+  state?: InputMaybe<UserState>;
+  username?: InputMaybe<Scalars['String']['input']>;
+};
