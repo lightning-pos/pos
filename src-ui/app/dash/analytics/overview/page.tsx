@@ -1,42 +1,44 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Tile } from '@carbon/react'
-import { invoke } from '@tauri-apps/api/core'
+import { gql } from '@/lib/graphql/execute'
+import { GetAnalyticsOverviewDocument, AnalyticsOverview } from '@/lib/graphql/graphql'
 
-interface AnalyticsOverview {
-    totalSales: number
-    totalOrders: number
-    totalCustomers: number
-    totalProducts: number
-}
-
-const AnalyticsOverview = () => {
+const AnalyticsOverviewPage = () => {
     const [overview, setOverview] = useState<AnalyticsOverview | null>(null)
+    const [loading, setLoading] = useState(false)
     const days = 7
 
-    const fetchOverview = useCallback(async () => {
-        try {
-            const result: Array<{ analyticsOverview: AnalyticsOverview }> = await invoke('graphql', {
-                query: `#graphql
-                    query {
-                        analyticsOverview(days: ${days}) {
-                            totalSales
-                            totalOrders
-                            totalCustomers
-                            totalProducts
-                        }
-                    }
-                `
-            })
-            setOverview(result[0].analyticsOverview)
-        } catch (error) {
-            console.error('Error fetching analytics overview:', error)
-        }
-    }, [])
-
     useEffect(() => {
+        const fetchOverview = async () => {
+            try {
+                setLoading(true)
+                const result = await gql(GetAnalyticsOverviewDocument, { days })
+                if (result.analyticsOverview) {
+                    setOverview(result.analyticsOverview)
+                }
+            } catch (error) {
+                console.error('Error fetching analytics overview:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
         fetchOverview()
-    }, [fetchOverview])
+    }, [days])
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(amount / 100)
+    }
+
+    if (loading) {
+        return <div>Loading...</div>
+    }
 
     return (
         <>
@@ -45,7 +47,7 @@ const AnalyticsOverview = () => {
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
                     <Tile>
                         <h3 className='text-lg'>{days} Days Sales</h3>
-                        <p className='text-3xl font-medium mt-4'>Rs. {overview.totalSales / 100}</p>
+                        <p className='text-3xl font-medium mt-4'>{formatCurrency(overview.totalSales)}</p>
                     </Tile>
                     <Tile>
                         <h3 className='text-lg'>{days} Days Orders</h3>
@@ -67,4 +69,4 @@ const AnalyticsOverview = () => {
     )
 }
 
-export default AnalyticsOverview
+export default AnalyticsOverviewPage

@@ -1,0 +1,8 @@
+query GetAnalyticsOverview($days: Int!) {
+    analyticsOverview(days: $days) {
+        totalSales
+        totalOrders
+        totalCustomers
+        totalProducts
+    }
+}

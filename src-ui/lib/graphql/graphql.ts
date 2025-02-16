@@ -532,6 +532,13 @@ export type UserUpdateInput = {
   username?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type GetAnalyticsOverviewQueryVariables = Exact<{
+  days: Scalars['Int']['input'];
+}>;
+
+
+export type GetAnalyticsOverviewQuery = { __typename?: 'Query', analyticsOverview: { __typename?: 'AnalyticsOverview', totalSales: any, totalOrders: number, totalCustomers: number, totalProducts: number } };
+
 export type GetCategoriesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
   offset: Scalars['Int']['input'];
@@ -657,6 +664,16 @@ export class TypedDocumentString<TResult, TVariables>
   }
 }
 
+export const GetAnalyticsOverviewDocument = new TypedDocumentString(`
+    query GetAnalyticsOverview($days: Int!) {
+  analyticsOverview(days: $days) {
+    totalSales
+    totalOrders
+    totalCustomers
+    totalProducts
+  }
+}
+    `) as unknown as TypedDocumentString<GetAnalyticsOverviewQuery, GetAnalyticsOverviewQueryVariables>;
 export const GetCategoriesDocument = new TypedDocumentString(`
     query getCategories($first: Int!, $offset: Int!) {
   itemCategories(first: $first, offset: $offset) {
