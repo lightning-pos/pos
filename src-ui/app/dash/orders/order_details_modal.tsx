@@ -1,45 +1,6 @@
 import React from 'react';
 import { Modal, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, ModalProps } from '@carbon/react';
-
-interface SalesOrderState {
-    DRAFT: 'DRAFT'
-    COMPLETED: 'COMPLETED'
-    CANCELLED: 'CANCELLED'
-}
-
-interface SalesOrder {
-    id: string
-    customerId: string
-    customerName: string
-    customerPhoneNumber: string
-    orderDate: string
-    netAmount: number
-    discAmount: number
-    taxableAmount: number
-    taxAmount: number
-    totalAmount: number
-    state: keyof SalesOrderState
-    createdAt: string
-    updatedAt: string
-    customer: {
-        id: string
-        fullName: string
-        phone: string
-    }
-    items: SalesOrderItem[]
-}
-
-interface SalesOrderItem {
-    id: string
-    orderId: string
-    itemId: string
-    itemName: string
-    quantity: number
-    priceAmount: number
-    taxAmount: number
-    createdAt: string
-    updatedAt: string
-}
+import { SalesOrder, SalesOrderItem, SalesOrderState } from '@/lib/graphql/graphql';
 
 interface OrderDetailsModalProps extends ModalProps {
     order: SalesOrder
@@ -111,9 +72,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         )}
                     </DataTable>
                     <div className="mt-4">
-                        <p><strong>Subtotal:</strong> {formatPrice(order.netAmount ?? 0)}</p>
-                        <p><strong>Tax:</strong> {formatPrice(order.taxAmount ?? 0)}</p>
-                        <p><strong>Total:</strong> {formatPrice(order.totalAmount ?? 0)}</p>
+                        <p><strong>Subtotal:</strong> {formatPrice(Number(order.netAmount) ?? 0)}</p>
+                        <p><strong>Tax:</strong> {formatPrice(Number(order.taxAmount) ?? 0)}</p>
+                        <p><strong>Total:</strong> {formatPrice(Number(order.totalAmount) ?? 0)}</p>
                     </div>
                 </>
             )}

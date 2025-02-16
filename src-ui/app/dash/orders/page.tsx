@@ -1,49 +1,10 @@
 'use client'
 import { Receipt } from '@carbon/icons-react'
 import { Content, SideNav, SideNavItems, SideNavLink, DataTable, TableContainer, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination } from '@carbon/react'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import OrderDetailsModal from './order_details_modal'
-import { invoke } from '@tauri-apps/api/core'
-
-interface SalesOrderState {
-    DRAFT: 'DRAFT'
-    COMPLETED: 'COMPLETED'
-    CANCELLED: 'CANCELLED'
-}
-
-interface SalesOrder {
-    id: string
-    customerId: string
-    customerName: string
-    customerPhoneNumber: string
-    orderDate: string
-    netAmount: number
-    discAmount: number
-    taxableAmount: number
-    taxAmount: number
-    totalAmount: number
-    state: keyof SalesOrderState
-    createdAt: string
-    updatedAt: string
-    customer: {
-        id: string
-        fullName: string
-        phone: string
-    }
-    items: SalesOrderItem[]
-}
-
-interface SalesOrderItem {
-    id: string
-    orderId: string
-    itemId: string
-    itemName: string
-    quantity: number
-    priceAmount: number
-    taxAmount: number
-    createdAt: string
-    updatedAt: string
-}
+import { gql } from '@/lib/graphql/execute'
+import { GetSalesOrdersDocument, SalesOrder, SalesOrderItem } from '@/lib/graphql/graphql'
 
 interface PaymentMethod {
     method: string
@@ -53,9 +14,11 @@ interface PaymentMethod {
 const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
-        currency: 'INR'
-    }).format(price / 100);
-};
+        currency: 'INR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(price / 100)
+}
 
 const Orders = () => {
     const [orders, setOrders] = useState<SalesOrder[]>([])
@@ -66,61 +29,28 @@ const Orders = () => {
     const [loading, setLoading] = useState(false)
     const [totalOrders, setTotalOrders] = useState(0)
 
-    const fetchOrders = useCallback(async (page: number, size: number) => {
+    const fetchOrders = async (page: number, size: number) => {
         setLoading(true)
         try {
             const offset = (page - 1) * size
-            const result: Array<{ salesOrders: SalesOrder[], totalOrders: number }> = await invoke('graphql', {
-                query: `#graphql
-                    query {
-                        salesOrders(first: ${size}, offset: ${offset}) {
-                            id
-                            customerId
-                            customerName
-                            customerPhoneNumber
-                            orderDate
-                            netAmount
-                            discAmount
-                            taxableAmount
-                            taxAmount
-                            totalAmount
-                            state
-                            createdAt
-                            updatedAt
-                            customer {
-                                id
-                                fullName
-                                phone
-                            }
-                            items {
-                                id
-                                orderId
-                                itemId
-                                itemName
-                                quantity
-                                priceAmount
-                                taxAmount
-                                createdAt
-                                updatedAt
-                            }
-                        }
-                    }
-                `
-            })
-            setOrders(result[0].salesOrders)
-            setTotalOrders(result[0].totalOrders)
+            const result = await gql(GetSalesOrdersDocument, { first: size, offset })
+
+            if (result.salesOrders) {
+                setOrders(result.salesOrders)
+                setTotalOrders(result.totalSalesOrders)
+            }
         } catch (error) {
             console.error('Error fetching orders:', error)
         } finally {
             setLoading(false)
         }
-    }, [])
+    }
 
     useEffect(() => {
         fetchOrders(page, pageSize)
-    }, [fetchOrders, page, pageSize])
+    }, [page, pageSize])
 
-    const handleOrderClick = async (orderId: string) => {
+    const handleOrderClick = (orderId: string) => {
         const order = orders.find(o => o.id === orderId)
         if (order) {
             setSelectedOrder(order)
@@ -136,14 +66,14 @@ const Orders = () => {
 
     const formatPaymentMethods = (paymentMethodJson: string): string => {
         try {
-            const paymentMethods: PaymentMethod[] = JSON.parse(paymentMethodJson);
+            const paymentMethods: PaymentMethod[] = JSON.parse(paymentMethodJson)
             return paymentMethods
                 .filter(pm => pm.amount > 0)
                 .map(pm => `${pm.method} (${formatPrice(pm.amount)})`)
-                .join(', ');
+                .join(', ')
         } catch (error) {
-            console.error('Error parsing payment method JSON:', error);
-            return paymentMethodJson; // Return the original string if parsing fails
+            console.error('Error parsing payment method JSON:', error)
+            return paymentMethodJson // Return the original string if parsing fails
         }
     }
 
@@ -162,6 +92,10 @@ const Orders = () => {
         createdAt: new Date(order.createdAt ?? 0).toLocaleString(),
         status: order.state,
     }))
+
+    if (loading && orders.length === 0) {
+        return <div className="p-4">Loading orders...</div>
+    }
 
     return (
         <>
@@ -212,9 +146,8 @@ const Orders = () => {
                         pageSizes={[10, 20, 30, 40, 50]}
                         totalItems={totalOrders}
                         onChange={({ page, pageSize }) => {
-                            setPage(page);
-                            setPageSize(pageSize);
-                            fetchOrders(page, pageSize)
+                            setPage(page)
+                            setPageSize(pageSize)
                         }}
                     />
                 </div>

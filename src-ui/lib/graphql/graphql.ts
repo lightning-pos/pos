@@ -614,6 +614,14 @@ export type DeleteItemMutationVariables = Exact<{
 
 export type DeleteItemMutation = { __typename?: 'Mutation', deleteItem: number };
 
+export type GetSalesOrdersQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetSalesOrdersQuery = { __typename?: 'Query', totalSalesOrders: number, salesOrders: Array<{ __typename?: 'SalesOrder', id: any, customerId: any, customerName: string, customerPhoneNumber: string, orderDate: any, netAmount: any, discAmount: any, taxableAmount: any, taxAmount: any, totalAmount: any, state: SalesOrderState, createdAt: any, updatedAt: any, customer: { __typename?: 'Customer', id: any, fullName: string, phone?: string | null, createdAt: any, updatedAt: any }, items: Array<{ __typename?: 'SalesOrderItem', id: any, orderId: any, itemId: any, itemName: string, quantity: number, priceAmount: any, taxAmount: any, createdAt: any, updatedAt: any }> }> };
+
 export type GetPosCategoriesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
 }>;
@@ -846,6 +854,44 @@ export const DeleteItemDocument = new TypedDocumentString(`
   deleteItem(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteItemMutation, DeleteItemMutationVariables>;
+export const GetSalesOrdersDocument = new TypedDocumentString(`
+    query GetSalesOrders($first: Int!, $offset: Int!) {
+  salesOrders(first: $first, offset: $offset) {
+    id
+    customerId
+    customerName
+    customerPhoneNumber
+    orderDate
+    netAmount
+    discAmount
+    taxableAmount
+    taxAmount
+    totalAmount
+    state
+    createdAt
+    updatedAt
+    customer {
+      id
+      fullName
+      phone
+      createdAt
+      updatedAt
+    }
+    items {
+      id
+      orderId
+      itemId
+      itemName
+      quantity
+      priceAmount
+      taxAmount
+      createdAt
+      updatedAt
+    }
+  }
+  totalSalesOrders
+}
+    `) as unknown as TypedDocumentString<GetSalesOrdersQuery, GetSalesOrdersQueryVariables>;
 export const GetPosCategoriesDocument = new TypedDocumentString(`
     query getPosCategories($first: Int!) {
   itemCategories(first: $first) {

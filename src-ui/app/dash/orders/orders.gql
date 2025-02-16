@@ -1,0 +1,36 @@
+query GetSalesOrders($first: Int!, $offset: Int!) {
+    salesOrders(first: $first, offset: $offset) {
+        id
+        customerId
+        customerName
+        customerPhoneNumber
+        orderDate
+        netAmount
+        discAmount
+        taxableAmount
+        taxAmount
+        totalAmount
+        state
+        createdAt
+        updatedAt
+        customer {
+            id
+            fullName
+            phone
+            createdAt
+            updatedAt
+        }
+        items {
+            id
+            orderId
+            itemId
+            itemName
+            quantity
+            priceAmount
+            taxAmount
+            createdAt
+            updatedAt
+        }
+    }
+    totalSalesOrders
+}
