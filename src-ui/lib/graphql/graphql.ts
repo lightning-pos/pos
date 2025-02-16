@@ -614,6 +614,35 @@ export type DeleteItemMutationVariables = Exact<{
 
 export type DeleteItemMutation = { __typename?: 'Mutation', deleteItem: number };
 
+export type GetCustomersQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetCustomersQuery = { __typename?: 'Query', totalCustomers: number, customers: Array<{ __typename?: 'Customer', id: any, fullName: string, email?: string | null, phone?: string | null, address?: string | null, createdAt: any, updatedAt: any }> };
+
+export type CreateCustomerMutationVariables = Exact<{
+  input: CustomerNewInput;
+}>;
+
+
+export type CreateCustomerMutation = { __typename?: 'Mutation', createCustomer: { __typename?: 'Customer', id: any, fullName: string, email?: string | null, phone?: string | null, address?: string | null, createdAt: any, updatedAt: any } };
+
+export type UpdateCustomerMutationVariables = Exact<{
+  input: CustomerUpdateInput;
+}>;
+
+
+export type UpdateCustomerMutation = { __typename?: 'Mutation', updateCustomer: { __typename?: 'Customer', id: any, fullName: string, email?: string | null, phone?: string | null, address?: string | null, createdAt: any, updatedAt: any } };
+
+export type DeleteCustomerMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteCustomerMutation = { __typename?: 'Mutation', deleteCustomer: number };
+
 export type GetSalesOrdersQueryVariables = Exact<{
   first: Scalars['Int']['input'];
   offset: Scalars['Int']['input'];
@@ -854,6 +883,51 @@ export const DeleteItemDocument = new TypedDocumentString(`
   deleteItem(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteItemMutation, DeleteItemMutationVariables>;
+export const GetCustomersDocument = new TypedDocumentString(`
+    query GetCustomers($first: Int!, $offset: Int!) {
+  customers(first: $first, offset: $offset) {
+    id
+    fullName
+    email
+    phone
+    address
+    createdAt
+    updatedAt
+  }
+  totalCustomers
+}
+    `) as unknown as TypedDocumentString<GetCustomersQuery, GetCustomersQueryVariables>;
+export const CreateCustomerDocument = new TypedDocumentString(`
+    mutation CreateCustomer($input: CustomerNewInput!) {
+  createCustomer(customer: $input) {
+    id
+    fullName
+    email
+    phone
+    address
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateCustomerMutation, CreateCustomerMutationVariables>;
+export const UpdateCustomerDocument = new TypedDocumentString(`
+    mutation UpdateCustomer($input: CustomerUpdateInput!) {
+  updateCustomer(customer: $input) {
+    id
+    fullName
+    email
+    phone
+    address
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateCustomerMutation, UpdateCustomerMutationVariables>;
+export const DeleteCustomerDocument = new TypedDocumentString(`
+    mutation DeleteCustomer($id: DbUuid!) {
+  deleteCustomer(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteCustomerMutation, DeleteCustomerMutationVariables>;
 export const GetSalesOrdersDocument = new TypedDocumentString(`
     query GetSalesOrders($first: Int!, $offset: Int!) {
   salesOrders(first: $first, offset: $offset) {

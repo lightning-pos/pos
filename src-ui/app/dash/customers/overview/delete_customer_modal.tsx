@@ -1,43 +1,34 @@
 import React from 'react'
 import { Modal } from '@carbon/react'
-
-interface Customer {
-    id: string
-    name: string
-    email?: string | null
-    phoneNumber?: string | null
-    countryCode?: string | null
-    createdAt: string
-    updatedAt: string
-}
+import { Scalars } from '@/lib/graphql/graphql'
 
 interface DeleteCustomerModalProps {
     isOpen: boolean
-    editingCustomer: Partial<Customer> | null
+    customerId: Scalars['DbUuid']['input']
+    customerName: string
     onClose: () => void
     onDelete: () => void
 }
 
 const DeleteCustomerModal: React.FC<DeleteCustomerModalProps> = ({
     isOpen,
-    editingCustomer,
+    customerId,
+    customerName,
     onClose,
     onDelete
 }) => {
-    if (!editingCustomer) return null
-
     return (
         <Modal
             open={isOpen}
-            onRequestClose={onClose}
             modalHeading="Delete Customer"
             primaryButtonText="Delete"
             secondaryButtonText="Cancel"
-            danger
-            onSecondarySubmit={onClose}
             onRequestSubmit={onDelete}
+            onRequestClose={onClose}
+            danger
         >
-            <p>Are you sure you want to delete the customer &quot;{editingCustomer.name}&quot;? This action cannot be undone.</p>
+            <p>Are you sure you want to delete customer {customerName}?</p>
+            <p>This action cannot be undone.</p>
         </Modal>
     )
 }

@@ -1,0 +1,40 @@
+query GetCustomers($first: Int!, $offset: Int!) {
+    customers(first: $first, offset: $offset) {
+        id
+        fullName
+        email
+        phone
+        address
+        createdAt
+        updatedAt
+    }
+    totalCustomers
+}
+
+mutation CreateCustomer($input: CustomerNewInput!) {
+    createCustomer(customer: $input) {
+        id
+        fullName
+        email
+        phone
+        address
+        createdAt
+        updatedAt
+    }
+}
+
+mutation UpdateCustomer($input: CustomerUpdateInput!) {
+    updateCustomer(customer: $input) {
+        id
+        fullName
+        email
+        phone
+        address
+        createdAt
+        updatedAt
+    }
+}
+
+mutation DeleteCustomer($id: DbUuid!) {
+    deleteCustomer(id: $id)
+}

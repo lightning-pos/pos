@@ -1,28 +1,22 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
 import { Content } from '@carbon/react'
-import SaveCustomerModal from './save_customer_modal'
 import DataTable from '@/components/ui/DataTable'
 import DeleteCustomerModal from './delete_customer_modal'
-import { invoke } from '@tauri-apps/api/core'
-
-interface Customer {
-    id: string
-    fullName: string
-    email?: string | null
-    phone?: string | null
-    address?: string | null
-    createdAt: string
-    updatedAt: string
-}
+import AddCustomerModal from './add_customer_modal'
+import EditCustomerModal from './edit_customer_modal'
+import { gql } from '@/lib/graphql/execute'
+import { GetCustomersDocument, CreateCustomerDocument, UpdateCustomerDocument, DeleteCustomerDocument, Customer } from '@/lib/graphql/graphql'
 
 const CustomersOverview = () => {
     // State declarations
     const [customers, setCustomers] = useState<Customer[]>([])
     const [totalCustomers, setTotalCustomers] = useState(0)
     const [loading, setLoading] = useState(true)
-    const [editingCustomer, setEditingCustomer] = useState<Partial<Customer> | null>(null)
-    const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+    const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({})
+    const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(10)
@@ -32,24 +26,9 @@ const CustomersOverview = () => {
         setLoading(true)
         try {
             const offset = (page - 1) * size
-            const result: Array<{ customers: Customer[], totalCustomers: number }> = await invoke('graphql', {
-                query: `#graphql
-                    query {
-                        customers(first: ${size}, offset: ${offset}) {
-                            id
-                            fullName
-                            email
-                            phone
-                            address
-                            createdAt
-                            updatedAt
-                        }
-                        totalCustomers
-                    }
-                `
-            })
-            setCustomers(result[0].customers)
-            setTotalCustomers(result[0].totalCustomers)
+            const result = await gql(GetCustomersDocument, { first: size, offset })
+            setCustomers(result.customers)
+            setTotalCustomers(result.totalCustomers)
         } catch (error) {
             console.error('Error fetching customers:', error)
         } finally {
@@ -64,31 +43,17 @@ const CustomersOverview = () => {
 
     // Add customer
     const handleAddCustomer = async () => {
-        if (!editingCustomer) return
-
         try {
-            const result: Array<{ createCustomer: Customer }> = await invoke('graphql', {
-                query: `#graphql
-                    mutation {
-                        createCustomer(input: {
-                            fullName: "${editingCustomer.fullName || ''}"
-                            email: ${editingCustomer.email ? `"${editingCustomer.email}"` : 'null'}
-                            phone: ${editingCustomer.phone ? `"${editingCustomer.phone}"` : 'null'}
-                            address: ${editingCustomer.address ? `"${editingCustomer.address}"` : 'null'}
-                        }) {
-                            id
-                            fullName
-                            email
-                            phone
-                            address
-                            createdAt
-                            updatedAt
-                        }
-                    }
-                `
+            await gql(CreateCustomerDocument, {
+                input: {
+                    fullName: newCustomer.fullName || '',
+                    email: newCustomer.email || null,
+                    phone: newCustomer.phone || null,
+                    address: newCustomer.address || null
+                }
             })
-            setIsSaveModalOpen(false)
-            setEditingCustomer(null)
+            setIsAddModalOpen(false)
+            setNewCustomer({})
             fetchCustomers(currentPage, pageSize)
         } catch (error) {
             console.error('Error adding customer:', error)
@@ -97,31 +62,19 @@ const CustomersOverview = () => {
 
     // Update customer
     const handleUpdateCustomer = async () => {
-        if (!editingCustomer || !editingCustomer.id) return
+        if (!editingCustomer?.id) return
 
         try {
-            const result: Array<{ updateCustomer: Customer }> = await invoke('graphql', {
-                query: `#graphql
-                    mutation {
-                        updateCustomer(input: {
-                            id: "${editingCustomer.id}"
-                            fullName: ${editingCustomer.fullName ? `"${editingCustomer.fullName}"` : 'null'}
-                            email: ${editingCustomer.email ? `"${editingCustomer.email}"` : 'null'}
-                            phone: ${editingCustomer.phone ? `"${editingCustomer.phone}"` : 'null'}
-                            address: ${editingCustomer.address ? `"${editingCustomer.address}"` : 'null'}
-                        }) {
-                            id
-                            fullName
-                            email
-                            phone
-                            address
-                            createdAt
-                            updatedAt
-                        }
-                    }
-                `
+            await gql(UpdateCustomerDocument, {
+                input: {
+                    id: editingCustomer.id,
+                    fullName: editingCustomer.fullName,
+                    email: editingCustomer.email,
+                    phone: editingCustomer.phone,
+                    address: editingCustomer.address
+                }
             })
-            setIsSaveModalOpen(false)
+            setIsEditModalOpen(false)
             setEditingCustomer(null)
             fetchCustomers(currentPage, pageSize)
         } catch (error) {
@@ -132,16 +85,7 @@ const CustomersOverview = () => {
     // Delete customer
     const handleDeleteCustomer = async (id: string) => {
         try {
-            await invoke('graphql', {
-                query: `#graphql
-                    mutation DeleteCustomer($id: DbUuid!) {
-                        deleteCustomer(id: $id)
-                    }
-                `,
-                variables: {
-                    id
-                }
-            })
+            await gql(DeleteCustomerDocument, { id })
             setIsDeleteModalOpen(false)
             setEditingCustomer(null)
             fetchCustomers(currentPage, pageSize)
@@ -176,12 +120,12 @@ const CustomersOverview = () => {
                         fetchCustomers(page, pageSize)
                     }}
                     onAddClick={() => {
-                        setEditingCustomer({})
-                        setIsSaveModalOpen(true)
+                        setNewCustomer({})
+                        setIsAddModalOpen(true)
                     }}
                     onEditClick={(customer: Customer) => {
                         setEditingCustomer(customer)
-                        setIsSaveModalOpen(true)
+                        setIsEditModalOpen(true)
                     }}
                     onDeleteClick={(customer: Customer) => {
                         setEditingCustomer(customer)
@@ -189,19 +133,35 @@ const CustomersOverview = () => {
                     }}
                 />
             </div>
-            <SaveCustomerModal
-                isOpen={isSaveModalOpen}
-                editingCustomer={editingCustomer}
+
+            <AddCustomerModal
+                isOpen={isAddModalOpen}
+                customer={newCustomer}
                 onClose={() => {
-                    setIsSaveModalOpen(false)
-                    setEditingCustomer({})
+                    setIsAddModalOpen(false)
+                    setNewCustomer({})
                 }}
-                setEditingCustomer={setEditingCustomer}
-                onSave={editingCustomer?.id ? handleUpdateCustomer : handleAddCustomer}
+                setCustomer={setNewCustomer}
+                onSave={handleAddCustomer}
             />
+
+            {editingCustomer && (
+                <EditCustomerModal
+                    isOpen={isEditModalOpen}
+                    customer={editingCustomer}
+                    onClose={() => {
+                        setIsEditModalOpen(false)
+                        setEditingCustomer(null)
+                    }}
+                    setCustomer={setEditingCustomer}
+                    onSave={handleUpdateCustomer}
+                />
+            )}
+
             <DeleteCustomerModal
                 isOpen={isDeleteModalOpen}
-                editingCustomer={editingCustomer}
+                customerId={editingCustomer?.id || ''}
+                customerName={editingCustomer?.fullName || ''}
                 onClose={() => {
                     setIsDeleteModalOpen(false)
                     setEditingCustomer(null)
