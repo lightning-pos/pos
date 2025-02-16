@@ -1,0 +1,47 @@
+query getCategories($first: Int!, $offset: Int!) {
+    itemCategories(first: $first, offset: $offset) {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+query getCategory($id: DbUuid!) {
+    itemsCategory(id: $id) {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+mutation createCategory($input: ItemGroupNew!) {
+    createItemCategory(newCategory: $input) {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+mutation updateCategory($input: ItemGroupUpdate!) {
+    updateItemCategory(category: $input) {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+mutation deleteCategory($id: DbUuid!) {
+    deleteItemCategory(id: $id)
+}

@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
@@ -530,3 +531,108 @@ export type UserUpdateInput = {
   state?: InputMaybe<UserState>;
   username?: InputMaybe<Scalars['String']['input']>;
 };
+
+export type GetCategoriesQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetCategoriesQuery = { __typename?: 'Query', itemCategories: Array<{ __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any }> };
+
+export type GetCategoryQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetCategoryQuery = { __typename?: 'Query', itemsCategory: { __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any } };
+
+export type CreateCategoryMutationVariables = Exact<{
+  input: ItemGroupNew;
+}>;
+
+
+export type CreateCategoryMutation = { __typename?: 'Mutation', createItemCategory: { __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any } };
+
+export type UpdateCategoryMutationVariables = Exact<{
+  input: ItemGroupUpdate;
+}>;
+
+
+export type UpdateCategoryMutation = { __typename?: 'Mutation', updateItemCategory: { __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any } };
+
+export type DeleteCategoryMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteCategoryMutation = { __typename?: 'Mutation', deleteItemCategory: number };
+
+export class TypedDocumentString<TResult, TVariables>
+  extends String
+  implements DocumentTypeDecoration<TResult, TVariables>
+{
+  __apiType?: DocumentTypeDecoration<TResult, TVariables>['__apiType'];
+
+  constructor(private value: string, public __meta__?: Record<string, any> | undefined) {
+    super(value);
+  }
+
+  toString(): string & DocumentTypeDecoration<TResult, TVariables> {
+    return this.value;
+  }
+}
+
+export const GetCategoriesDocument = new TypedDocumentString(`
+    query getCategories($first: Int!, $offset: Int!) {
+  itemCategories(first: $first, offset: $offset) {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetCategoriesQuery, GetCategoriesQueryVariables>;
+export const GetCategoryDocument = new TypedDocumentString(`
+    query getCategory($id: DbUuid!) {
+  itemsCategory(id: $id) {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetCategoryQuery, GetCategoryQueryVariables>;
+export const CreateCategoryDocument = new TypedDocumentString(`
+    mutation createCategory($input: ItemGroupNew!) {
+  createItemCategory(newCategory: $input) {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateCategoryMutation, CreateCategoryMutationVariables>;
+export const UpdateCategoryDocument = new TypedDocumentString(`
+    mutation updateCategory($input: ItemGroupUpdate!) {
+  updateItemCategory(category: $input) {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateCategoryMutation, UpdateCategoryMutationVariables>;
+export const DeleteCategoryDocument = new TypedDocumentString(`
+    mutation deleteCategory($id: DbUuid!) {
+  deleteItemCategory(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteCategoryMutation, DeleteCategoryMutationVariables>;

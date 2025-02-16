@@ -1,196 +1,141 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Content } from '@carbon/react'
 import DataTable from '@/components/ui/DataTable'
-import SaveCategoryModal from './save_category_modal'
+import { GetCategoriesDocument, ItemGroup, ItemGroupNew, ItemGroupUpdate, CreateCategoryDocument, UpdateCategoryDocument, DeleteCategoryDocument } from '@/lib/graphql/graphql'
+import { gql } from '@/lib/graphql/execute'
+import AddCategoryModal from './add_category_modal'
+import EditCategoryModal from './edit_category_modal'
 import DeleteCategoryModal from './delete_category_modal'
-import { invoke } from '@tauri-apps/api/core'
-
-interface ItemCategory {
-    id: string
-    name: string
-    description?: string
-    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
-    createdAt: string
-    updatedAt: string
-}
-
-interface NewItemCategory {
-    id?: string
-    name: string
-    description?: string
-    state?: 'ACTIVE' | 'INACTIVE' | 'DELETED'
-}
 
 const Categories = () => {
-    const [categories, setCategories] = useState<ItemCategory[]>([])
-    const [loading, setLoading] = useState(true)
-    const [editingCategory, setEditingCategory] = useState<NewItemCategory | null>(null)
-    const [isModalOpen, setIsModalOpen] = useState(false)
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [categories, setCategories] = useState<ItemGroup[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const [pageSize, setPageSize] = useState(10)
 
+    // Modal States
+    const [selectedCategory, setSelectedCategory] = useState<ItemGroup | null>(null)
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+
     const fetchCategories = useCallback(async (page: number, size: number) => {
-        setLoading(true)
         try {
-            const offset = (page - 1) * size
-            const result: Array<{ itemCategories: ItemCategory[] }> = await invoke('graphql', {
-                query: `#graphql
-                    query {
-                        itemCategories(first: ${size}, offset: ${offset}) {
-                            id name description state createdAt updatedAt
-                        }
-                    }
-                `,
+            const result = await gql(GetCategoriesDocument, {
+                first: size,
+                offset: (page - 1) * size
             })
-            setCategories(result[0].itemCategories)
+            setCategories(result.itemCategories)
         } catch (error) {
             console.error('Error fetching categories:', error)
-        } finally {
-            setLoading(false)
         }
     }, [])
+
+    const handleAddCategory = async (category: ItemGroupNew) => {
+        try {
+            await gql(CreateCategoryDocument, { input: category })
+            await fetchCategories(currentPage, pageSize)
+            setIsAddModalOpen(false)
+        } catch (error) {
+            console.error('Error adding category:', error)
+        }
+    }
+
+    const handleEditCategory = async (category: ItemGroupUpdate) => {
+        try {
+            await gql(UpdateCategoryDocument, { input: category })
+            await fetchCategories(currentPage, pageSize)
+            setIsEditModalOpen(false)
+            setSelectedCategory(null)
+        } catch (error) {
+            console.error('Error updating category:', error)
+        }
+    }
+
+    const handleDeleteCategory = async (id: string) => {
+        try {
+            await gql(DeleteCategoryDocument, { id })
+            await fetchCategories(currentPage, pageSize)
+            setIsDeleteModalOpen(false)
+            setSelectedCategory(null)
+        } catch (error) {
+            console.error('Error deleting category:', error)
+        }
+    }
 
     useEffect(() => {
         fetchCategories(currentPage, pageSize)
     }, [fetchCategories, currentPage, pageSize])
 
-    const handleAddCategory = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!editingCategory) return
-
-        try {
-            await invoke('graphql', {
-                query: `#graphql
-                    mutation {
-                        createItemCategory(
-                            newCategory: { name: "${editingCategory.name}", description: "${editingCategory.description || ''}" }
-                        ) {
-                            id name description state createdAt updatedAt
-                        }
-                    }
-                `,
-            })
-
-            setIsModalOpen(false)
-            setEditingCategory(null)
-            fetchCategories(currentPage, pageSize)
-        } catch (error) {
-            console.error('Error creating category:', error)
-            alert('Failed to create category')
-        }
-    }
-
-    const handleEditCategory = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!editingCategory || !editingCategory.id) return
-
-        try {
-            await invoke('graphql', {
-                query: `#graphql
-                    mutation {
-                        updateItemCategory(
-                            category: {
-                                id: "${editingCategory.id}",
-                                name: "${editingCategory.name}",
-                                description: "${editingCategory.description || ''}",
-                                state: ${editingCategory.state || 'ACTIVE'}
-                            }
-                        ) {
-                            id name description state createdAt updatedAt
-                        }
-                    }
-                `,
-            })
-
-            setIsModalOpen(false)
-            setEditingCategory(null)
-            fetchCategories(currentPage, pageSize)
-        } catch (error) {
-            console.error('Error updating category:', error)
-            alert('Failed to update category')
-        }
-    }
-
-    const handleDeleteCategory = async () => {
-        if (!editingCategory?.id) return
-
-        try {
-            await invoke('graphql', {
-                query: `#graphql
-                    mutation {
-                        deleteItemCategory(id: "${editingCategory.id}")
-                    }
-                `,
-            })
-
-            setIsDeleteModalOpen(false)
-            setEditingCategory(null)
-            fetchCategories(currentPage, pageSize)
-        } catch (error) {
-            console.error('Error deleting category:', error)
-            alert('Failed to delete category')
-        }
-    }
-
     const headers = [
         { key: 'name', header: 'Name' },
         { key: 'description', header: 'Description' },
-        { key: 'state', header: 'State' }
+        { key: 'state', header: 'Status' }
     ]
-
-    const handleOpenAddModal = () => {
-        setEditingCategory({ name: '', description: '', state: 'ACTIVE' })
-        setIsModalOpen(true)
-    }
-
-    const handleOpenEditModal = (category: ItemCategory) => {
-        setEditingCategory(category)
-        setIsModalOpen(true)
-    }
-
-    const handleOpenDeleteModal = (category: ItemCategory) => {
-        setEditingCategory(category)
-        setIsDeleteModalOpen(true)
-    }
 
     return (
         <Content className='min-h-[calc(100dvh-3rem)] p-0 flex flex-col'>
-            <div className="p-4 flex-grow flex flex-col" style={{ height: 'calc(100vh - 12rem)' }}>
-                <DataTable<ItemCategory>
-                    title="Category"
+            <div className="p-4 flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold">Categories</h1>
+                </div>
+
+                <DataTable<ItemGroup>
+                    title="Categories"
                     description="Manage your categories here. You can add, edit, or delete categories as needed."
                     headers={headers}
                     tableRows={categories}
-                    loading={loading}
+                    loading={false}
                     totalItems={categories.length}
                     currentPage={currentPage}
                     pageSize={pageSize}
                     pageSizes={[10, 20, 30, 40, 50]}
-                    onPageChange={(page, pageSize) => {
+                    onPageChange={(page, size) => {
                         setCurrentPage(page)
-                        setPageSize(pageSize)
-                        fetchCategories(page, pageSize)
+                        setPageSize(size)
+                        fetchCategories(page, size)
                     }}
-                    onAddClick={handleOpenAddModal}
-                    onEditClick={handleOpenEditModal}
-                    onDeleteClick={handleOpenDeleteModal}
+                    onAddClick={() => setIsAddModalOpen(true)}
+                    onEditClick={(item) => {
+                        setSelectedCategory(item)
+                        setIsEditModalOpen(true)
+                    }}
+                    onDeleteClick={(item) => {
+                        setSelectedCategory(item)
+                        setIsDeleteModalOpen(true)
+                    }}
                 />
+
+                <AddCategoryModal
+                    open={isAddModalOpen}
+                    onRequestClose={() => setIsAddModalOpen(false)}
+                    onSave={handleAddCategory}
+                />
+
+                {selectedCategory && (
+                    <EditCategoryModal
+                        open={isEditModalOpen}
+                        onRequestClose={() => {
+                            setIsEditModalOpen(false)
+                            setSelectedCategory(null)
+                        }}
+                        onSave={handleEditCategory}
+                        category={selectedCategory}
+                    />
+                )}
+
+                {selectedCategory && (
+                    <DeleteCategoryModal
+                        isOpen={isDeleteModalOpen}
+                        onClose={() => {
+                            setIsDeleteModalOpen(false)
+                            setSelectedCategory(null)
+                        }}
+                        onDelete={() => handleDeleteCategory(selectedCategory.id)}
+                        categoryName={selectedCategory.name}
+                    />
+                )}
             </div>
-            <SaveCategoryModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSave={editingCategory?.id ? handleEditCategory : handleAddCategory}
-                category={editingCategory}
-                setCategory={setEditingCategory}
-            />
-            <DeleteCategoryModal
-                isOpen={isDeleteModalOpen}
-                onClose={() => setIsDeleteModalOpen(false)}
-                onDelete={handleDeleteCategory}
-                categoryName={editingCategory?.name || ''}
-            />
         </Content>
     )
 }
