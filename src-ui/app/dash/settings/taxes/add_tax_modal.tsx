@@ -8,23 +8,38 @@ const AddTaxModal: React.FC<ModalProps> = ({
     onRequestSubmit,
     onRequestClose,
 }) => {
-    const [newTax, setNewTax] = useState<TaxNewInput>({
+    const [newTax, setNewTax] = useState<Omit<TaxNewInput, 'rate'> & { rate: string }>({
         name: '',
-        rate: 0,
+        rate: '',
         description: ''
     })
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
-        setNewTax(prev => ({ ...prev, [name]: name === 'rate' ? parseFloat(value) : value }))
+        if (name === 'rate') {
+            // Only allow numbers and decimal point
+            const sanitizedValue = value.replace(/[^0-9.]/g, '')
+            // Ensure only one decimal point
+            const parts = sanitizedValue.split('.')
+            const finalValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : sanitizedValue
+            setNewTax(prev => ({ ...prev, rate: finalValue }))
+        } else {
+            setNewTax(prev => ({ ...prev, [name]: value }))
+        }
     }
 
     const handleSaveTax = async (e: React.MouseEvent<HTMLElement>) => {
         try {
+            const rateAsNumber = parseFloat(newTax.rate || '0')
+            if (isNaN(rateAsNumber)) {
+                console.error('Invalid tax rate')
+                return
+            }
+
             await gql(CreateTaxDocument, {
                 input: {
                     ...newTax,
-                    rate: Math.round(newTax.rate * 100) // Convert decimal to integer percentage
+                    rate: Math.round(rateAsNumber * 100) // Convert decimal to integer percentage
                 }
             })
             onRequestSubmit?.(e)
@@ -55,10 +70,10 @@ const AddTaxModal: React.FC<ModalProps> = ({
                     id="rate"
                     name="rate"
                     labelText="Rate (%)"
-                    type="number"
                     value={newTax.rate}
                     onChange={handleInputChange}
                     required
+                    placeholder="e.g. 18.5"
                 />
                 <TextInput
                     id="description"

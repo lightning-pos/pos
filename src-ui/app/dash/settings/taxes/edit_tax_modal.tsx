@@ -13,25 +13,47 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
     onRequestSubmit,
     tax
 }) => {
-    const [editingTax, setEditingTax] = useState<Tax | null>(null)
+    const [editingTax, setEditingTax] = useState<Omit<Tax, 'rate'> & { rate: string } | null>(null)
 
     useEffect(() => {
-        setEditingTax(tax)
+        if (tax) {
+            setEditingTax({
+                ...tax,
+                rate: tax.rate.toString()
+            })
+        }
     }, [tax])
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
-        setEditingTax(prev => prev ? { ...prev, [name]: name === 'rate' ? parseFloat(value) : value } : null)
+        if (!editingTax) return
+
+        if (name === 'rate') {
+            // Only allow numbers and decimal point
+            const sanitizedValue = value.replace(/[^0-9.]/g, '')
+            // Ensure only one decimal point
+            const parts = sanitizedValue.split('.')
+            const finalValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : sanitizedValue
+            setEditingTax(prev => prev ? { ...prev, rate: finalValue } : null)
+        } else {
+            setEditingTax(prev => prev ? { ...prev, [name]: value } : null)
+        }
     }
 
     const handleSaveTax = async (e: React.MouseEvent<HTMLElement>) => {
         if (!editingTax) return
 
         try {
+            const rateAsNumber = parseFloat(editingTax.rate || '0')
+            if (isNaN(rateAsNumber)) {
+                console.error('Invalid tax rate')
+                return
+            }
+
             const input: TaxUpdateInput = {
                 id: editingTax.id,
                 name: editingTax.name,
-                rate: Math.round(editingTax.rate * 100), // Convert decimal to integer percentage
+                rate: Math.round(rateAsNumber * 100), // Convert decimal to integer percentage
                 description: editingTax.description || undefined
             }
 
@@ -66,10 +88,10 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
                     id="rate"
                     name="rate"
                     labelText="Rate (%)"
-                    type="number"
                     value={editingTax.rate}
                     onChange={handleInputChange}
                     required
+                    placeholder="e.g. 18.5"
                 />
                 <TextInput
                     id="description"
