@@ -10,7 +10,21 @@ const config: CodegenConfig = {
         './lib/graphql/': {
             preset: 'client',
             config: {
-                documentMode: 'string'
+                documentMode: 'string',
+                scalars: {
+                    DbUuid: {
+                        input: 'string',
+                        output: 'string',
+                    },
+                    LocalDateTime: {
+                        input: 'string',
+                        output: 'string',
+                    },
+                    Money: {
+                        input: 'string',
+                        output: 'number',
+                    },
+                }
             }
         },
     }
