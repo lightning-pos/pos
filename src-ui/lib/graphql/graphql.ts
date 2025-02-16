@@ -568,6 +568,45 @@ export type DeleteCategoryMutationVariables = Exact<{
 
 export type DeleteCategoryMutation = { __typename?: 'Mutation', deleteItemCategory: number };
 
+export type GetItemsQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: any, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: any, createdAt: any, updatedAt: any, category: { __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any }, taxes: Array<{ __typename?: 'Tax', id: any, name: string, rate: number, description?: string | null, createdAt: any, updatedAt: any }> }> };
+
+export type GetItemCategoriesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetItemCategoriesQuery = { __typename?: 'Query', itemCategories: Array<{ __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any }> };
+
+export type GetItemTaxesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetItemTaxesQuery = { __typename?: 'Query', taxes: Array<{ __typename?: 'Tax', id: any, name: string, rate: number, description?: string | null, createdAt: any, updatedAt: any }> };
+
+export type CreateItemMutationVariables = Exact<{
+  input: NewItem;
+}>;
+
+
+export type CreateItemMutation = { __typename?: 'Mutation', createItem: { __typename?: 'Item', id: any, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: any, createdAt: any, updatedAt: any, category: { __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any }, taxes: Array<{ __typename?: 'Tax', id: any, name: string, rate: number, description?: string | null, createdAt: any, updatedAt: any }> } };
+
+export type UpdateItemMutationVariables = Exact<{
+  input: UpdateItem;
+}>;
+
+
+export type UpdateItemMutation = { __typename?: 'Mutation', updateItem: { __typename?: 'Item', id: any, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: any, createdAt: any, updatedAt: any, category: { __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any }, taxes: Array<{ __typename?: 'Tax', id: any, name: string, rate: number, description?: string | null, createdAt: any, updatedAt: any }> } };
+
+export type DeleteItemMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteItemMutation = { __typename?: 'Mutation', deleteItem: number };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -636,3 +675,122 @@ export const DeleteCategoryDocument = new TypedDocumentString(`
   deleteItemCategory(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteCategoryMutation, DeleteCategoryMutationVariables>;
+export const GetItemsDocument = new TypedDocumentString(`
+    query getItems($first: Int!, $offset: Int!) {
+  items(first: $first, offset: $offset) {
+    id
+    name
+    description
+    nature
+    state
+    price
+    createdAt
+    updatedAt
+    category {
+      id
+      name
+      description
+      state
+      createdAt
+      updatedAt
+    }
+    taxes {
+      id
+      name
+      rate
+      description
+      createdAt
+      updatedAt
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetItemsQuery, GetItemsQueryVariables>;
+export const GetItemCategoriesDocument = new TypedDocumentString(`
+    query getItemCategories {
+  itemCategories {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetItemCategoriesQuery, GetItemCategoriesQueryVariables>;
+export const GetItemTaxesDocument = new TypedDocumentString(`
+    query getItemTaxes {
+  taxes {
+    id
+    name
+    rate
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetItemTaxesQuery, GetItemTaxesQueryVariables>;
+export const CreateItemDocument = new TypedDocumentString(`
+    mutation createItem($input: NewItem!) {
+  createItem(item: $input) {
+    id
+    name
+    description
+    nature
+    state
+    price
+    createdAt
+    updatedAt
+    category {
+      id
+      name
+      description
+      state
+      createdAt
+      updatedAt
+    }
+    taxes {
+      id
+      name
+      rate
+      description
+      createdAt
+      updatedAt
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<CreateItemMutation, CreateItemMutationVariables>;
+export const UpdateItemDocument = new TypedDocumentString(`
+    mutation updateItem($input: UpdateItem!) {
+  updateItem(item: $input) {
+    id
+    name
+    description
+    nature
+    state
+    price
+    createdAt
+    updatedAt
+    category {
+      id
+      name
+      description
+      state
+      createdAt
+      updatedAt
+    }
+    taxes {
+      id
+      name
+      rate
+      description
+      createdAt
+      updatedAt
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateItemMutation, UpdateItemMutationVariables>;
+export const DeleteItemDocument = new TypedDocumentString(`
+    mutation deleteItem($id: DbUuid!) {
+  deleteItem(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteItemMutation, DeleteItemMutationVariables>;

@@ -1,168 +1,132 @@
-"use client";
-import React, { useState, useEffect, useCallback } from "react";
-import { Content } from "@carbon/react";
-import DataTable from "@/components/ui/DataTable";
-import AddItemModal from "./add_item_modal";
-import EditItemModal from "./edit_item_modal";
-import DeleteItemModal from "./delete_item_modal";
-import { invoke } from "@tauri-apps/api/core";
-
-interface Tax {
-    id: string
-    name: string
-    rate: number
-    description?: string
-}
-
-interface ItemCategory {
-    id: string
-    name: string
-    description?: string
-    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
-}
-
-interface Item {
-    id: string
-    name: string
-    description?: string
-    price: number
-    nature: 'GOODS' | 'SERVICE'
-    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
-    categoryId: string
-    category: {
-        name: string
-    }
-    taxes: Tax[]
-}
+'use client'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Content } from '@carbon/react'
+import DataTable from '@/components/ui/DataTable'
+import AddItemModal from './add_item_modal'
+import EditItemModal from './edit_item_modal'
+import DeleteItemModal from './delete_item_modal'
+import { gql } from '@/lib/graphql/execute'
+import {
+    GetItemsDocument,
+    GetItemCategoriesDocument,
+    GetItemTaxesDocument,
+    CreateItemDocument,
+    UpdateItemDocument,
+    DeleteItemDocument,
+    Item,
+    ItemGroup,
+    Tax,
+    NewItem,
+    UpdateItem,
+} from '@/lib/graphql/graphql'
 
 interface TableRow extends Item {
-    priceTransformed: string;
-    categoryTransformed: string;
-    taxesTransformed: string;
+    priceTransformed: string
+    categoryTransformed: string
+    taxesTransformed: string
 }
 
 const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR'
-    }).format(price);
-};
+    }).format(price / 100)
+}
 
 const Items = () => {
     // Model States
-    const [itemsList, setItemsList] = useState<TableRow[]>([]);
-    const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-    const [categories, setCategories] = useState<ItemCategory[]>([]);
-    const [taxesList, setTaxesList] = useState<Tax[]>([]);
-    const [selectedTaxIds, setSelectedTaxIds] = useState<string[]>([]);
+    const [itemsList, setItemsList] = useState<TableRow[]>([])
+    const [selectedItem, setSelectedItem] = useState<Item | null>(null)
+    const [categories, setCategories] = useState<ItemGroup[]>([])
+    const [taxes, setTaxes] = useState<Tax[]>([])
 
     // UI States
-    const [loading, setLoading] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [loading, setLoading] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
+    const [pageSizes] = useState([10, 20, 30, 40, 50])
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
     const fetchData = useCallback(async (page: number, size: number) => {
-        setLoading(true);
+        setLoading(true)
         try {
             const offset = (page - 1) * size
 
-            const result: Array<{ items: Item[] }> = await invoke('graphql', {
-                query: `#graphql
-                    query {
-                        items(first: ${size}, offset: ${offset}) {
-                            id
-                            name
-                            description
-                            price
-                            state
-                            nature
-                            categoryId
-                            createdAt
-                            updatedAt
-                            category {
-                                name
-                            }
-                            taxes {
-                                id
-                                name
-                                rate
-                            }
-                        }
-                    }
-                `
+            const result = await gql(GetItemsDocument, {
+                first: size,
+                offset: offset
             })
 
-            const itemsResult = result[0].items
-
-            // Transform the itemsResult to the TableRow type
-            const tableRows = itemsResult.map((item) => ({
+            // Transform the items to the TableRow type
+            const tableRows = result.items.map((item) => ({
                 ...item,
-                priceTransformed: formatPrice(item.price),
-                categoryTransformed: item.category.name || "Unknown",
-                taxesTransformed: item.taxes.map((tax) => tax.name).join(", "),
-            }));
-            setItemsList(tableRows);
+                priceTransformed: formatPrice(Number(item.price)),
+                categoryTransformed: item.category.name || 'Unknown',
+                taxesTransformed: item.taxes.map((tax) => tax.name).join(', '),
+            }))
+            setItemsList(tableRows)
 
             // Fetch categories
-            const categoriesResult: Array<{ itemCategories: ItemCategory[] }> = await invoke('graphql', {
-                query: `#graphql
-                    query {
-                        itemCategories {
-                            id
-                            name
-                            description
-                            state
-                        }
-                    }
-                `
-            })
-            setCategories(categoriesResult[0].itemCategories);
+            const categoriesResult = await gql(GetItemCategoriesDocument)
+            setCategories(categoriesResult.itemCategories)
 
             // Fetch taxes
-            const taxesResult: Array<{ taxes: Tax[] }> = await invoke('graphql', {
-                query: `#graphql
-                    query {
-                        taxes {
-                            id
-                            name
-                            rate
-                            description
-                        }
-                    }
-                `
-            })
-            setTaxesList(taxesResult[0].taxes);
+            const taxesResult = await gql(GetItemTaxesDocument)
+            setTaxes(taxesResult.taxes)
         } catch (error) {
             console.error('Error fetching data:', error)
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
     }, [])
 
     useEffect(() => {
-        fetchData(currentPage, pageSize);
-    }, [fetchData, currentPage, pageSize]);
+        fetchData(currentPage, pageSize)
+    }, [fetchData, currentPage, pageSize])
+
+    const handleAddItem = async (item: NewItem) => {
+        try {
+            await gql(CreateItemDocument, { input: item })
+            await fetchData(currentPage, pageSize)
+            setIsAddModalOpen(false)
+        } catch (error) {
+            console.error('Error adding item:', error)
+        }
+    }
+
+    const handleEditItem = async (item: UpdateItem) => {
+        try {
+            await gql(UpdateItemDocument, { input: item })
+            await fetchData(currentPage, pageSize)
+            setIsEditModalOpen(false)
+            setSelectedItem(null)
+        } catch (error) {
+            console.error('Error updating item:', error)
+        }
+    }
+
+    const handleDeleteItem = async (id: string) => {
+        try {
+            await gql(DeleteItemDocument, { id })
+            await fetchData(currentPage, pageSize)
+            setIsDeleteModalOpen(false)
+            setSelectedItem(null)
+        } catch (error) {
+            console.error('Error deleting item:', error)
+        }
+    }
 
     const headers = [
-        { key: "name", header: "Name" },
-        { key: "priceTransformed", header: "Price" },
-        { key: "categoryTransformed", header: "Category" },
-        { key: "taxesTransformed", header: "Taxes" },
-    ];
-
-    const handleOpenEditModal = (item: TableRow) => {
-        setSelectedItem(item);
-        setSelectedTaxIds(item.taxes.map(tax => tax.id));
-        setIsEditModalOpen(true);
-    };
-
-    const handleOpenDeleteModal = (item: TableRow) => {
-        setSelectedItem(item);
-        setIsDeleteModalOpen(true);
-    };
+        { key: 'name', header: 'Name' },
+        { key: 'priceTransformed', header: 'Price' },
+        { key: 'categoryTransformed', header: 'Category' },
+        { key: 'taxesTransformed', header: 'Taxes' },
+        { key: 'description', header: 'Description' },
+        { key: 'nature', header: 'Nature' },
+        { key: 'state', header: 'State' },
+    ]
 
     return (
         <Content className="min-h-[calc(100dvh-3rem)] p-0 flex flex-col">
@@ -176,59 +140,59 @@ const Items = () => {
                     totalItems={itemsList.length}
                     currentPage={currentPage}
                     pageSize={pageSize}
-                    pageSizes={[10, 20, 30, 40, 50]}
-                    onPageChange={(page, pageSize) => {
-                        setCurrentPage(page);
-                        setPageSize(pageSize);
-                        fetchData(page, pageSize);
+                    pageSizes={pageSizes}
+                    onPageChange={(page, size) => {
+                        setCurrentPage(page)
+                        setPageSize(size)
+                        fetchData(page, size)
                     }}
                     onAddClick={() => setIsAddModalOpen(true)}
-                    onEditClick={(row) => handleOpenEditModal(itemsList.find(item => item.id === row.id) as TableRow)}
-                    onDeleteClick={(row) => handleOpenDeleteModal(itemsList.find(item => item.id === row.id) as TableRow)}
+                    onEditClick={(row) => {
+                        setSelectedItem(row)
+                        setIsEditModalOpen(true)
+                    }}
+                    onDeleteClick={(row) => {
+                        setSelectedItem(row)
+                        setIsDeleteModalOpen(true)
+                    }}
                 />
             </div>
+
             <AddItemModal
                 open={isAddModalOpen}
                 onRequestClose={() => setIsAddModalOpen(false)}
-                onRequestSubmit={() => {
-                    fetchData(currentPage, pageSize);
-                    setIsAddModalOpen(false);
-                }}
                 categories={categories}
-                taxesList={taxesList}
+                taxes={taxes}
+                onSave={handleAddItem}
             />
-            <EditItemModal
-                open={isEditModalOpen}
-                onRequestClose={() => {
-                    setIsEditModalOpen(false);
-                    setSelectedItem(null);
-                }}
-                onRequestSubmit={() => {
-                    fetchData(currentPage, pageSize);
-                    setIsEditModalOpen(false);
-                    setSelectedItem(null);
-                }}
-                item={selectedItem}
-                categories={categories}
-                taxesList={taxesList}
-                selectedTaxes={selectedTaxIds}
-            />
-            <DeleteItemModal
-                open={isDeleteModalOpen}
-                onRequestClose={() => {
-                    setIsDeleteModalOpen(false);
-                    setSelectedItem(null);
-                }}
-                onRequestSubmit={() => {
-                    fetchData(currentPage, pageSize);
-                    setIsDeleteModalOpen(false);
-                    setSelectedItem(null);
-                }}
-                itemId={selectedItem?.id || ""}
-                itemName={selectedItem?.name || ""}
-            />
-        </Content>
-    );
-};
 
-export default Items;
+            {selectedItem && (
+                <EditItemModal
+                    open={isEditModalOpen}
+                    onRequestClose={() => {
+                        setIsEditModalOpen(false)
+                        setSelectedItem(null)
+                    }}
+                    item={selectedItem}
+                    categories={categories}
+                    taxes={taxes}
+                    onSave={handleEditItem}
+                />
+            )}
+
+            {selectedItem && (
+                <DeleteItemModal
+                    open={isDeleteModalOpen}
+                    onRequestClose={() => {
+                        setIsDeleteModalOpen(false)
+                        setSelectedItem(null)
+                    }}
+                    item={selectedItem}
+                    onSave={() => handleDeleteItem(selectedItem.id)}
+                />
+            )}
+        </Content>
+    )
+}
+
+export default Items

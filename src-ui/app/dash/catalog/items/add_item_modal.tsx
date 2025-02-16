@@ -1,183 +1,139 @@
-import React, { useState, useEffect } from "react";
-import { Modal, TextInput, TextArea, NumberInput, Select, SelectItem, MultiSelect, ModalProps } from '@carbon/react'
-import { invoke } from "@tauri-apps/api/core";
+import React, { useState } from 'react'
+import { Modal, TextInput, Form, TextArea, Select, SelectItem, MultiSelect, ModalProps } from '@carbon/react'
+import { ItemGroup, Tax, NewItem, ItemNature, ItemState } from '@/lib/graphql/graphql'
 
-interface Tax {
-    id: string;
-    name: string;
-    rate: number;
-    description?: string;
-}
-
-interface ItemCategory {
-    id: string;
-    name: string;
-    description?: string;
-}
-
-interface AddItemModalProps extends ModalProps {
-    categories: ItemCategory[];
+interface AddItemModalProps extends Omit<ModalProps, 'onSubmit'> {
+    onSave: (item: NewItem) => Promise<void>
+    categories: ItemGroup[]
+    taxes: Tax[]
 }
 
 const AddItemModal: React.FC<AddItemModalProps> = ({
     open,
     onRequestClose,
-    onRequestSubmit,
+    onSave,
     categories,
+    taxes,
 }) => {
-    const [newItem, setNewItem] = useState({
-        name: "",
-        description: "",
-        price: 0,
-        categoryId: "",
-    });
-    const [selectedTaxIds, setSelectedTaxIds] = useState<string[]>([]);
-    const [taxes, setTaxes] = useState<Tax[]>([]);
+    const [newItem, setNewItem] = useState<NewItem>({
+        name: '',
+        description: '',
+        nature: ItemNature.Goods,
+        state: ItemState.Active,
+        price: '0',
+        categoryId: '',
+        taxIds: [],
+    })
 
-    useEffect(() => {
-        // Fetch taxes when modal opens
-        if (open) {
-            fetchTaxes();
-        }
-    }, [open]);
+    const handleClose = (e: React.SyntheticEvent<HTMLElement>) => {
+        onRequestClose?.(e)
+        setNewItem({
+            name: '',
+            description: '',
+            nature: ItemNature.Goods,
+            state: ItemState.Active,
+            price: '0',
+            categoryId: '',
+            taxIds: [],
+        })
+    }
 
-    const fetchTaxes = async () => {
-        try {
-            const result = await invoke('graphql', {
-                query: `#graphql
-                    query {
-                        taxes {
-                            id
-                            name
-                            rate
-                            description
-                        }
-                    }
-                `
-            }) as { data: { taxes: Tax[] } };
-            setTaxes(result[0].taxes.map(tax => ({
-                ...tax,
-                rate: tax.rate / 100 // Convert from basis points to percentage
-            })));
-        } catch (error) {
-            console.error('Error fetching taxes:', error);
-        }
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setNewItem((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = parseFloat(e.target.value);
-        setNewItem((prev) => ({ ...prev, price: isNaN(value) ? 0 : value * 100 }));
-    };
-
-    const handleTaxChange = ({ selectedItems }: { selectedItems: Tax[] }) => {
-        setSelectedTaxIds(selectedItems.map(item => item.id));
-    };
-
-    const addItem = async (e: React.FormEvent) => {
-        try {
-            // First create the item
-            const createItemResult = await invoke('graphql', {
-                query: `#graphql
-                    mutation {
-                        createItem(
-                            item: {
-                                name: "${newItem.name}",
-                                description: "${newItem.description}",
-                                price: "${newItem.price}",
-                                nature: GOODS,
-                                state: ACTIVE,
-                                categoryId: "${newItem.categoryId}",
-                            }
-                        ) {
-                            id
-                        }
-                    }`
-            }) as { data: { createItem: { id: string } } };
-
-            // Then assign selected taxes to the item
-            const itemId = createItemResult[0].createItem.id;
-            for (const taxId of selectedTaxIds) {
-                await invoke('graphql', {
-                    query: `#graphql
-                        mutation {
-                            assignTaxToItem(
-                                input: {
-                                    itemId: "${itemId}",
-                                    taxId: "${taxId}"
-                                }
-                            )
-                        }`
-                });
-            }
-
-            onRequestSubmit?.(e as React.FormEvent<HTMLFormElement>);
-        } catch (error) {
-            console.error('Error creating item with taxes:', error);
-        }
-    };
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        await onSave(newItem)
+        setNewItem({
+            name: '',
+            description: '',
+            nature: ItemNature.Goods,
+            state: ItemState.Active,
+            price: '0',
+            categoryId: '',
+            taxIds: [],
+        })
+    }
 
     return (
         <Modal
             open={open}
+            onRequestClose={handleClose}
             modalHeading="Add New Item"
-            primaryButtonText="Add Item"
-            onRequestSubmit={addItem}
-            onRequestClose={onRequestClose}
+            primaryButtonText="Save"
+            onRequestSubmit={handleSubmit}
         >
-            <div className="flex flex-col gap-5">
+            <Form onSubmit={handleSubmit} className='flex flex-col gap-4'>
                 <TextInput
                     id="item-name"
-                    name="name"
                     labelText="Item Name"
                     value={newItem.name}
-                    onChange={handleInputChange}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))}
                     required
                 />
                 <TextArea
                     id="item-description"
-                    name="description"
                     labelText="Description"
                     value={newItem.description || ''}
-                    onChange={handleInputChange}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, description: e.target.value }))}
                 />
-                <NumberInput
+                <TextInput
                     id="item-price"
-                    name="price"
-                    label="Price"
-                    value={0}
-                    onChange={(event, state) => handlePriceChange(event as unknown as React.ChangeEvent<HTMLInputElement>)}
-                    step={0.01}
-                    min={0}
+                    labelText="Price"
+                    type="number"
+                    value={newItem.price}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, price: e.target.value }))}
+                    required
                 />
                 <Select
-                    id="item-category"
-                    name="categoryId"
-                    labelText="Category"
-                    value={newItem.categoryId}
-                    onChange={handleInputChange}
+                    id="item-nature"
+                    labelText="Nature"
+                    value={newItem.nature}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, nature: e.target.value as ItemNature }))}
                     required
                 >
-                    <SelectItem value="" text="Select a category" />
+                    <SelectItem value={ItemNature.Goods} text="Goods" />
+                    <SelectItem value={ItemNature.Service} text="Service" />
+                </Select>
+                <Select
+                    id="item-state"
+                    labelText="State"
+                    value={newItem.state}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, state: e.target.value as ItemState }))}
+                    required
+                >
+                    <SelectItem value={ItemState.Active} text="Active" />
+                    <SelectItem value={ItemState.Inactive} text="Inactive" />
+                    <SelectItem value={ItemState.Deleted} text="Deleted" />
+                </Select>
+                <Select
+                    id="item-category"
+                    labelText="Category"
+                    value={newItem.categoryId}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, categoryId: e.target.value }))}
+                    required
+                >
+                    <SelectItem disabled value="" text="Choose a category" />
                     {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id} text={category.name} />
+                        <SelectItem
+                            key={category.id}
+                            value={category.id}
+                            text={category.name}
+                        />
                     ))}
                 </Select>
                 <MultiSelect
                     id="item-taxes"
                     titleText="Taxes"
-                    label="Select taxes"
+                    label="Choose taxes"
                     items={taxes}
-                    itemToString={(tax: Tax) => tax ? `${tax.name} (${tax.rate}%)` : ''}
-                    onChange={handleTaxChange}
+                    itemToString={(tax: Tax) => tax?.name || ''}
+                    selectedItems={taxes.filter(tax => newItem?.taxIds?.includes(tax.id))}
+                    onChange={(e) => setNewItem(prev => ({
+                        ...prev,
+                        taxIds: e?.selectedItems?.map(tax => tax.id)
+                    }))}
                 />
-            </div>
+            </Form>
         </Modal>
-    );
-};
+    )
+}
 
-export default AddItemModal;
+export default AddItemModal

@@ -1,45 +1,37 @@
 import React from 'react'
 import { Modal, ModalProps } from '@carbon/react'
-import { invoke } from '@tauri-apps/api/core'
+import { Item } from '@/lib/graphql/graphql'
 
-interface DeleteItemModalProps extends ModalProps {
-    itemId: string;
-    itemName: string;
+interface DeleteItemModalProps extends Omit<ModalProps, 'onSubmit'> {
+    onSave: () => Promise<void>
+    item: Item
 }
 
 const DeleteItemModal: React.FC<DeleteItemModalProps> = ({
     open,
     onRequestClose,
-    onRequestSubmit,
-    itemId,
-    itemName
+    onSave,
+    item,
 }) => {
-    const deleteItem = async (e: React.FormEvent<HTMLFormElement>) => {
-        try {
-            await invoke('graphql', {
-                query: `#graphql
-                    mutation {
-                        deleteItem(id: "${itemId}")
-                    }
-                `
-            })
-            onRequestSubmit?.(e)
-        } catch (error) {
-            console.error('Error deleting item:', error)
-            alert('Failed to delete item')
-        }
+    const handleClose = (e: React.SyntheticEvent<HTMLElement>) => {
+        onRequestClose?.(e)
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        await onSave()
     }
 
     return (
         <Modal
             open={open}
+            onRequestClose={handleClose}
             modalHeading="Delete Item"
             primaryButtonText="Delete"
-            onRequestClose={onRequestClose}
-            onRequestSubmit={deleteItem}
             danger
+            onRequestSubmit={handleSubmit}
         >
-            <p>Are you sure you want to delete the item &quot;{itemName}&quot;? This action cannot be undone.</p>
+            <p>Are you sure you want to delete {item.name}? This action cannot be undone.</p>
         </Modal>
     )
 }

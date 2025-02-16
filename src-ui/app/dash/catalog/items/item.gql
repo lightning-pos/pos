@@ -1,0 +1,112 @@
+query getItems($first: Int!, $offset: Int!) {
+    items(first: $first, offset: $offset) {
+        id
+        name
+        description
+        nature
+        state
+        price
+        createdAt
+        updatedAt
+        category {
+            id
+            name
+            description
+            state
+            createdAt
+            updatedAt
+        }
+        taxes {
+            id
+            name
+            rate
+            description
+            createdAt
+            updatedAt
+        }
+    }
+}
+
+query getItemCategories {
+    itemCategories {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+query getItemTaxes {
+    taxes {
+        id
+        name
+        rate
+        description
+        createdAt
+        updatedAt
+    }
+}
+
+mutation createItem($input: NewItem!) {
+    createItem(item: $input) {
+        id
+        name
+        description
+        nature
+        state
+        price
+        createdAt
+        updatedAt
+        category {
+            id
+            name
+            description
+            state
+            createdAt
+            updatedAt
+        }
+        taxes {
+            id
+            name
+            rate
+            description
+            createdAt
+            updatedAt
+        }
+    }
+}
+
+mutation updateItem($input: UpdateItem!) {
+    updateItem(item: $input) {
+        id
+        name
+        description
+        nature
+        state
+        price
+        createdAt
+        updatedAt
+        category {
+            id
+            name
+            description
+            state
+            createdAt
+            updatedAt
+        }
+        taxes {
+            id
+            name
+            rate
+            description
+            createdAt
+            updatedAt
+        }
+    }
+}
+
+mutation deleteItem($id: DbUuid!) {
+    deleteItem(id: $id)
+}
