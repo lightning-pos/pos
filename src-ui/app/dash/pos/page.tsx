@@ -4,39 +4,43 @@ import { useState } from 'react'
 import CartSection, { CartItem } from './cart/cart_section'
 import CategoriesSection from './categories_section'
 import ItemsSection from './items_section'
-
-interface Tax {
-    id: string;
-    name: string;
-    rate: number;
-    description?: string;
-}
-
-interface Item {
-    id: string;
-    name: string;
-    description?: string;
-    price: number;
-    nature: 'GOODS' | 'SERVICE';
-    state: 'ACTIVE' | 'INACTIVE' | 'DELETED';
-    taxes: Tax[];
-}
+import { Item, Tax, ItemNature, ItemState } from '@/lib/graphql/graphql'
 
 const POS = () => {
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
-    const [cart, setCart] = useState<Array<CartItem>>([])
+    const [cart, setCart] = useState<CartItem[]>([])
 
     const addToCart = (item: Item) => {
         setCart(prevCart => {
             const existingItem = prevCart.find(cartItem => cartItem.id === item.id)
-            const taxIds = item.taxes.map(tax => tax.id)
+            const taxIds = item.taxes?.map(tax => tax.id) ?? []
+
             if (existingItem) {
                 return prevCart.map(cartItem =>
-                    cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1, taxIds } : cartItem
+                    cartItem.id === item.id
+                        ? {
+                            ...cartItem,
+                            quantity: cartItem.quantity + 1,
+                            taxIds
+                        }
+                        : cartItem
                 )
-            } else {
-                return [...prevCart, { ...item, quantity: 1, taxIds }]
             }
+
+            const newCartItem: CartItem = {
+                id: item.id,
+                name: item.name,
+                description: item.description ?? '',
+                price: item.price,
+                quantity: 1,
+                taxIds,
+                nature: item.nature ?? ItemNature.Goods,
+                state: item.state ?? ItemState.Active,
+                createdAt: item.createdAt ?? new Date().toISOString(),
+                updatedAt: item.updatedAt ?? new Date().toISOString()
+            }
+
+            return [...prevCart, newCartItem]
         })
     }
 

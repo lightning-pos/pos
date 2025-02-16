@@ -1,28 +1,16 @@
+'use client'
 import React, { useState, useEffect } from 'react'
 import { AspectRatio, ClickableTile, Column, Grid } from '@carbon/react'
 import { Corn } from '@carbon/icons-react'
-import { invoke } from '@tauri-apps/api/core'
-
-interface Tax {
-    id: string
-    name: string
-    rate: number
-    description?: string
-}
-
-interface Item {
-    id: string
-    name: string
-    description?: string
-    nature: 'GOODS' | 'SERVICE'
-    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
-    price: number
-    category: {
-        id: string
-        name: string
-    }
-    taxes: Tax[]
-}
+import { gql } from '@/lib/graphql/execute'
+import {
+    GetPosItemsDocument,
+    Item,
+    ItemNature,
+    ItemState,
+    ItemGroup,
+    Tax
+} from '@/lib/graphql/graphql'
 
 interface ItemsSectionProps {
     selectedCategoryId: string | null
@@ -33,49 +21,54 @@ const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR'
-    }).format(price / 100);
-};
+    }).format(price / 100)
+}
 
 const ItemsSection: React.FC<ItemsSectionProps> = ({ selectedCategoryId, addItemToCart }) => {
-    const [items, setItems] = useState<Array<Item>>([])
+    const [items, setItems] = useState<Item[]>([])
 
     useEffect(() => {
         const fetchItems = async () => {
             if (selectedCategoryId) {
-                try {
-                    const result: Array<{ items: Item[] }> = await invoke('graphql', {
-                        query: `#graphql
-                            query GetItems {
-                                items(first: 100) {
-                                    id
-                                    name
-                                    description
-                                    nature
-                                    state
-                                    price
-                                    category {
-                                        id
-                                        name
-                                    }
-                                    taxes {
-                                        id
-                                        name
-                                        rate
-                                        description
-                                    }
-                                }
-                            }
-                        `,
-                    })
+                const result = await gql(GetPosItemsDocument, {
+                    first: 100,
+                    offset: 0
+                })
 
-                    if (result[0]?.items) {
-                        const filteredItems = result[0].items.filter(
-                            item => item.category.id === selectedCategoryId && item.state === 'ACTIVE'
-                        )
-                        setItems(filteredItems)
-                    }
-                } catch (error) {
-                    console.error('Error fetching items:', error)
+                if (result.items) {
+                    // Transform items to concrete types
+                    const transformedItems = result.items.map((item): Item => ({
+                        id: item.id,
+                        name: item.name,
+                        description: item.description,
+                        nature: item.nature as ItemNature,
+                        state: item.state as ItemState,
+                        price: item.price,
+                        createdAt: item.createdAt,
+                        updatedAt: item.updatedAt,
+                        category: {
+                            id: item.category.id,
+                            name: item.category.name,
+                            description: item.category.description,
+                            state: item.category.state as unknown as ItemState,
+                            createdAt: item.category.createdAt,
+                            updatedAt: item.category.updatedAt
+                        } as unknown as ItemGroup,
+                        taxes: item.taxes.map((tax): Tax => ({
+                            id: tax.id,
+                            name: tax.name,
+                            rate: tax.rate,
+                            description: tax.description,
+                            createdAt: tax.createdAt,
+                            updatedAt: tax.updatedAt
+                        }))
+                    }))
+
+                    // Filter items by selected category and active state
+                    const filteredItems = transformedItems.filter(
+                        item => item.category.id === selectedCategoryId && item.state === 'ACTIVE'
+                    )
+                    setItems(filteredItems)
                 }
             } else {
                 setItems([])

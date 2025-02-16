@@ -607,6 +607,41 @@ export type DeleteItemMutationVariables = Exact<{
 
 export type DeleteItemMutation = { __typename?: 'Mutation', deleteItem: number };
 
+export type GetPosCategoriesQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+}>;
+
+
+export type GetPosCategoriesQuery = { __typename?: 'Query', itemCategories: Array<{ __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any }> };
+
+export type GetPosItemsQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetPosItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: any, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: any, createdAt: any, updatedAt: any, category: { __typename?: 'ItemGroup', id: any, name: string, description?: string | null, state: ItemGroupState, createdAt: any, updatedAt: any }, taxes: Array<{ __typename?: 'Tax', id: any, name: string, rate: number, description?: string | null, createdAt: any, updatedAt: any }> }> };
+
+export type GetPosTaxesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetPosTaxesQuery = { __typename?: 'Query', taxes: Array<{ __typename?: 'Tax', id: any, name: string, rate: number, description?: string | null, createdAt: any, updatedAt: any }> };
+
+export type GetPosCustomerByPhoneQueryVariables = Exact<{
+  phone: Scalars['String']['input'];
+}>;
+
+
+export type GetPosCustomerByPhoneQuery = { __typename?: 'Query', customerByPhone: { __typename?: 'Customer', id: any, fullName: string, phone?: string | null, email?: string | null, address?: string | null, createdAt: any, updatedAt: any } };
+
+export type CreatePosCustomerMutationVariables = Exact<{
+  fullName: Scalars['String']['input'];
+  phone: Scalars['String']['input'];
+}>;
+
+
+export type CreatePosCustomerMutation = { __typename?: 'Mutation', createCustomer: { __typename?: 'Customer', id: any, fullName: string, phone?: string | null, email?: string | null, address?: string | null, createdAt: any, updatedAt: any } };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -794,3 +829,83 @@ export const DeleteItemDocument = new TypedDocumentString(`
   deleteItem(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteItemMutation, DeleteItemMutationVariables>;
+export const GetPosCategoriesDocument = new TypedDocumentString(`
+    query getPosCategories($first: Int!) {
+  itemCategories(first: $first) {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetPosCategoriesQuery, GetPosCategoriesQueryVariables>;
+export const GetPosItemsDocument = new TypedDocumentString(`
+    query getPosItems($first: Int!, $offset: Int!) {
+  items(first: $first, offset: $offset) {
+    id
+    name
+    description
+    nature
+    state
+    price
+    createdAt
+    updatedAt
+    category {
+      id
+      name
+      description
+      state
+      createdAt
+      updatedAt
+    }
+    taxes {
+      id
+      name
+      rate
+      description
+      createdAt
+      updatedAt
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetPosItemsQuery, GetPosItemsQueryVariables>;
+export const GetPosTaxesDocument = new TypedDocumentString(`
+    query getPosTaxes {
+  taxes {
+    id
+    name
+    rate
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetPosTaxesQuery, GetPosTaxesQueryVariables>;
+export const GetPosCustomerByPhoneDocument = new TypedDocumentString(`
+    query getPosCustomerByPhone($phone: String!) {
+  customerByPhone(phone: $phone) {
+    id
+    fullName
+    phone
+    email
+    address
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetPosCustomerByPhoneQuery, GetPosCustomerByPhoneQueryVariables>;
+export const CreatePosCustomerDocument = new TypedDocumentString(`
+    mutation createPosCustomer($fullName: String!, $phone: String!) {
+  createCustomer(customer: {fullName: $fullName, phone: $phone}) {
+    id
+    fullName
+    phone
+    email
+    address
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreatePosCustomerMutation, CreatePosCustomerMutationVariables>;

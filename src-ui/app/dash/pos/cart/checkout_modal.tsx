@@ -1,128 +1,74 @@
+'use client'
 import React, { useState } from 'react'
-import { Modal, RadioButtonGroup, RadioButton, ModalProps } from '@carbon/react'
-import { invoke } from '@tauri-apps/api/core'
+import { Modal, RadioButtonGroup, RadioButton } from '@carbon/react'
+import { gql } from '@/lib/graphql/execute'
+import {
+    Tax,
+    Customer
+} from '@/lib/graphql/graphql'
+import { CartItem } from './cart_section'
 
-interface Tax {
-    id: string
-    name: string
-    rate: number
-    description?: string
+enum PaymentMethod {
+    CASH = 'cash',
+    CARD = 'card',
+    UPI = 'upi'
 }
 
-interface Customer {
-    id: string
-    fullName: string
-    email?: string
-    phone?: string
-    address?: string
-}
-
-interface CartItem {
-    id: string
-    name: string
-    description?: string
-    price: number
-    quantity: number
-    taxIds?: string[]
-}
-
-interface CheckoutModalProps extends ModalProps {
+interface CheckoutModalProps {
+    isOpen: boolean
+    onClose: () => void
+    onComplete: () => void
     cart: CartItem[]
-    subtotal: number
-    tax: number
-    total: number
     customer: Customer | null
+    taxes: Tax[]
+    subtotal: number
+    totalTax: number
+    totalAmount: number
 }
 
 const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR'
-    }).format(price / 100);
-};
+    }).format(price / 100)
+}
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
-    open,
-    onRequestClose,
-    onRequestSubmit,
+    isOpen,
+    onClose,
+    onComplete,
     cart,
+    customer,
+    taxes,
     subtotal,
-    tax,
-    total,
-    customer
+    totalTax,
+    totalAmount
 }) => {
-    const [paymentMethod, setPaymentMethod] = useState('cash')
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH)
+    const [processing, setProcessing] = useState(false)
 
-    const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        if (!customer) {
-            alert('No customer selected')
-            return
-        }
+    const handleSubmit = async () => {
+        if (!customer) return
 
         try {
-            const orderItems = cart.map(item => ({
-                itemId: item.id,
-                itemName: item.name,
-                quantity: item.quantity,
-                priceAmount: item.price.toString(),
-                taxAmount: (item.taxIds?.reduce((sum, taxId) => {
-                    // We'll calculate tax amount in the backend to ensure consistency
-                    return sum
-                }, 0) || 0).toString()
-            }))
-
-            const result: Array<{ createSalesOrder: { id: string } }> = await invoke('graphql', {
-                query: `#graphql
-                    mutation {
-                        createSalesOrder(
-                            salesOrder: {
-                                customerId: "${customer.id}",
-                                customerName: "${customer.fullName}",
-                                customerPhoneNumber: "${customer.phone || ''}",
-                                orderDate: "${new Date().toISOString().split('.')[0].replace('T', ' ')}",
-                                netAmount: "${subtotal}",
-                                discAmount: "0",
-                                taxableAmount: "${subtotal}",
-                                taxAmount: "${tax}",
-                                totalAmount: "${total}",
-                                state: COMPLETED,
-                                items: [${orderItems.map(item => `{
-                                    itemId: "${item.itemId}",
-                                    itemName: "${item.itemName}",
-                                    quantity: ${item.quantity},
-                                    priceAmount: "${item.priceAmount}",
-                                    taxAmount: "${item.taxAmount}"
-                                }`).join(',')}]
-                            }
-                        ) {
-                            id
-                        }
-                    }
-                `
-            })
-
-            console.log(result)
-
-            if (result[0]?.createSalesOrder?.id) {
-                onRequestSubmit?.(e)
-            } else {
-                throw new Error('Failed to create sales order')
-            }
+            setProcessing(true)
+            onComplete()
         } catch (error) {
-            console.error('Error during checkout:', error)
-            alert('An error occurred during checkout. Please try again.')
+            console.error('Error creating order:', error)
+        } finally {
+            setProcessing(false)
         }
     }
 
     return (
         <Modal
-            open={open}
-            onRequestClose={onRequestClose}
+            open={isOpen}
+            onRequestClose={onClose}
             modalHeading="Checkout"
             primaryButtonText="Complete Order"
             secondaryButtonText="Cancel"
-            onRequestSubmit={handleCheckout}
+            onRequestSubmit={handleSubmit}
+            primaryButtonDisabled={processing}
         >
             <div className='mb-4'>
                 <strong>Customer:</strong> {customer?.fullName} ({customer?.phone})
@@ -131,20 +77,24 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <strong>Subtotal:</strong> {formatPrice(subtotal)}
             </div>
             <div className='mb-4'>
-                <strong>Tax:</strong> {formatPrice(tax)}
+                <strong>Tax:</strong> {formatPrice(totalTax)}
             </div>
             <div className='mb-4'>
-                <strong>Total:</strong> {formatPrice(total)}
+                <strong>Total:</strong> {formatPrice(totalAmount)}
             </div>
             <RadioButtonGroup
                 legendText="Payment Method"
                 name="payment-method"
                 valueSelected={paymentMethod}
-                onChange={(value) => setPaymentMethod(value as string)}
+                onChange={(value: string | number | undefined) => {
+                    if (Object.values(PaymentMethod).includes(value as PaymentMethod)) {
+                        setPaymentMethod(value as PaymentMethod)
+                    }
+                }}
             >
-                <RadioButton labelText="Cash" value="cash" id="cash" />
-                <RadioButton labelText="Card" value="card" id="card" />
-                <RadioButton labelText="UPI" value="upi" id="upi" />
+                <RadioButton labelText="Cash" value={PaymentMethod.CASH} id={PaymentMethod.CASH} />
+                <RadioButton labelText="Card" value={PaymentMethod.CARD} id={PaymentMethod.CARD} />
+                <RadioButton labelText="UPI" value={PaymentMethod.UPI} id={PaymentMethod.UPI} />
             </RadioButtonGroup>
         </Modal>
     )

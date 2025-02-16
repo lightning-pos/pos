@@ -1,0 +1,74 @@
+query getPosCategories($first: Int!) {
+    itemCategories(first: $first) {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+query getPosItems($first: Int!, $offset: Int!) {
+    items(first: $first, offset: $offset) {
+        id
+        name
+        description
+        nature
+        state
+        price
+        createdAt
+        updatedAt
+        category {
+            id
+            name
+            description
+            state
+            createdAt
+            updatedAt
+        }
+        taxes {
+            id
+            name
+            rate
+            description
+            createdAt
+            updatedAt
+        }
+    }
+}
+
+query getPosTaxes {
+    taxes {
+        id
+        name
+        rate
+        description
+        createdAt
+        updatedAt
+    }
+}
+
+query getPosCustomerByPhone($phone: String!) {
+    customerByPhone(phone: $phone) {
+        id
+        fullName
+        phone
+        email
+        address
+        createdAt
+        updatedAt
+    }
+}
+
+mutation createPosCustomer($fullName: String!, $phone: String!) {
+    createCustomer(customer: { fullName: $fullName, phone: $phone }) {
+        id
+        fullName
+        phone
+        email
+        address
+        createdAt
+        updatedAt
+    }
+}

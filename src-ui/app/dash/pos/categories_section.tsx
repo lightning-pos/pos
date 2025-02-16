@@ -1,42 +1,38 @@
+'use client'
 import React, { useState, useEffect } from 'react'
 import { ClickableTile } from '@carbon/react'
-import { invoke } from '@tauri-apps/api/core'
-
-interface ItemGroup {
-    id: string
-    name: string
-    description?: string
-    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
-}
+import { gql } from '@/lib/graphql/execute'
+import {
+    GetPosCategoriesDocument,
+    ItemGroup,
+    ItemGroupState
+} from '@/lib/graphql/graphql'
 
 interface CategoriesSectionProps {
     onCategorySelect: (categoryId: string) => void
 }
 
 const CategoriesSection: React.FC<CategoriesSectionProps> = ({ onCategorySelect }) => {
-    const [categories, setCategories] = useState<Array<ItemGroup>>([])
+    const [categories, setCategories] = useState<ItemGroup[]>([])
 
     useEffect(() => {
         const fetchCategories = async () => {
-            try {
-                const result: Array<{ itemCategories: ItemGroup[] }> = await invoke('graphql', {
-                    query: `#graphql
-            query {
-              itemCategories(first: 100) {
-                id
-                name
-                description
-                state
-              }
-            }
-          `,
-                })
+            const result = await gql(GetPosCategoriesDocument, {
+                first: 100
+            })
 
-                if (result[0]?.itemCategories) {
-                    setCategories(result[0].itemCategories)
-                }
-            } catch (error) {
-                console.error('Error fetching categories:', error)
+            if (result.itemCategories) {
+                // Transform categories to concrete types
+                const transformedCategories = result.itemCategories.map((category): ItemGroup => ({
+                    id: category.id,
+                    name: category.name,
+                    description: category.description,
+                    state: category.state as ItemGroupState,
+                    createdAt: category.createdAt,
+                    updatedAt: category.updatedAt
+                }))
+                console.log(transformedCategories)
+                setCategories(transformedCategories)
             }
         }
         fetchCategories()

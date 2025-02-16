@@ -1,12 +1,12 @@
+'use client'
 import React, { useState } from 'react'
 import { TextInput } from '@carbon/react'
-import { invoke } from '@tauri-apps/api/core'
-
-interface Customer {
-    id: string
-    fullName: string
-    phone: string
-}
+import { gql } from '@/lib/graphql/execute'
+import {
+    GetPosCustomerByPhoneDocument,
+    CreatePosCustomerDocument,
+    Customer
+} from '@/lib/graphql/graphql'
 
 interface CustomerSelectProps {
     selectedCustomer: Customer | null
@@ -20,17 +20,22 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({ selectedCustomer, setSe
 
     const searchCustomer = async (phone: string) => {
         try {
-            const result: Array<{ customerByPhone: Customer }> = await invoke('graphql', {
-                query: `#graphql
-                    query {
-                        customerByPhone(phone: "${phone}") {
-                            id fullName phone
-                        }
-                    }
-                `,
+            const result = await gql(GetPosCustomerByPhoneDocument, {
+                phone
             })
-            if (result[0]?.customerByPhone) {
-                setSearchResults([result[0].customerByPhone])
+
+            if (result.customerByPhone) {
+                // Transform to concrete type
+                const customer: Customer = {
+                    id: result.customerByPhone.id,
+                    fullName: result.customerByPhone.fullName,
+                    phone: result.customerByPhone.phone,
+                    email: result.customerByPhone.email,
+                    address: result.customerByPhone.address,
+                    createdAt: result.customerByPhone.createdAt,
+                    updatedAt: result.customerByPhone.updatedAt
+                }
+                setSearchResults([customer])
             } else {
                 setSearchResults([])
             }
@@ -42,60 +47,47 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({ selectedCustomer, setSe
 
     const createCustomer = async (phone: string) => {
         try {
-            const result: Array<{ createCustomer: Customer }> = await invoke('graphql', {
-                query: `#graphql
-                    mutation {
-                        createCustomer(
-                            customer: { fullName: "", phone: "${phone}" }
-                        ) {
-                            id fullName phone
-                        }
-                    }
-                `,
+            const result = await gql(CreatePosCustomerDocument, {
+                fullName: "",
+                phone
             })
-            debugger;
-            if (result[0]?.createCustomer) {
-                setSelectedCustomer(result[0].createCustomer)
+
+            if (result.createCustomer) {
+                // Transform to concrete type
+                const customer: Customer = {
+                    id: result.createCustomer.id,
+                    fullName: result.createCustomer.fullName,
+                    phone: result.createCustomer.phone,
+                    email: result.createCustomer.email,
+                    address: result.createCustomer.address,
+                    createdAt: result.createCustomer.createdAt,
+                    updatedAt: result.createCustomer.updatedAt
+                }
+                setSelectedCustomer(customer)
+                setSearchResults([])
+                setCustomerInput('')
             }
         } catch (error) {
             console.error('Error creating customer:', error)
-            alert('Failed to create customer. Please try again.')
         }
     }
 
-    const handleCustomerInput = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault()
-            const phoneNumber = customerInput.trim()
-            if (!phoneNumber) return
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
+        setCustomerInput(value)
+        setLoading(true)
 
-            try {
-                setLoading(true)
-                if (searchResults.length > 0) {
-                    setSelectedCustomer(searchResults[0])
-                } else {
-                    if (phoneNumber.length !== 10) {
-                        return
-                    }
-                    await createCustomer(phoneNumber)
-                }
-
-                setCustomerInput('')
-                setSearchResults([])
-            } catch (error) {
-                console.error('Error processing customer:', error)
-                alert('Failed to process customer. Please try again.')
-            } finally {
-                setLoading(false)
-            }
+        if (value.length >= 10) {
+            searchCustomer(value)
         } else {
-            const value = e.currentTarget.value
-            setCustomerInput(value)
-            if (value.length > 2) {
-                searchCustomer(value)
-            } else {
-                setSearchResults([])
-            }
+            setSearchResults([])
+        }
+        setLoading(false)
+    }
+
+    const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && customerInput.length >= 10) {
+            createCustomer(customerInput)
         }
     }
 
@@ -113,8 +105,8 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({ selectedCustomer, setSe
                     labelText="Customer Phone Number"
                     placeholder="Enter phone number and press Enter"
                     value={customerInput}
-                    onChange={(e) => setCustomerInput(e.target.value)}
-                    onKeyUp={handleCustomerInput}
+                    onChange={handleInputChange}
+                    onKeyUp={handleKeyUp}
                     disabled={loading}
                 />
             ) : (

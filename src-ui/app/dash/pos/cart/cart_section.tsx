@@ -1,38 +1,23 @@
+'use client'
 import React, { useState, useEffect } from 'react'
 import { Button } from '@carbon/react'
 import { ShoppingCart, Close } from '@carbon/icons-react'
-import { invoke } from '@tauri-apps/api/core'
+import { gql } from '@/lib/graphql/execute'
+import {
+    GetPosTaxesDocument,
+    Item,
+    ItemNature,
+    ItemState,
+    Tax,
+    Customer
+} from '@/lib/graphql/graphql'
 import CheckoutModal from './checkout_modal'
 import CustomerSelect from './customer_select'
 import CartItem from './cart_item'
 
-interface Tax {
-    id: string
-    name: string
-    rate: number
-    description?: string
-}
-
-interface Customer {
-    id: string
-    fullName: string
-    email?: string
-    phone?: string
-    address?: string
-}
-
-interface Item {
-    id: string
-    name: string
-    description?: string
-    price: number
-    nature: 'GOODS' | 'SERVICE'
-    state: 'ACTIVE' | 'INACTIVE' | 'DELETED'
-}
-
-export interface CartItem extends Item {
-    quantity: number;
-    taxIds?: string[];
+export interface CartItem extends Omit<Item, 'category' | 'taxes'> {
+    quantity: number
+    taxIds?: string[]
 }
 
 interface CartSectionProps {
@@ -44,8 +29,8 @@ const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR'
-    }).format(price / 100);
-};
+    }).format(price / 100)
+}
 
 const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
@@ -55,22 +40,19 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
 
     useEffect(() => {
         const fetchTaxes = async () => {
-            try {
-                const result = await invoke('graphql', {
-                    query: `#graphql
-            query {
-              taxes {
-                id
-                name
-                rate
-                description
-              }
-            }
-          `
-                }) as { data: { taxes: Tax[] } };
-                setTaxes(result[0].taxes)
-            } catch (error) {
-                console.error('Error fetching taxes:', error)
+            const result = await gql(GetPosTaxesDocument)
+
+            if (result.taxes) {
+                // Transform taxes to concrete types
+                const transformedTaxes = result.taxes.map((tax): Tax => ({
+                    id: tax.id,
+                    name: tax.name,
+                    rate: tax.rate,
+                    description: tax.description,
+                    createdAt: tax.createdAt,
+                    updatedAt: tax.updatedAt
+                }))
+                setTaxes(transformedTaxes)
             }
         }
         fetchTaxes()
@@ -91,7 +73,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     const calculateTotalTax = (): number => {
         return cart.reduce((sum, item) => {
             if (!item.taxIds) return sum
-            const itemTaxes = taxes.filter(tax => item.taxIds?.some(t => t === tax.id))
+            const itemTaxes = taxes.filter(tax => item.taxIds?.includes(tax.id))
             const itemPrice = item.price || 0
             const itemTax = itemTaxes.reduce((taxSum, tax) => {
                 const taxRate = (tax.rate || 0) / 10000 // Convert from basis points to decimal
@@ -166,14 +148,15 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
             </div>
             <CheckoutModal
                 key={checkoutModalKey}
-                open={isCheckoutModalOpen}
-                onRequestClose={() => setIsCheckoutModalOpen(false)}
-                onRequestSubmit={handleCheckoutComplete}
+                isOpen={isCheckoutModalOpen}
+                onClose={() => setIsCheckoutModalOpen(false)}
+                onComplete={handleCheckoutComplete}
                 cart={cart}
-                subtotal={subtotal}
-                tax={totalTax}
-                total={totalAmount}
                 customer={selectedCustomer}
+                taxes={taxes}
+                subtotal={subtotal}
+                totalTax={totalTax}
+                totalAmount={totalAmount}
             />
         </div>
     )
