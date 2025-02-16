@@ -1,0 +1,37 @@
+query GetTaxes($first: Int!, $offset: Int!) {
+    taxes(first: $first, offset: $offset) {
+        id
+        name
+        rate
+        description
+        createdAt
+        updatedAt
+    }
+    totalTaxes
+}
+
+mutation CreateTax($input: TaxNewInput!) {
+    createTax(input: $input) {
+        id
+        name
+        rate
+        description
+        createdAt
+        updatedAt
+    }
+}
+
+mutation UpdateTax($input: TaxUpdateInput!) {
+    updateTax(input: $input) {
+        id
+        name
+        rate
+        description
+        createdAt
+        updatedAt
+    }
+}
+
+mutation DeleteTax($id: DbUuid!) {
+    deleteTax(id: $id)
+}

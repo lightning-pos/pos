@@ -686,6 +686,35 @@ export type CreatePosCustomerMutationVariables = Exact<{
 
 export type CreatePosCustomerMutation = { __typename?: 'Mutation', createCustomer: { __typename?: 'Customer', id: any, fullName: string, phone?: string | null, email?: string | null, address?: string | null, createdAt: any, updatedAt: any } };
 
+export type GetTaxesQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetTaxesQuery = { __typename?: 'Query', totalTaxes: number, taxes: Array<{ __typename?: 'Tax', id: any, name: string, rate: number, description?: string | null, createdAt: any, updatedAt: any }> };
+
+export type CreateTaxMutationVariables = Exact<{
+  input: TaxNewInput;
+}>;
+
+
+export type CreateTaxMutation = { __typename?: 'Mutation', createTax: { __typename?: 'Tax', id: any, name: string, rate: number, description?: string | null, createdAt: any, updatedAt: any } };
+
+export type UpdateTaxMutationVariables = Exact<{
+  input: TaxUpdateInput;
+}>;
+
+
+export type UpdateTaxMutation = { __typename?: 'Mutation', updateTax: { __typename?: 'Tax', id: any, name: string, rate: number, description?: string | null, createdAt: any, updatedAt: any } };
+
+export type DeleteTaxMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteTaxMutation = { __typename?: 'Mutation', deleteTax: number };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -1046,3 +1075,45 @@ export const CreatePosCustomerDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<CreatePosCustomerMutation, CreatePosCustomerMutationVariables>;
+export const GetTaxesDocument = new TypedDocumentString(`
+    query GetTaxes($first: Int!, $offset: Int!) {
+  taxes(first: $first, offset: $offset) {
+    id
+    name
+    rate
+    description
+    createdAt
+    updatedAt
+  }
+  totalTaxes
+}
+    `) as unknown as TypedDocumentString<GetTaxesQuery, GetTaxesQueryVariables>;
+export const CreateTaxDocument = new TypedDocumentString(`
+    mutation CreateTax($input: TaxNewInput!) {
+  createTax(input: $input) {
+    id
+    name
+    rate
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateTaxMutation, CreateTaxMutationVariables>;
+export const UpdateTaxDocument = new TypedDocumentString(`
+    mutation UpdateTax($input: TaxUpdateInput!) {
+  updateTax(input: $input) {
+    id
+    name
+    rate
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateTaxMutation, UpdateTaxMutationVariables>;
+export const DeleteTaxDocument = new TypedDocumentString(`
+    mutation DeleteTax($id: DbUuid!) {
+  deleteTax(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteTaxMutation, DeleteTaxMutationVariables>;

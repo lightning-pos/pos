@@ -1,19 +1,14 @@
 import React, { useState } from 'react'
 import { Modal, TextInput, Form, ModalProps } from '@carbon/react'
-import { invoke } from '@tauri-apps/api/core'
-
-interface NewTax {
-    name: string;
-    rate: number;
-    description?: string;
-}
+import { CreateTaxDocument, TaxNewInput } from '@/lib/graphql/graphql'
+import { gql } from '@/lib/graphql/execute'
 
 const AddTaxModal: React.FC<ModalProps> = ({
     open,
     onRequestSubmit,
     onRequestClose,
 }) => {
-    const [newTax, setNewTax] = useState<NewTax>({
+    const [newTax, setNewTax] = useState<TaxNewInput>({
         name: '',
         rate: 0,
         description: ''
@@ -24,60 +19,49 @@ const AddTaxModal: React.FC<ModalProps> = ({
         setNewTax(prev => ({ ...prev, [name]: name === 'rate' ? parseFloat(value) : value }))
     }
 
-    const handleSaveTax = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleSaveTax = async (e: React.MouseEvent<HTMLElement>) => {
         try {
-            await invoke('graphql', {
-                query: `#graphql
-                mutation {
-                    createTax(
-                        input: {
-                            name: "${newTax.name}",
-                            rate: ${Math.round(newTax.rate * 100)},
-                            description: "${newTax.description || ''}"
-                        }
-                    ) {
-                        id
-                        name
-                        rate
-                        description
-                    }
-                }`
+            await gql(CreateTaxDocument, {
+                input: {
+                    ...newTax,
+                    rate: Math.round(newTax.rate * 100) // Convert decimal to integer percentage
+                }
             })
-            onRequestSubmit?.(e as React.FormEvent<HTMLFormElement>)
+            onRequestSubmit?.(e)
         } catch (error) {
-            console.error('Error saving tax:', error)
+            console.error('Error creating tax:', error)
         }
     }
 
     return (
         <Modal
             open={open}
-            onRequestClose={onRequestClose}
-            modalHeading="Add New Tax"
-            primaryButtonText="Save"
+            modalHeading="Add Tax"
+            primaryButtonText="Add"
+            secondaryButtonText="Cancel"
             onRequestSubmit={handleSaveTax}
+            onRequestClose={onRequestClose}
         >
-            <Form onSubmit={handleSaveTax} className='flex flex-col gap-4'>
+            <Form>
                 <TextInput
-                    id="tax-name"
+                    id="name"
                     name="name"
-                    labelText="Tax Name"
+                    labelText="Name"
                     value={newTax.name}
                     onChange={handleInputChange}
                     required
                 />
                 <TextInput
-                    id="tax-rate"
+                    id="rate"
                     name="rate"
-                    labelText="Tax Rate (%)"
+                    labelText="Rate (%)"
                     type="number"
-                    value={newTax.rate || ''}
+                    value={newTax.rate}
                     onChange={handleInputChange}
                     required
                 />
                 <TextInput
-                    id="tax-description"
+                    id="description"
                     name="description"
                     labelText="Description"
                     value={newTax.description || ''}

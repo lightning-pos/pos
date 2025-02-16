@@ -5,21 +5,14 @@ import DataTable from '@/components/ui/DataTable'
 import AddTaxModal from './add_tax_modal'
 import EditTaxModal from './edit_tax_modal'
 import DeleteTaxModal from './delete_tax_modal'
-import { invoke } from '@tauri-apps/api/core'
-
-interface Tax {
-    id: string
-    name: string
-    rate: number
-    description?: string
-    createdAt: string
-    updatedAt: string
-}
+import { GetTaxesDocument, Tax } from '@/lib/graphql/graphql'
+import { gql } from '@/lib/graphql/execute'
 
 const Taxes = () => {
     // Modal States
     const [taxes, setTaxes] = useState<Tax[]>([])
-    const [selectedTax, setSelectedTax] = useState<Tax | null>()
+    const [selectedTax, setSelectedTax] = useState<Tax | null>(null)
+    const [totalTaxes, setTotalTaxes] = useState(0)
 
     // UI States
     const [loading, setLoading] = useState(true)
@@ -33,25 +26,12 @@ const Taxes = () => {
         const offset = (page - 1) * size
         setLoading(true)
         try {
-            const result = await invoke('graphql', {
-                query: `#graphql
-          query {
-            taxes(first: ${size}, offset: ${offset}) {
-              id
-              name
-              rate
-              description
-              createdAt
-              updatedAt
-            }
-          }
-        `
-            }) as { data: { taxes: Tax[] } }
-            console.log(result)
-            setTaxes(result[0].taxes.map(tax => ({
+            const result = await gql(GetTaxesDocument, { first: size, offset })
+            setTaxes(result.taxes.map(tax => ({
                 ...tax,
                 rate: tax.rate / 100 // Convert from integer percentage to decimal
             })))
+            setTotalTaxes(result.totalTaxes)
         } catch (error) {
             console.error('Error fetching taxes:', error)
         } finally {
@@ -83,6 +63,11 @@ const Taxes = () => {
         setIsDeleteModalOpen(true)
     }
 
+    const handlePageChange = (page: number, size: number) => {
+        setCurrentPage(page)
+        setPageSize(size)
+    }
+
     return (
         <Content className='min-h-[calc(100dvh-3rem)] p-0 flex flex-col'>
             <div className="p-4 flex-grow flex flex-col" style={{ height: 'calc(100vh - 12rem)' }}>
@@ -92,14 +77,11 @@ const Taxes = () => {
                     headers={headers}
                     tableRows={taxes}
                     loading={loading}
-                    totalItems={taxes.length}
+                    totalItems={totalTaxes}
                     currentPage={currentPage}
                     pageSize={pageSize}
                     pageSizes={[10, 20, 30, 40, 50]}
-                    onPageChange={(page, pageSize) => {
-                        setCurrentPage(page)
-                        setPageSize(pageSize)
-                    }}
+                    onPageChange={handlePageChange}
                     onAddClick={handleAddTax}
                     onEditClick={handleEditTax}
                     onDeleteClick={handleDeleteTax}

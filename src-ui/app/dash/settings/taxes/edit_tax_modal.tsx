@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, TextInput, Form, ModalProps } from '@carbon/react'
-import { invoke } from '@tauri-apps/api/core'
-
-interface Tax {
-    id: string
-    name: string
-    rate: number
-    description?: string
-    createdAt: string
-    updatedAt: string
-}
+import { UpdateTaxDocument, Tax, TaxUpdateInput } from '@/lib/graphql/graphql'
+import { gql } from '@/lib/graphql/execute'
 
 interface EditTaxModalProps extends ModalProps {
     tax: Tax
@@ -32,30 +24,19 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
         setEditingTax(prev => prev ? { ...prev, [name]: name === 'rate' ? parseFloat(value) : value } : null)
     }
 
-    const handleSaveTax = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleSaveTax = async (e: React.MouseEvent<HTMLElement>) => {
         if (!editingTax) return
+
         try {
-            await invoke('graphql', {
-                query: `#graphql
-          mutation {
-            updateTax(
-              input: {
-                id: "${editingTax.id}",
-                name: "${editingTax.name}",
-                rate: ${Math.round(editingTax.rate * 100)},
-                description: "${editingTax.description || ''}"
-              }
-            ) {
-              id
-              name
-              rate
-              description
+            const input: TaxUpdateInput = {
+                id: editingTax.id,
+                name: editingTax.name,
+                rate: Math.round(editingTax.rate * 100), // Convert decimal to integer percentage
+                description: editingTax.description || undefined
             }
-          }
-        `
-            })
-            onRequestSubmit?.(e as React.FormEvent<HTMLFormElement>)
+
+            await gql(UpdateTaxDocument, { input })
+            onRequestSubmit?.(e)
         } catch (error) {
             console.error('Error updating tax:', error)
         }
@@ -66,31 +47,32 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
     return (
         <Modal
             open={open}
-            onRequestClose={onRequestClose}
             modalHeading="Edit Tax"
-            primaryButtonText="Save Changes"
+            primaryButtonText="Update"
+            secondaryButtonText="Cancel"
             onRequestSubmit={handleSaveTax}
+            onRequestClose={onRequestClose}
         >
-            <Form onSubmit={handleSaveTax} className='flex flex-col gap-4'>
+            <Form>
                 <TextInput
-                    id="tax-name"
+                    id="name"
                     name="name"
-                    labelText="Tax Name"
+                    labelText="Name"
                     value={editingTax.name}
                     onChange={handleInputChange}
                     required
                 />
                 <TextInput
-                    id="tax-rate"
+                    id="rate"
                     name="rate"
-                    labelText="Tax Rate (%)"
+                    labelText="Rate (%)"
                     type="number"
                     value={editingTax.rate}
                     onChange={handleInputChange}
                     required
                 />
                 <TextInput
-                    id="tax-description"
+                    id="description"
                     name="description"
                     labelText="Description"
                     value={editingTax.description || ''}
