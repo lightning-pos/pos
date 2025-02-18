@@ -13,7 +13,7 @@
     "dependencies": {
         "@carbon/icons-react": "^11.48.0",
         "@carbon/react": "^1.65.0",
-        "@tauri-apps/api": ">=2.0.0-rc.0",
+        "@tauri-apps/api": "^2.2.0",
         "graphql": "^16.10.0",
         "next": "14.2.5",
         "react": "^18",
@@ -24,7 +24,7 @@
     "devDependencies": {
         "@graphql-codegen/cli": "5.0.5",
         "@graphql-codegen/client-preset": "4.6.2",
-        "@tauri-apps/cli": ">=2.0.0-rc.0",
+        "@tauri-apps/cli": "^2.2.7",
         "@testing-library/dom": "^10.4.0",
         "@testing-library/react": "^16.0.1",
         "@types/node": "^20",
