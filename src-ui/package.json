@@ -11,8 +11,8 @@
         "codegen": "graphql-codegen --config codegen.ts"
     },
     "dependencies": {
-        "@carbon/icons-react": "^11.48.0",
-        "@carbon/react": "^1.65.0",
+        "@carbon/icons-react": "^11.55.0",
+        "@carbon/react": "^1.76.0",
         "@tauri-apps/api": "^2.2.0",
         "graphql": "^16.10.0",
         "next": "14.2.5",
