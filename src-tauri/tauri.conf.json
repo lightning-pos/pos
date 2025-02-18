@@ -28,8 +28,8 @@
         "withGlobalTauri": false
     },
     "build": {
-        "beforeBuildCommand": "cd src-ui && yarn build",
-        "beforeDevCommand": "cd src-ui && yarn dev",
+        "beforeBuildCommand": "cd src-ui && pnpm build",
+        "beforeDevCommand": "cd src-ui && pnpm dev",
         "devUrl": "http://localhost:3000",
         "frontendDist": "src-ui/out"
     },

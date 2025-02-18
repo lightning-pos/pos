@@ -99,7 +99,7 @@ setTotalTaxes(result.totalTaxes)
 
 Run the codegen command whenever you make changes to GraphQL queries or schema:
 ```bash
-yarn codegen
+pnpm codegen
 ```
 
 ## Troubleshooting
