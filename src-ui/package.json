@@ -24,7 +24,6 @@
     "devDependencies": {
         "@graphql-codegen/cli": "5.0.5",
         "@graphql-codegen/client-preset": "4.6.2",
-        "@tauri-apps/cli": "^2.2.7",
         "@types/node": "^20",
         "@types/react": "19.0.10",
         "@types/react-dom": "19.0.4",

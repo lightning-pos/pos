@@ -7,7 +7,7 @@
         "schema:export": "cd src-tauri && cargo run export-schema"
     },
     "devDependencies": {
-        "@tauri-apps/cli": ">=2.0.0-rc.0"
+        "@tauri-apps/cli": "^2.2.7"
     },
     "graphql": {
         "schema": "src-ui/schema.graphql",
