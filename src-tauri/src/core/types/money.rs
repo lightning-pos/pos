@@ -12,14 +12,11 @@ use diesel::{
     sqlite::Sqlite,
     Queryable,
 };
-use juniper::{
-    graphql_scalar, InputValue, ParseScalarResult, ParseScalarValue, ScalarToken, ScalarValue,
-    Value,
-};
+use juniper::{graphql_scalar, InputValue, ScalarValue, Value};
 
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, AsExpression)]
 #[diesel(sql_type = BigInt)]
-#[graphql_scalar]
+#[graphql_scalar(parse_token(String))]
 pub struct Money(i64);
 
 impl Money {
@@ -38,14 +35,6 @@ impl Money {
             .parse::<i64>()
             .map_err(|_| "Not a valid integer".to_string())?;
         Ok(Money(i))
-    }
-
-    fn parse_token<S>(value: ScalarToken<'_>) -> ParseScalarResult<S>
-    where
-        S: ScalarValue,
-    {
-        <String as ParseScalarValue<S>>::from_str(value)
-            .or_else(|_| <i32 as ParseScalarValue<S>>::from_str(value))
     }
 }
 
