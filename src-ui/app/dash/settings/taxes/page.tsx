@@ -27,10 +27,7 @@ const Taxes = () => {
         setLoading(true)
         try {
             const result = await gql(GetTaxesDocument, { first: size, offset })
-            setTaxes(result.taxes.map(tax => ({
-                ...tax,
-                rate: tax.rate / 100 // Convert from integer percentage to decimal
-            })))
+            setTaxes(result.taxes)
             setTotalTaxes(result.totalTaxes)
         } catch (error) {
             console.error('Error fetching taxes:', error)

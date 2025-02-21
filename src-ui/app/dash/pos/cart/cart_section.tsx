@@ -76,7 +76,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
             const itemTaxes = taxes.filter(tax => item.taxIds?.includes(tax.id))
             const itemPrice = item.price || 0
             const itemTax = itemTaxes.reduce((taxSum, tax) => {
-                const taxRate = (tax.rate || 0) / 10000 // Convert from basis points to decimal
+                const taxRate = tax.rate / 100
                 return taxSum + (itemPrice * item.quantity * taxRate)
             }, 0)
             return sum + itemTax

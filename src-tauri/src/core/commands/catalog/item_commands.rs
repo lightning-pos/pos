@@ -141,7 +141,10 @@ impl Command for DeleteItemCommand {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::models::catalog::item_model::{ItemNature, ItemState};
+    use crate::core::{
+        models::catalog::item_model::{ItemNature, ItemState},
+        types::percentage::Percentage,
+    };
 
     use super::*;
 
@@ -150,7 +153,7 @@ mod tests {
         let tax = Tax {
             id: Uuid::now_v7().into(),
             name: "Test Tax".to_string(),
-            rate: 1000,
+            rate: Percentage::from_float(10.0),
             description: None,
             created_at: now,
             updated_at: now,

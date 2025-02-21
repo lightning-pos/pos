@@ -109,7 +109,7 @@ input SalesOrderNewInput {
 
 input TaxNewInput {
   name: String!
-  rate: Int!
+  rate: Percentage!
   description: String
   itemIds: [DbUuid!]
 }
@@ -117,7 +117,7 @@ input TaxNewInput {
 input TaxUpdateInput {
   id: DbUuid!
   name: String
-  rate: Int
+  rate: Percentage
   description: String
 }
 
@@ -158,6 +158,8 @@ scalar DbUuid
 scalar LocalDateTime
 
 scalar Money
+
+scalar Percentage
 
 type AnalyticsOverview {
   totalSales: Money!
@@ -253,8 +255,8 @@ type Query {
   totalCarts: Int!
   cart(id: DbUuid!): Cart!
   taxes(first: Int, offset: Int): [Tax!]!
-  tax(id: DbUuid!): Tax!
   totalTaxes: Int!
+  tax(id: DbUuid!): Tax!
   analyticsOverview(days: Int): AnalyticsOverview!
 }
 
@@ -291,7 +293,7 @@ type SalesOrderItem {
 type Tax {
   id: DbUuid!
   name: String!
-  rate: Int!
+  rate: Percentage!
   description: String
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!

@@ -2,7 +2,10 @@ use chrono::NaiveDateTime;
 use juniper::graphql_object;
 
 use crate::{
-    core::{models::common::tax_model::Tax, types::db_uuid::DbUuid},
+    core::{
+        models::common::tax_model::Tax,
+        types::{db_uuid::DbUuid, percentage::Percentage},
+    },
     AppState,
 };
 
@@ -16,7 +19,7 @@ impl Tax {
         self.name.clone()
     }
 
-    pub fn rate(&self) -> i32 {
+    pub fn rate(&self) -> Percentage {
         self.rate
     }
 

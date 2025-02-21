@@ -1,4 +1,3 @@
-
 import type { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
@@ -21,9 +20,13 @@ const config: CodegenConfig = {
                         output: 'string',
                     },
                     Money: {
-                        input: 'string',
+                        input: 'string | number',
                         output: 'number',
                     },
+                    Percentage: {
+                        input: 'string | number',
+                        output: 'number',
+                    }
                 }
             }
         },

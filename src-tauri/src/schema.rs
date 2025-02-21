@@ -40,6 +40,8 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp, Integer};
+
     taxes (id) {
         id -> Text,
         name -> Text,

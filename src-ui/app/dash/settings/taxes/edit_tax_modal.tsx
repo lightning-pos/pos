@@ -13,13 +13,15 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
     onRequestSubmit,
     tax
 }) => {
-    const [editingTax, setEditingTax] = useState<Omit<Tax, 'rate'> & { rate: string } | null>(null)
+    const [editingTax, setEditingTax] = useState<TaxUpdateInput | null>(null)
 
     useEffect(() => {
         if (tax) {
             setEditingTax({
-                ...tax,
-                rate: tax.rate.toString()
+                id: tax.id,
+                name: tax.name,
+                rate: tax.rate,
+                description: tax.description || undefined
             })
         }
     }, [tax])
@@ -31,9 +33,13 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
         if (name === 'rate') {
             // Only allow numbers and decimal point
             const sanitizedValue = value.replace(/[^0-9.]/g, '')
-            // Ensure only one decimal point
+            // Ensure only one decimal point and up to 4 decimal places
             const parts = sanitizedValue.split('.')
-            const finalValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : sanitizedValue
+            const finalValue = parts.length > 2
+                ? parts[0] + '.' + parts[1].slice(0, 4)
+                : parts.length === 2
+                    ? parts[0] + '.' + parts[1].slice(0, 4)
+                    : sanitizedValue
             setEditingTax(prev => prev ? { ...prev, rate: finalValue } : null)
         } else {
             setEditingTax(prev => prev ? { ...prev, [name]: value } : null)
@@ -44,20 +50,7 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
         if (!editingTax) return
 
         try {
-            const rateAsNumber = parseFloat(editingTax.rate || '0')
-            if (isNaN(rateAsNumber)) {
-                console.error('Invalid tax rate')
-                return
-            }
-
-            const input: TaxUpdateInput = {
-                id: editingTax.id,
-                name: editingTax.name,
-                rate: Math.round(rateAsNumber * 100), // Convert decimal to integer percentage
-                description: editingTax.description || undefined
-            }
-
-            await gql(UpdateTaxDocument, { input })
+            await gql(UpdateTaxDocument, { input: editingTax })
             onRequestSubmit?.(e)
         } catch (error) {
             console.error('Error updating tax:', error)
@@ -80,7 +73,7 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
                     id="name"
                     name="name"
                     labelText="Name"
-                    value={editingTax.name}
+                    value={editingTax.name || ''}
                     onChange={handleInputChange}
                     required
                 />
@@ -88,10 +81,9 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
                     id="rate"
                     name="rate"
                     labelText="Rate (%)"
-                    value={editingTax.rate}
+                    value={editingTax.rate || ''}
                     onChange={handleInputChange}
                     required
-                    placeholder="e.g. 18.5"
                 />
                 <TextInput
                     id="description"

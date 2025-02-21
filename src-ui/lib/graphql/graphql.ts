@@ -23,7 +23,8 @@ export type Scalars = {
    * [1]: https://docs.rs/chrono/latest/chrono/naive/struct.NaiveDateTime.html
    */
   LocalDateTime: { input: string; output: string; }
-  Money: { input: string; output: number; }
+  Money: { input: string | number; output: number; }
+  Percentage: { input: string | number; output: number; }
 };
 
 export type AnalyticsOverview = {
@@ -472,7 +473,7 @@ export type Tax = {
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['DbUuid']['output'];
   name: Scalars['String']['output'];
-  rate: Scalars['Int']['output'];
+  rate: Scalars['Percentage']['output'];
   updatedAt: Scalars['LocalDateTime']['output'];
 };
 
@@ -480,14 +481,14 @@ export type TaxNewInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   itemIds?: InputMaybe<Array<Scalars['DbUuid']['input']>>;
   name: Scalars['String']['input'];
-  rate: Scalars['Int']['input'];
+  rate: Scalars['Percentage']['input'];
 };
 
 export type TaxUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['DbUuid']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
-  rate?: InputMaybe<Scalars['Int']['input']>;
+  rate?: InputMaybe<Scalars['Percentage']['input']>;
 };
 
 export type UpdateItem = {

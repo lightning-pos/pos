@@ -8,9 +8,9 @@ const AddTaxModal: React.FC<ModalProps> = ({
     onRequestSubmit,
     onRequestClose,
 }) => {
-    const [newTax, setNewTax] = useState<Omit<TaxNewInput, 'rate'> & { rate: string }>({
+    const [newTax, setNewTax] = useState<TaxNewInput>({
         name: '',
-        rate: '',
+        rate: '0',
         description: ''
     })
 
@@ -19,9 +19,13 @@ const AddTaxModal: React.FC<ModalProps> = ({
         if (name === 'rate') {
             // Only allow numbers and decimal point
             const sanitizedValue = value.replace(/[^0-9.]/g, '')
-            // Ensure only one decimal point
+            // Ensure only one decimal point and up to 4 decimal places
             const parts = sanitizedValue.split('.')
-            const finalValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : sanitizedValue
+            const finalValue = parts.length > 2
+                ? parts[0] + '.' + parts[1].slice(0, 4)
+                : parts.length === 2
+                    ? parts[0] + '.' + parts[1].slice(0, 4)
+                    : sanitizedValue
             setNewTax(prev => ({ ...prev, rate: finalValue }))
         } else {
             setNewTax(prev => ({ ...prev, [name]: value }))
@@ -30,18 +34,7 @@ const AddTaxModal: React.FC<ModalProps> = ({
 
     const handleSaveTax = async (e: React.MouseEvent<HTMLElement>) => {
         try {
-            const rateAsNumber = parseFloat(newTax.rate || '0')
-            if (isNaN(rateAsNumber)) {
-                console.error('Invalid tax rate')
-                return
-            }
-
-            await gql(CreateTaxDocument, {
-                input: {
-                    ...newTax,
-                    rate: Math.round(rateAsNumber * 100) // Convert decimal to integer percentage
-                }
-            })
+            await gql(CreateTaxDocument, { input: newTax })
             onRequestSubmit?.(e)
         } catch (error) {
             console.error('Error creating tax:', error)
@@ -73,7 +66,6 @@ const AddTaxModal: React.FC<ModalProps> = ({
                     value={newTax.rate}
                     onChange={handleInputChange}
                     required
-                    placeholder="e.g. 18.5"
                 />
                 <TextInput
                     id="description"

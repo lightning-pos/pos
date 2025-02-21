@@ -206,6 +206,7 @@ mod tests {
     use crate::core::{
         commands::app_service::AppService,
         models::catalog::item_model::{ItemNature, ItemState},
+        types::percentage::Percentage,
     };
 
     #[test]
@@ -215,7 +216,7 @@ mod tests {
         let command = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800,
+                rate: Percentage::from_float(18.0),
                 description: Some("Goods and Services Tax".to_string()),
                 item_ids: None,
             },
@@ -223,7 +224,7 @@ mod tests {
 
         let tax = command.exec(&mut service).unwrap();
         assert_eq!(tax.name, "GST");
-        assert_eq!(tax.rate, 1800);
+        assert_eq!(tax.rate, Percentage::from_float(18.0));
         assert_eq!(tax.description, Some("Goods and Services Tax".to_string()));
     }
 
@@ -238,7 +239,7 @@ mod tests {
         let command = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800,
+                rate: Percentage::from_float(18.0),
                 description: Some("Goods and Services Tax".to_string()),
                 item_ids: Some(vec![item1.id, item2.id]),
             },
@@ -248,7 +249,7 @@ mod tests {
 
         // Verify tax was created
         assert_eq!(tax.name, "GST");
-        assert_eq!(tax.rate, 1800);
+        assert_eq!(tax.rate, Percentage::from_float(18.0));
 
         // Verify item-tax associations were created
         let associations = item_taxes::table
@@ -268,7 +269,7 @@ mod tests {
         let command = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800,
+                rate: Percentage::from_float(18.0),
                 description: Some("Goods and Services Tax".to_string()),
                 item_ids: Some(vec![Uuid::now_v7().into()]),
             },
@@ -286,7 +287,7 @@ mod tests {
         let create_command = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800,
+                rate: Percentage::from_float(18.0),
                 description: Some("Goods and Services Tax".to_string()),
                 item_ids: None,
             },
@@ -298,14 +299,14 @@ mod tests {
             tax: TaxUpdateInput {
                 id: created_tax.id,
                 name: Some("Updated GST".to_string()),
-                rate: Some(2000),
+                rate: Some(Percentage::from_float(20.0)),
                 description: Some("Updated GST Description".to_string()),
             },
         };
 
         let updated_tax = update_command.exec(&mut service).unwrap();
         assert_eq!(updated_tax.name, "Updated GST");
-        assert_eq!(updated_tax.rate, 2000);
+        assert_eq!(updated_tax.rate, Percentage::from_float(20.0));
         assert_eq!(
             updated_tax.description,
             Some("Updated GST Description".to_string())
@@ -320,7 +321,7 @@ mod tests {
             tax: TaxUpdateInput {
                 id: Uuid::now_v7().into(),
                 name: Some("Updated GST".to_string()),
-                rate: Some(2000),
+                rate: Some(Percentage::from_float(20.0)),
                 description: Some("Updated GST Description".to_string()),
             },
         };
@@ -337,7 +338,7 @@ mod tests {
         let create_command = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800,
+                rate: Percentage::from_float(18.0),
                 description: Some("Goods and Services Tax".to_string()),
                 item_ids: None,
             },
@@ -393,7 +394,7 @@ mod tests {
         let tax = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800,
+                rate: Percentage::from_float(18.0),
                 description: Some("Goods and Services Tax".to_string()),
                 item_ids: None,
             },
@@ -423,7 +424,7 @@ mod tests {
         let tax = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800,
+                rate: Percentage::from_float(18.0),
                 description: Some("Goods and Services Tax".to_string()),
                 item_ids: None,
             },
@@ -470,7 +471,7 @@ mod tests {
         let tax = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800,
+                rate: Percentage::from_float(18.0),
                 description: Some("Goods and Services Tax".to_string()),
                 item_ids: None,
             },
@@ -502,7 +503,7 @@ mod tests {
         let tax = CreateTaxCommand {
             tax: TaxNewInput {
                 name: "GST".to_string(),
-                rate: 1800,
+                rate: Percentage::from_float(18.0),
                 description: Some("Goods and Services Tax".to_string()),
                 item_ids: None,
             },

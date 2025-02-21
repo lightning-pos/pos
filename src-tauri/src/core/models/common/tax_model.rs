@@ -5,7 +5,10 @@ use diesel::{
 };
 use juniper::GraphQLInputObject;
 
-use crate::core::{models::catalog::item_model::Item, types::db_uuid::DbUuid};
+use crate::core::{
+    models::catalog::item_model::Item,
+    types::{db_uuid::DbUuid, percentage::Percentage},
+};
 use crate::schema::{item_taxes, taxes};
 
 #[derive(Debug, Clone, Queryable, Selectable, Insertable)]
@@ -13,7 +16,7 @@ use crate::schema::{item_taxes, taxes};
 pub struct Tax {
     pub id: DbUuid,
     pub name: String,
-    pub rate: i32, // Stored as basis points (e.g., 1000 = 10%)
+    pub rate: Percentage,
     pub description: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -22,7 +25,7 @@ pub struct Tax {
 #[derive(Debug, Clone, GraphQLInputObject)]
 pub struct TaxNewInput {
     pub name: String,
-    pub rate: i32,
+    pub rate: Percentage,
     pub description: Option<String>,
     pub item_ids: Option<Vec<DbUuid>>, // Optional list of items to initially assign this tax to
 }
@@ -31,7 +34,7 @@ pub struct TaxNewInput {
 pub struct TaxUpdateInput {
     pub id: DbUuid,
     pub name: Option<String>,
-    pub rate: Option<i32>,
+    pub rate: Option<Percentage>,
     pub description: Option<String>,
 }
 
@@ -39,7 +42,7 @@ pub struct TaxUpdateInput {
 #[diesel(table_name = taxes)]
 pub struct TaxUpdateChangeset {
     pub name: Option<String>,
-    pub rate: Option<i32>,
+    pub rate: Option<Percentage>,
     pub description: Option<String>,
     pub updated_at: Option<NaiveDateTime>,
 }
