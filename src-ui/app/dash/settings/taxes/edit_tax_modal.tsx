@@ -20,7 +20,7 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
             setEditingTax({
                 id: tax.id,
                 name: tax.name,
-                rate: tax.rate,
+                rate: tax.rate.toString(),
                 description: tax.description || undefined
             })
         }

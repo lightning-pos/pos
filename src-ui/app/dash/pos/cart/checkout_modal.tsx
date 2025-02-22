@@ -52,11 +52,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         try {
             setProcessing(true)
-            onComplete()
+            await onComplete()
         } catch (error) {
             console.error('Error creating order:', error)
         } finally {
             setProcessing(false)
+            onClose()
         }
     }
 

@@ -6,10 +6,11 @@ import { gql } from '@/lib/graphql/execute'
 import {
     GetPosTaxesDocument,
     Item,
-    ItemNature,
-    ItemState,
     Tax,
-    Customer
+    Customer,
+    SalesOrderState,
+    SalesOrderNewInput,
+    CreateSalesOrderDocument
 } from '@/lib/graphql/graphql'
 import CheckoutModal from './checkout_modal'
 import CustomerSelect from './customer_select'
@@ -99,10 +100,51 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
         setIsCheckoutModalOpen(true)
     }
 
-    const handleCheckoutComplete = () => {
-        setCart([])
-        setIsCheckoutModalOpen(false)
-        setSelectedCustomer(null)
+    const handleCheckoutComplete = async () => {
+        if (!selectedCustomer) return
+
+        try {
+            const now = new Date();
+            const orderDate = now.getUTCFullYear() + '-' +
+                String(now.getUTCMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getUTCDate()).padStart(2, '0') + ' ' +
+                String(now.getUTCHours()).padStart(2, '0') + ':' +
+                String(now.getUTCMinutes()).padStart(2, '0') + ':' +
+                String(now.getUTCSeconds()).padStart(2, '0')
+
+            const orderInput: SalesOrderNewInput = {
+                customerId: selectedCustomer.id,
+                customerName: selectedCustomer.fullName,
+                customerPhoneNumber: selectedCustomer.phone || '',
+                orderDate: orderDate,
+                netAmount: subtotal.toString(),
+                discAmount: '0',
+                taxableAmount: subtotal.toString(),
+                taxAmount: totalTax.toString(),
+                totalAmount: totalAmount.toString(),
+                state: SalesOrderState.Completed,
+                items: cart.map(item => ({
+                    itemId: item.id,
+                    itemName: item.name,
+                    quantity: item.quantity,
+                    priceAmount: item.price.toString(),
+                    taxAmount: item.taxIds
+                        ? taxes
+                            .filter(tax => item.taxIds?.includes(tax.id))
+                            .reduce((sum, tax) => sum + (item.price * tax.rate / 100), 0)
+                            .toString()
+                        : '0'
+                }))
+            }
+
+            await gql(CreateSalesOrderDocument, { salesOrder: orderInput })
+            setCart([])
+            setIsCheckoutModalOpen(false)
+            setSelectedCustomer(null)
+        } catch (error) {
+            console.error('Error creating order:', error)
+            alert('Failed to create order. Please try again.')
+        }
     }
 
     return (

@@ -23,8 +23,8 @@ export type Scalars = {
    * [1]: https://docs.rs/chrono/latest/chrono/naive/struct.NaiveDateTime.html
    */
   LocalDateTime: { input: string; output: string; }
-  Money: { input: string | number; output: number; }
-  Percentage: { input: string | number; output: number; }
+  Money: { input: string; output: number; }
+  Percentage: { input: string; output: number; }
 };
 
 export type AnalyticsOverview = {
@@ -687,6 +687,13 @@ export type CreatePosCustomerMutationVariables = Exact<{
 
 export type CreatePosCustomerMutation = { __typename?: 'Mutation', createCustomer: { __typename?: 'Customer', id: string, fullName: string, phone?: string | null, email?: string | null, address?: string | null, createdAt: string, updatedAt: string } };
 
+export type CreateSalesOrderMutationVariables = Exact<{
+  salesOrder: SalesOrderNewInput;
+}>;
+
+
+export type CreateSalesOrderMutation = { __typename?: 'Mutation', createSalesOrder: { __typename?: 'SalesOrder', id: string, customerName: string, orderDate: string, netAmount: number, taxAmount: number, totalAmount: number, state: SalesOrderState } };
+
 export type GetTaxesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
   offset: Scalars['Int']['input'];
@@ -1076,6 +1083,19 @@ export const CreatePosCustomerDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<CreatePosCustomerMutation, CreatePosCustomerMutationVariables>;
+export const CreateSalesOrderDocument = new TypedDocumentString(`
+    mutation createSalesOrder($salesOrder: SalesOrderNewInput!) {
+  createSalesOrder(salesOrder: $salesOrder) {
+    id
+    customerName
+    orderDate
+    netAmount
+    taxAmount
+    totalAmount
+    state
+  }
+}
+    `) as unknown as TypedDocumentString<CreateSalesOrderMutation, CreateSalesOrderMutationVariables>;
 export const GetTaxesDocument = new TypedDocumentString(`
     query GetTaxes($first: Int!, $offset: Int!) {
   taxes(first: $first, offset: $offset) {

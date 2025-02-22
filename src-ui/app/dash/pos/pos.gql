@@ -72,3 +72,15 @@ mutation createPosCustomer($fullName: String!, $phone: String!) {
         updatedAt
     }
 }
+
+mutation createSalesOrder($salesOrder: SalesOrderNewInput!) {
+    createSalesOrder(salesOrder: $salesOrder) {
+        id
+        customerName
+        orderDate
+        netAmount
+        taxAmount
+        totalAmount
+        state
+    }
+}
