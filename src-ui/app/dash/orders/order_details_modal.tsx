@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, ModalProps } from '@carbon/react';
-import { SalesOrder, SalesOrderItem, SalesOrderState } from '@/lib/graphql/graphql';
+import { SalesOrder, SalesOrderItem } from '@/lib/graphql/graphql';
 
 interface OrderDetailsModalProps extends ModalProps {
     order: SalesOrder
@@ -25,6 +25,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         { key: 'quantity', header: 'Quantity' },
         { key: 'priceAmount', header: 'Price' },
         { key: 'taxAmount', header: 'Tax' },
+        { key: 'totalAmount', header: 'Total' },
     ];
 
     return (
@@ -60,7 +61,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                                         <TableRow {...getRowProps({ row })} key={row.id}>
                                             {row.cells.map((cell) => (
                                                 <TableCell key={cell.id}>
-                                                    {cell.info.header === 'priceAmount' || cell.info.header === 'taxAmount'
+                                                    {cell.info.header === 'priceAmount' || cell.info.header === 'taxAmount' || cell.info.header === 'totalAmount'
                                                         ? formatPrice(cell.value)
                                                         : cell.value}
                                                 </TableCell>

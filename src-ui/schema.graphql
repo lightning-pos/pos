@@ -91,6 +91,7 @@ input SalesOrderItemInput {
   quantity: Int!
   priceAmount: Money!
   taxAmount: Money!
+  totalAmount: Money!
 }
 
 input SalesOrderNewInput {
@@ -286,6 +287,7 @@ type SalesOrderItem {
   quantity: Int!
   priceAmount: Money!
   taxAmount: Money!
+  totalAmount: Money!
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
 }

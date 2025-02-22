@@ -436,6 +436,7 @@ export type SalesOrderItem = {
   priceAmount: Scalars['Money']['output'];
   quantity: Scalars['Int']['output'];
   taxAmount: Scalars['Money']['output'];
+  totalAmount: Scalars['Money']['output'];
   updatedAt: Scalars['LocalDateTime']['output'];
 };
 
@@ -445,6 +446,7 @@ export type SalesOrderItemInput = {
   priceAmount: Scalars['Money']['input'];
   quantity: Scalars['Int']['input'];
   taxAmount: Scalars['Money']['input'];
+  totalAmount: Scalars['Money']['input'];
 };
 
 export type SalesOrderNewInput = {
@@ -650,7 +652,7 @@ export type GetSalesOrdersQueryVariables = Exact<{
 }>;
 
 
-export type GetSalesOrdersQuery = { __typename?: 'Query', totalSalesOrders: number, salesOrders: Array<{ __typename?: 'SalesOrder', id: string, customerId: string, customerName: string, customerPhoneNumber: string, orderDate: string, netAmount: number, discAmount: number, taxableAmount: number, taxAmount: number, totalAmount: number, state: SalesOrderState, createdAt: string, updatedAt: string, customer: { __typename?: 'Customer', id: string, fullName: string, phone?: string | null, createdAt: string, updatedAt: string }, items: Array<{ __typename?: 'SalesOrderItem', id: string, orderId: string, itemId: string, itemName: string, quantity: number, priceAmount: number, taxAmount: number, createdAt: string, updatedAt: string }> }> };
+export type GetSalesOrdersQuery = { __typename?: 'Query', totalSalesOrders: number, salesOrders: Array<{ __typename?: 'SalesOrder', id: string, customerId: string, customerName: string, customerPhoneNumber: string, orderDate: string, netAmount: number, discAmount: number, taxableAmount: number, taxAmount: number, totalAmount: number, state: SalesOrderState, createdAt: string, updatedAt: string, customer: { __typename?: 'Customer', id: string, fullName: string, phone?: string | null, createdAt: string, updatedAt: string }, items: Array<{ __typename?: 'SalesOrderItem', id: string, orderId: string, itemId: string, itemName: string, quantity: number, priceAmount: number, taxAmount: number, totalAmount: number, createdAt: string, updatedAt: string }> }> };
 
 export type GetPosCategoriesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -996,6 +998,7 @@ export const GetSalesOrdersDocument = new TypedDocumentString(`
       quantity
       priceAmount
       taxAmount
+      totalAmount
       createdAt
       updatedAt
     }

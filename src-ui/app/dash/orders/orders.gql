@@ -28,6 +28,7 @@ query GetSalesOrders($first: Int!, $offset: Int!) {
             quantity
             priceAmount
             taxAmount
+            totalAmount
             createdAt
             updatedAt
         }

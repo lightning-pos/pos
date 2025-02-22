@@ -66,6 +66,7 @@ impl Command for CreateSalesOrderCommand {
                     quantity: item.quantity,
                     price_amount: item.price_amount,
                     tax_amount: item.tax_amount,
+                    total_amount: item.total_amount,
                     created_at: now,
                     updated_at: now,
                 })
@@ -131,6 +132,7 @@ mod tests {
                     quantity: 2,
                     price_amount: 500.into(),
                     tax_amount: 50.into(),
+                    total_amount: 1000.into(),
                 },
                 SalesOrderItemInput {
                     item_id: Uuid::now_v7().into(),
@@ -138,6 +140,7 @@ mod tests {
                     quantity: 1,
                     price_amount: 100.into(),
                     tax_amount: 40.into(),
+                    total_amount: 140.into(),
                 },
             ],
         };
@@ -172,6 +175,7 @@ mod tests {
                 quantity: 2,
                 price_amount: 500.into(),
                 tax_amount: 50.into(),
+                total_amount: 1000.into(),
             }],
         };
 
@@ -208,6 +212,7 @@ mod tests {
                 quantity: 2,
                 price_amount: 500.into(),
                 tax_amount: 50.into(),
+                total_amount: 1000.into(),
             }],
         };
 

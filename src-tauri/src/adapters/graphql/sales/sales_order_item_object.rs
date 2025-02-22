@@ -39,6 +39,10 @@ impl SalesOrderItem {
         self.tax_amount
     }
 
+    pub fn total_amount(&self) -> Money {
+        self.total_amount
+    }
+
     pub fn created_at(&self) -> NaiveDateTime {
         self.created_at
     }

@@ -133,7 +133,12 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
                             .filter(tax => item.taxIds?.includes(tax.id))
                             .reduce((sum, tax) => sum + (item.price * tax.rate / 100), 0)
                             .toString()
-                        : '0'
+                        : '0',
+                    totalAmount: ((item.price + (item.taxIds
+                        ? taxes
+                            .filter(tax => item.taxIds?.includes(tax.id))
+                            .reduce((sum, tax) => sum + (item.price * tax.rate / 100), 0)
+                        : 0)) * item.quantity).toString(),
                 }))
             }
 

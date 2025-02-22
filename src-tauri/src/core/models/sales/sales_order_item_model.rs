@@ -20,6 +20,7 @@ pub struct SalesOrderItem {
     pub quantity: i32,
     pub price_amount: Money,
     pub tax_amount: Money,
+    pub total_amount: Money,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -31,4 +32,5 @@ pub struct SalesOrderItemInput {
     pub quantity: i32,
     pub price_amount: Money,
     pub tax_amount: Money,
+    pub total_amount: Money,
 }

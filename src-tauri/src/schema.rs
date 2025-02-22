@@ -110,6 +110,7 @@ table! {
         quantity -> Integer,
         price_amount -> BigInt,
         tax_amount -> BigInt,
+        total_amount -> BigInt,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
