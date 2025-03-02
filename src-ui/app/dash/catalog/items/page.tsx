@@ -114,11 +114,9 @@ const Items = () => {
 
     const headers = [
         { key: 'name', header: 'Name' },
-        { key: 'priceTransformed', header: 'Price' },
         { key: 'categoryTransformed', header: 'Category' },
+        { key: 'priceTransformed', header: 'Price' },
         { key: 'taxesTransformed', header: 'Taxes' },
-        { key: 'description', header: 'Description' },
-        { key: 'nature', header: 'Nature' },
         { key: 'state', header: 'State' },
     ]
 
