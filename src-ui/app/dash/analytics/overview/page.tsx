@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { Tile } from '@carbon/react'
 import { gql } from '@/lib/graphql/execute'
 import { GetAnalyticsOverviewDocument, AnalyticsOverview } from '@/lib/graphql/graphql'
+import { formatCurrency } from '@/lib/util/number_format'
 
 const AnalyticsOverviewPage = () => {
     const [overview, setOverview] = useState<AnalyticsOverview | null>(null)
@@ -26,15 +27,6 @@ const AnalyticsOverviewPage = () => {
 
         fetchOverview()
     }, [days])
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(amount / 100)
-    }
 
     if (loading) {
         return <div>Loading...</div>

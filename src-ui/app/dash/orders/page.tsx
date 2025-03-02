@@ -5,19 +5,11 @@ import React, { useEffect, useState } from 'react'
 import OrderDetailsModal from './order_details_modal'
 import { gql } from '@/lib/graphql/execute'
 import { GetSalesOrdersDocument, SalesOrder, SalesOrderItem } from '@/lib/graphql/graphql'
+import { formatCurrency } from '@/lib/util/number_format'
 
 interface PaymentMethod {
     method: string
     amount: number
-}
-
-const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(price / 100)
 }
 
 const Orders = () => {
@@ -69,7 +61,7 @@ const Orders = () => {
             const paymentMethods: PaymentMethod[] = JSON.parse(paymentMethodJson)
             return paymentMethods
                 .filter(pm => pm.amount > 0)
-                .map(pm => `${pm.method} (${formatPrice(pm.amount)})`)
+                .map(pm => `${pm.method} (${formatCurrency(parseFloat(pm.amount.toString()))})`)
                 .join(', ')
         } catch (error) {
             console.error('Error parsing payment method JSON:', error)
@@ -87,7 +79,7 @@ const Orders = () => {
 
     const rows = orders.map(order => ({
         id: order.id,
-        totalAmount: formatPrice(order.totalAmount ?? 0),
+        totalAmount: formatCurrency(parseFloat(order.totalAmount)),
         customerName: order.customerPhoneNumber,
         createdAt: new Date(order.createdAt ?? 0).toLocaleString(),
         status: order.state,

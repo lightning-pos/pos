@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Modal, TextInput, Form, TextArea, Select, SelectItem, MultiSelect, ModalProps } from '@carbon/react'
 import { ItemGroup, Tax, NewItem, ItemNature, ItemState } from '@/lib/graphql/graphql'
+import { sanitizeDecimalInput } from '@/lib/util/number_format'
 
 interface AddItemModalProps extends Omit<ModalProps, 'onSubmit'> {
     onSave: (item: NewItem) => Promise<void>
@@ -52,6 +53,11 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
         })
     }
 
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = sanitizeDecimalInput(e.target.value, 2)
+        setNewItem(prev => ({ ...prev, price: value }))
+    }
+
     return (
         <Modal
             open={open}
@@ -77,9 +83,8 @@ const AddItemModal: React.FC<AddItemModalProps> = ({
                 <TextInput
                     id="item-price"
                     labelText="Price"
-                    type="number"
                     value={newItem.price}
-                    onChange={(e) => setNewItem(prev => ({ ...prev, price: e.target.value }))}
+                    onChange={handlePriceChange}
                     required
                 />
                 <Select

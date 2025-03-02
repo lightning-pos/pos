@@ -19,18 +19,12 @@ import {
     NewItem,
     UpdateItem,
 } from '@/lib/graphql/graphql'
+import { formatCurrency } from '@/lib/util/number_format'
 
 interface TableRow extends Item {
     priceTransformed: string
     categoryTransformed: string
     taxesTransformed: string
-}
-
-const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR'
-    }).format(price / 100)
 }
 
 const Items = () => {
@@ -62,7 +56,7 @@ const Items = () => {
             // Transform the items to the TableRow type
             const tableRows = result.items.map((item) => ({
                 ...item,
-                priceTransformed: formatPrice(Number(item.price)),
+                priceTransformed: formatCurrency(item.price),
                 categoryTransformed: item.category.name || 'Unknown',
                 taxesTransformed: item.taxes.map((tax) => tax.name).join(', '),
             }))

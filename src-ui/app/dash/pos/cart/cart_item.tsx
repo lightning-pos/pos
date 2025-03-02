@@ -2,13 +2,7 @@ import React from 'react'
 import { IconButton } from '@carbon/react'
 import { Add, Subtract } from '@carbon/icons-react'
 import { CartItem as CartItemType } from './cart_section'
-
-const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR'
-    }).format(price / 100);
-};
+import { formatCurrency } from '@/lib/util/number_format'
 
 interface CartItemProps {
     item: CartItemType
@@ -16,7 +10,7 @@ interface CartItemProps {
 }
 
 const CartItem: React.FC<CartItemProps> = ({ item, updateQuantity }) => {
-    const itemTotal = (item.price || 0) * item.quantity
+    const itemTotal = (parseFloat(item.price) || 0) * item.quantity
 
     return (
         <div className='flex flex-col mb-4'>
@@ -30,7 +24,7 @@ const CartItem: React.FC<CartItemProps> = ({ item, updateQuantity }) => {
                     <IconButton size='sm' label="Increase" onClick={() => updateQuantity(item.id, 1)}>
                         <Add size={16} />
                     </IconButton>
-                    <span className='ml-4'>{formatPrice(itemTotal)}</span>
+                    <span className='ml-4'>{formatCurrency(itemTotal)}</span>
                 </div>
             </div>
         </div>

@@ -23,8 +23,8 @@ export type Scalars = {
    * [1]: https://docs.rs/chrono/latest/chrono/naive/struct.NaiveDateTime.html
    */
   LocalDateTime: { input: string; output: string; }
-  Money: { input: string; output: number; }
-  Percentage: { input: string; output: number; }
+  Money: { input: string; output: string; }
+  Percentage: { input: string; output: string; }
 };
 
 export type AnalyticsOverview = {
@@ -540,7 +540,7 @@ export type GetAnalyticsOverviewQueryVariables = Exact<{
 }>;
 
 
-export type GetAnalyticsOverviewQuery = { __typename?: 'Query', analyticsOverview: { __typename?: 'AnalyticsOverview', totalSales: number, totalOrders: number, totalCustomers: number, totalProducts: number } };
+export type GetAnalyticsOverviewQuery = { __typename?: 'Query', analyticsOverview: { __typename?: 'AnalyticsOverview', totalSales: string, totalOrders: number, totalCustomers: number, totalProducts: number } };
 
 export type GetCategoriesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -584,7 +584,7 @@ export type GetItemsQueryVariables = Exact<{
 }>;
 
 
-export type GetItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: number, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: number, description?: string | null, createdAt: string, updatedAt: string }> }> };
+export type GetItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> }> };
 
 export type GetItemCategoriesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -594,21 +594,21 @@ export type GetItemCategoriesQuery = { __typename?: 'Query', itemCategories: Arr
 export type GetItemTaxesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetItemTaxesQuery = { __typename?: 'Query', taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: number, description?: string | null, createdAt: string, updatedAt: string }> };
+export type GetItemTaxesQuery = { __typename?: 'Query', taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> };
 
 export type CreateItemMutationVariables = Exact<{
   input: NewItem;
 }>;
 
 
-export type CreateItemMutation = { __typename?: 'Mutation', createItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: number, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: number, description?: string | null, createdAt: string, updatedAt: string }> } };
+export type CreateItemMutation = { __typename?: 'Mutation', createItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> } };
 
 export type UpdateItemMutationVariables = Exact<{
   input: UpdateItem;
 }>;
 
 
-export type UpdateItemMutation = { __typename?: 'Mutation', updateItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: number, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: number, description?: string | null, createdAt: string, updatedAt: string }> } };
+export type UpdateItemMutation = { __typename?: 'Mutation', updateItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> } };
 
 export type DeleteItemMutationVariables = Exact<{
   id: Scalars['DbUuid']['input'];
@@ -652,7 +652,7 @@ export type GetSalesOrdersQueryVariables = Exact<{
 }>;
 
 
-export type GetSalesOrdersQuery = { __typename?: 'Query', totalSalesOrders: number, salesOrders: Array<{ __typename?: 'SalesOrder', id: string, customerId: string, customerName: string, customerPhoneNumber: string, orderDate: string, netAmount: number, discAmount: number, taxableAmount: number, taxAmount: number, totalAmount: number, state: SalesOrderState, createdAt: string, updatedAt: string, customer: { __typename?: 'Customer', id: string, fullName: string, phone?: string | null, createdAt: string, updatedAt: string }, items: Array<{ __typename?: 'SalesOrderItem', id: string, orderId: string, itemId: string, itemName: string, quantity: number, priceAmount: number, taxAmount: number, totalAmount: number, createdAt: string, updatedAt: string }> }> };
+export type GetSalesOrdersQuery = { __typename?: 'Query', totalSalesOrders: number, salesOrders: Array<{ __typename?: 'SalesOrder', id: string, customerId: string, customerName: string, customerPhoneNumber: string, orderDate: string, netAmount: string, discAmount: string, taxableAmount: string, taxAmount: string, totalAmount: string, state: SalesOrderState, createdAt: string, updatedAt: string, customer: { __typename?: 'Customer', id: string, fullName: string, phone?: string | null, createdAt: string, updatedAt: string }, items: Array<{ __typename?: 'SalesOrderItem', id: string, orderId: string, itemId: string, itemName: string, quantity: number, priceAmount: string, taxAmount: string, totalAmount: string, createdAt: string, updatedAt: string }> }> };
 
 export type GetPosCategoriesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -667,12 +667,12 @@ export type GetPosItemsQueryVariables = Exact<{
 }>;
 
 
-export type GetPosItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: number, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: number, description?: string | null, createdAt: string, updatedAt: string }> }> };
+export type GetPosItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> }> };
 
 export type GetPosTaxesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetPosTaxesQuery = { __typename?: 'Query', taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: number, description?: string | null, createdAt: string, updatedAt: string }> };
+export type GetPosTaxesQuery = { __typename?: 'Query', taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> };
 
 export type GetPosCustomerByPhoneQueryVariables = Exact<{
   phone: Scalars['String']['input'];
@@ -694,7 +694,7 @@ export type CreateSalesOrderMutationVariables = Exact<{
 }>;
 
 
-export type CreateSalesOrderMutation = { __typename?: 'Mutation', createSalesOrder: { __typename?: 'SalesOrder', id: string, customerName: string, orderDate: string, netAmount: number, taxAmount: number, totalAmount: number, state: SalesOrderState } };
+export type CreateSalesOrderMutation = { __typename?: 'Mutation', createSalesOrder: { __typename?: 'SalesOrder', id: string, customerName: string, orderDate: string, netAmount: string, taxAmount: string, totalAmount: string, state: SalesOrderState } };
 
 export type GetTaxesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -702,21 +702,21 @@ export type GetTaxesQueryVariables = Exact<{
 }>;
 
 
-export type GetTaxesQuery = { __typename?: 'Query', totalTaxes: number, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: number, description?: string | null, createdAt: string, updatedAt: string }> };
+export type GetTaxesQuery = { __typename?: 'Query', totalTaxes: number, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> };
 
 export type CreateTaxMutationVariables = Exact<{
   input: TaxNewInput;
 }>;
 
 
-export type CreateTaxMutation = { __typename?: 'Mutation', createTax: { __typename?: 'Tax', id: string, name: string, rate: number, description?: string | null, createdAt: string, updatedAt: string } };
+export type CreateTaxMutation = { __typename?: 'Mutation', createTax: { __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string } };
 
 export type UpdateTaxMutationVariables = Exact<{
   input: TaxUpdateInput;
 }>;
 
 
-export type UpdateTaxMutation = { __typename?: 'Mutation', updateTax: { __typename?: 'Tax', id: string, name: string, rate: number, description?: string | null, createdAt: string, updatedAt: string } };
+export type UpdateTaxMutation = { __typename?: 'Mutation', updateTax: { __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string } };
 
 export type DeleteTaxMutationVariables = Exact<{
   id: Scalars['DbUuid']['input'];

@@ -1,18 +1,12 @@
 import React from 'react';
 import { Modal, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, ModalProps } from '@carbon/react';
 import { SalesOrder, SalesOrderItem } from '@/lib/graphql/graphql';
+import { formatCurrency } from '@/lib/util/number_format';
 
 interface OrderDetailsModalProps extends ModalProps {
     order: SalesOrder
     orderItems: SalesOrderItem[]
 }
-
-const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR'
-    }).format(price / 100);
-};
 
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     open,
@@ -62,7 +56,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                                             {row.cells.map((cell) => (
                                                 <TableCell key={cell.id}>
                                                     {cell.info.header === 'priceAmount' || cell.info.header === 'taxAmount' || cell.info.header === 'totalAmount'
-                                                        ? formatPrice(cell.value)
+                                                        ? formatCurrency(parseFloat(cell.value))
                                                         : cell.value}
                                                 </TableCell>
                                             ))}
@@ -73,9 +67,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         )}
                     </DataTable>
                     <div className="mt-4">
-                        <p><strong>Subtotal:</strong> {formatPrice(Number(order.netAmount) ?? 0)}</p>
-                        <p><strong>Tax:</strong> {formatPrice(Number(order.taxAmount) ?? 0)}</p>
-                        <p><strong>Total:</strong> {formatPrice(Number(order.totalAmount) ?? 0)}</p>
+                        <p><strong>Subtotal:</strong> {formatCurrency(parseFloat(order.netAmount))}</p>
+                        <p><strong>Tax:</strong> {formatCurrency(parseFloat(order.taxAmount))}</p>
+                        <p><strong>Total:</strong> {formatCurrency(parseFloat(order.totalAmount))}</p>
                     </div>
                 </>
             )}

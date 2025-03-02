@@ -15,6 +15,7 @@ import {
 import CheckoutModal from './checkout_modal'
 import CustomerSelect from './customer_select'
 import CartItem from './cart_item'
+import { formatCurrency } from '@/lib/util/number_format'
 
 export interface CartItem extends Omit<Item, 'category' | 'taxes'> {
     quantity: number
@@ -24,13 +25,6 @@ export interface CartItem extends Omit<Item, 'category' | 'taxes'> {
 interface CartSectionProps {
     cart: CartItem[]
     setCart: React.Dispatch<React.SetStateAction<CartItem[]>>
-}
-
-const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR'
-    }).format(price / 100)
 }
 
 const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
@@ -75,17 +69,17 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
         return cart.reduce((sum, item) => {
             if (!item.taxIds) return sum
             const itemTaxes = taxes.filter(tax => item.taxIds?.includes(tax.id))
-            const itemPrice = item.price || 0
+            const itemPrice = item.price
             const itemTax = itemTaxes.reduce((taxSum, tax) => {
-                const taxRate = tax.rate / 100
-                return taxSum + (itemPrice * item.quantity * taxRate)
+                const taxRate = parseFloat(tax.rate)
+                return taxSum + (parseFloat(itemPrice) * item.quantity * taxRate / 100)
             }, 0)
             return sum + itemTax
         }, 0)
     }
 
     const subtotal = cart.reduce((sum, item) => {
-        return sum + ((item.price || 0) * item.quantity)
+        return sum + (parseFloat(item.price) * item.quantity)
     }, 0)
 
     const totalTax = calculateTotalTax()
@@ -131,13 +125,13 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
                     taxAmount: item.taxIds
                         ? taxes
                             .filter(tax => item.taxIds?.includes(tax.id))
-                            .reduce((sum, tax) => sum + (item.price * tax.rate / 100), 0)
+                            .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
                             .toString()
                         : '0',
-                    totalAmount: ((item.price + (item.taxIds
+                    totalAmount: ((parseFloat(item.price) + (item.taxIds
                         ? taxes
                             .filter(tax => item.taxIds?.includes(tax.id))
-                            .reduce((sum, tax) => sum + (item.price * tax.rate / 100), 0)
+                            .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
                         : 0)) * item.quantity).toString(),
                 }))
             }
@@ -168,15 +162,15 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
             <div className='mt-4 py-4'>
                 <div className='flex justify-between items-center'>
                     <span>Subtotal:</span>
-                    <span>{formatPrice(subtotal)}</span>
+                    <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className='flex justify-between items-center'>
                     <span>Tax:</span>
-                    <span>{formatPrice(totalTax)}</span>
+                    <span>{formatCurrency(totalTax)}</span>
                 </div>
                 <div className='flex justify-between items-center font-bold'>
                     <span>Total:</span>
-                    <span>{formatPrice(totalAmount)}</span>
+                    <span>{formatCurrency(totalAmount)}</span>
                 </div>
             </div>
             <div className='flex flex-row items-center my-4 w-full p-0'>

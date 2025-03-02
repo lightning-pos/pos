@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Modal, TextInput, Form, ModalProps } from '@carbon/react'
 import { UpdateTaxDocument, Tax, TaxUpdateInput } from '@/lib/graphql/graphql'
 import { gql } from '@/lib/graphql/execute'
+import { sanitizeDecimalInput } from '@/lib/util/number_format'
 
 interface EditTaxModalProps extends ModalProps {
     tax: Tax
@@ -31,15 +32,7 @@ const EditTaxModal: React.FC<EditTaxModalProps> = ({
         if (!editingTax) return
 
         if (name === 'rate') {
-            // Only allow numbers and decimal point
-            const sanitizedValue = value.replace(/[^0-9.]/g, '')
-            // Ensure only one decimal point and up to 4 decimal places
-            const parts = sanitizedValue.split('.')
-            const finalValue = parts.length > 2
-                ? parts[0] + '.' + parts[1].slice(0, 4)
-                : parts.length === 2
-                    ? parts[0] + '.' + parts[1].slice(0, 4)
-                    : sanitizedValue
+            const finalValue = sanitizeDecimalInput(value, 4)
             setEditingTax(prev => prev ? { ...prev, rate: finalValue } : null)
         } else {
             setEditingTax(prev => prev ? { ...prev, [name]: value } : null)

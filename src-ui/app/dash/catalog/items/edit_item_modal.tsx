@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, TextInput, Form, TextArea, Select, SelectItem, ModalProps } from '@carbon/react'
 import { Item, ItemGroup, Tax, UpdateItem, ItemNature, ItemState } from '@/lib/graphql/graphql'
+import { sanitizeDecimalInput } from '@/lib/util/number_format'
 
 interface EditItemModalProps extends Omit<ModalProps, 'onSubmit'> {
     onSave: (item: UpdateItem) => Promise<void>
@@ -50,6 +51,11 @@ const EditItemModal: React.FC<EditItemModalProps> = ({
         await onSave(localItem)
     }
 
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = sanitizeDecimalInput(e.target.value, 2)
+        setLocalItem(prev => ({ ...prev, price: value }))
+    }
+
     return (
         <Modal
             open={open}
@@ -75,9 +81,8 @@ const EditItemModal: React.FC<EditItemModalProps> = ({
                 <TextInput
                     id="item-price"
                     labelText="Price"
-                    type="number"
                     value={localItem.price || '0'}
-                    onChange={(e) => setLocalItem(prev => ({ ...prev, price: e.target.value }))}
+                    onChange={handlePriceChange}
                     required
                 />
                 <Select

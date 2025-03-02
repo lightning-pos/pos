@@ -21,11 +21,11 @@ const config: CodegenConfig = {
                     },
                     Money: {
                         input: 'string',
-                        output: 'number',
+                        output: 'string',
                     },
                     Percentage: {
                         input: 'string',
-                        output: 'number',
+                        output: 'string',
                     }
                 }
             }

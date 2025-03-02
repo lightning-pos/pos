@@ -1,12 +1,12 @@
 'use client'
 import React, { useState } from 'react'
 import { Modal, RadioButtonGroup, RadioButton } from '@carbon/react'
-import { gql } from '@/lib/graphql/execute'
 import {
     Tax,
     Customer
 } from '@/lib/graphql/graphql'
 import { CartItem } from './cart_section'
+import { formatCurrency } from '@/lib/util/number_format'
 
 enum PaymentMethod {
     CASH = 'cash',
@@ -24,13 +24,6 @@ interface CheckoutModalProps {
     subtotal: number
     totalTax: number
     totalAmount: number
-}
-
-const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR'
-    }).format(price / 100)
 }
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -75,13 +68,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <strong>Customer:</strong> {customer?.fullName} ({customer?.phone})
             </div>
             <div className='mb-4'>
-                <strong>Subtotal:</strong> {formatPrice(subtotal)}
+                <strong>Subtotal:</strong> {formatCurrency(subtotal)}
             </div>
             <div className='mb-4'>
-                <strong>Tax:</strong> {formatPrice(totalTax)}
+                <strong>Tax:</strong> {formatCurrency(totalTax)}
             </div>
             <div className='mb-4'>
-                <strong>Total:</strong> {formatPrice(totalAmount)}
+                <strong>Total:</strong> {formatCurrency(totalAmount)}
             </div>
             <RadioButtonGroup
                 legendText="Payment Method"

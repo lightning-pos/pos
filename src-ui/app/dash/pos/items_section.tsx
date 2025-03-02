@@ -11,17 +11,11 @@ import {
     ItemGroup,
     Tax
 } from '@/lib/graphql/graphql'
+import { formatCurrency } from '@/lib/util/number_format'
 
 interface ItemsSectionProps {
     selectedCategoryId: string | null
     addItemToCart: (item: Item) => void
-}
-
-const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR'
-    }).format(price / 100)
 }
 
 const ItemsSection: React.FC<ItemsSectionProps> = ({ selectedCategoryId, addItemToCart }) => {
@@ -85,7 +79,7 @@ const ItemsSection: React.FC<ItemsSectionProps> = ({ selectedCategoryId, addItem
                         <AspectRatio ratio='3x2'>
                             <div className='flex flex-col justify-between h-full'>
                                 <span>{item.name}</span>
-                                <span>{formatPrice(item.price)}</span>
+                                <span>{formatCurrency(item.price)}</span>
                             </div>
                         </AspectRatio>
                     </ClickableTile>
