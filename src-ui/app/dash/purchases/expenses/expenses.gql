@@ -1,0 +1,56 @@
+query GetExpenses($first: Int!, $offset: Int!) {
+    expenses(first: $first, offset: $offset) {
+        id
+        title
+        amount
+        expenseDate
+        category
+        description
+        createdAt
+        updatedAt
+    }
+    totalExpenses
+}
+
+query GetExpensesByCategory($category: String!, $first: Int!, $offset: Int!) {
+    expensesByCategory(category: $category, first: $first, offset: $offset) {
+        id
+        title
+        amount
+        expenseDate
+        category
+        description
+        createdAt
+        updatedAt
+    }
+}
+
+mutation CreateExpense($input: ExpenseNewInput!) {
+    createExpense(expense: $input) {
+        id
+        title
+        amount
+        expenseDate
+        category
+        description
+        createdAt
+        updatedAt
+    }
+}
+
+mutation UpdateExpense($input: ExpenseUpdateInput!) {
+    updateExpense(expense: $input) {
+        id
+        title
+        amount
+        expenseDate
+        category
+        description
+        createdAt
+        updatedAt
+    }
+}
+
+mutation DeleteExpense($id: DbUuid!) {
+    deleteExpense(id: $id)
+}

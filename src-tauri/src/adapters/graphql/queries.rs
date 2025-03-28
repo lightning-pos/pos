@@ -7,7 +7,7 @@ use crate::{
             auth::user_model::User,
             catalog::{item_group_model::ItemGroup, item_model::Item},
             common::tax_model::Tax,
-            purchases::supplier_model::Supplier,
+            purchases::{expense_model::Expense, supplier_model::Supplier},
             sales::{cart_model::Cart, customer_model::Customer, sales_order_model::SalesOrder},
         },
         types::db_uuid::DbUuid,
@@ -157,5 +157,32 @@ impl Query {
 
     fn supplier(&self, id: DbUuid, context: &AppState) -> FieldResult<Supplier> {
         super::purchases::supplier_queries::supplier(id, context)
+    }
+
+    fn expenses(
+        &self,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<Expense>> {
+        super::purchases::expense_queries::expenses(first, offset, context)
+    }
+
+    fn total_expenses(&self, context: &AppState) -> FieldResult<i32> {
+        super::purchases::expense_queries::total_expenses(context)
+    }
+
+    fn expense(&self, id: DbUuid, context: &AppState) -> FieldResult<Expense> {
+        super::purchases::expense_queries::expense(id, context)
+    }
+
+    fn expenses_by_category(
+        &self,
+        category: String,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<Expense>> {
+        super::purchases::expense_queries::expenses_by_category(category, first, offset, context)
     }
 }

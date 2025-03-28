@@ -9,7 +9,10 @@ use crate::{
                 item_model::{Item, NewItem, UpdateItem},
             },
             common::tax_model::{ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
-            purchases::supplier_model::{Supplier, SupplierNewInput, SupplierUpdateInput},
+            purchases::{
+                expense_model::{Expense, ExpenseNewInput, ExpenseUpdateInput},
+                supplier_model::{Supplier, SupplierNewInput, SupplierUpdateInput},
+            },
             sales::{
                 cart_model::{Cart, CartNewInput, CartUpdateInput},
                 customer_model::{Customer, CustomerNewInput, CustomerUpdateInput},
@@ -151,5 +154,18 @@ impl Mutation {
 
     fn delete_supplier(id: DbUuid, context: &AppState) -> FieldResult<i32> {
         super::purchases::supplier_mutations::delete_supplier(id, context)
+    }
+
+    // Expense Mutations
+    fn create_expense(expense: ExpenseNewInput, context: &AppState) -> FieldResult<Expense> {
+        super::purchases::expense_mutations::create_expense(expense, context)
+    }
+
+    fn update_expense(expense: ExpenseUpdateInput, context: &AppState) -> FieldResult<Expense> {
+        super::purchases::expense_mutations::update_expense(expense, context)
+    }
+
+    fn delete_expense(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::purchases::expense_mutations::delete_expense(id, context)
     }
 }

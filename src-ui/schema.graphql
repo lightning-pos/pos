@@ -57,6 +57,23 @@ input CustomerUpdateInput {
   address: String
 }
 
+input ExpenseNewInput {
+  title: String!
+  amount: Money!
+  expenseDate: LocalDateTime!
+  category: String!
+  description: String
+}
+
+input ExpenseUpdateInput {
+  id: DbUuid!
+  title: String
+  amount: Money
+  expenseDate: LocalDateTime
+  category: String
+  description: String
+}
+
 input ItemGroupNew {
   name: String!
   description: String
@@ -201,6 +218,17 @@ type Customer {
   updatedAt: LocalDateTime!
 }
 
+type Expense {
+  id: DbUuid!
+  title: String!
+  amount: Money!
+  expenseDate: LocalDateTime!
+  category: String!
+  description: String
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+}
+
 type Item {
   id: DbUuid!
   name: String!
@@ -251,6 +279,9 @@ type Mutation {
   createSupplier(supplier: SupplierNewInput!): Supplier!
   updateSupplier(supplier: SupplierUpdateInput!): Supplier!
   deleteSupplier(id: DbUuid!): Int!
+  createExpense(expense: ExpenseNewInput!): Expense!
+  updateExpense(expense: ExpenseUpdateInput!): Expense!
+  deleteExpense(id: DbUuid!): Int!
 }
 
 type Query {
@@ -278,6 +309,10 @@ type Query {
   suppliers(first: Int, offset: Int): [Supplier!]!
   totalSuppliers: Int!
   supplier(id: DbUuid!): Supplier!
+  expenses(first: Int, offset: Int): [Expense!]!
+  totalExpenses: Int!
+  expense(id: DbUuid!): Expense!
+  expensesByCategory(category: String!, first: Int, offset: Int): [Expense!]!
 }
 
 type SalesOrder {

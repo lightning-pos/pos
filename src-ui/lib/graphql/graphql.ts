@@ -81,6 +81,35 @@ export type CustomerUpdateInput = {
   phone?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type Expense = {
+  __typename?: 'Expense';
+  amount: Scalars['Money']['output'];
+  category: Scalars['String']['output'];
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  expenseDate: Scalars['LocalDateTime']['output'];
+  id: Scalars['DbUuid']['output'];
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type ExpenseNewInput = {
+  amount: Scalars['Money']['input'];
+  category: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  expenseDate: Scalars['LocalDateTime']['input'];
+  title: Scalars['String']['input'];
+};
+
+export type ExpenseUpdateInput = {
+  amount?: InputMaybe<Scalars['Money']['input']>;
+  category?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  expenseDate?: InputMaybe<Scalars['LocalDateTime']['input']>;
+  id: Scalars['DbUuid']['input'];
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type Item = {
   __typename?: 'Item';
   category: ItemGroup;
@@ -146,6 +175,7 @@ export type Mutation = {
   assignTaxToItem: Scalars['Int']['output'];
   createCart: Cart;
   createCustomer: Customer;
+  createExpense: Expense;
   createItem: Item;
   createItemCategory: ItemGroup;
   createSalesOrder: SalesOrder;
@@ -153,6 +183,7 @@ export type Mutation = {
   createTax: Tax;
   deleteCart: Scalars['Int']['output'];
   deleteCustomer: Scalars['Int']['output'];
+  deleteExpense: Scalars['Int']['output'];
   deleteItem: Scalars['Int']['output'];
   deleteItemCategory: Scalars['Int']['output'];
   deleteSupplier: Scalars['Int']['output'];
@@ -163,6 +194,7 @@ export type Mutation = {
   removeTaxFromItem: Scalars['Int']['output'];
   updateCart: Cart;
   updateCustomer: Customer;
+  updateExpense: Expense;
   updateItem: Item;
   updateItemCategory: ItemGroup;
   updateSupplier: Supplier;
@@ -189,6 +221,11 @@ export type MutationCreateCartArgs = {
 
 export type MutationCreateCustomerArgs = {
   customer: CustomerNewInput;
+};
+
+
+export type MutationCreateExpenseArgs = {
+  expense: ExpenseNewInput;
 };
 
 
@@ -223,6 +260,11 @@ export type MutationDeleteCartArgs = {
 
 
 export type MutationDeleteCustomerArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteExpenseArgs = {
   id: Scalars['DbUuid']['input'];
 };
 
@@ -274,6 +316,11 @@ export type MutationUpdateCustomerArgs = {
 };
 
 
+export type MutationUpdateExpenseArgs = {
+  expense: ExpenseUpdateInput;
+};
+
+
 export type MutationUpdateItemArgs = {
   item: UpdateItem;
 };
@@ -322,6 +369,9 @@ export type Query = {
   customer: Customer;
   customerByPhone: Customer;
   customers: Array<Customer>;
+  expense: Expense;
+  expenses: Array<Expense>;
+  expensesByCategory: Array<Expense>;
   item: Item;
   itemCategories: Array<ItemGroup>;
   items: Array<Item>;
@@ -334,6 +384,7 @@ export type Query = {
   taxes: Array<Tax>;
   totalCarts: Scalars['Int']['output'];
   totalCustomers: Scalars['Int']['output'];
+  totalExpenses: Scalars['Int']['output'];
   totalSalesOrders: Scalars['Int']['output'];
   totalSuppliers: Scalars['Int']['output'];
   totalTaxes: Scalars['Int']['output'];
@@ -369,6 +420,24 @@ export type QueryCustomerByPhoneArgs = {
 
 
 export type QueryCustomersArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryExpenseArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryExpensesArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryExpensesByCategoryArgs = {
+  category: Scalars['String']['input'];
   first?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -750,6 +819,44 @@ export type CreateSalesOrderMutationVariables = Exact<{
 
 
 export type CreateSalesOrderMutation = { __typename?: 'Mutation', createSalesOrder: { __typename?: 'SalesOrder', id: string, customerName: string, orderDate: string, netAmount: string, taxAmount: string, totalAmount: string, state: SalesOrderState } };
+
+export type GetExpensesQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetExpensesQuery = { __typename?: 'Query', totalExpenses: number, expenses: Array<{ __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, category: string, description?: string | null, createdAt: string, updatedAt: string }> };
+
+export type GetExpensesByCategoryQueryVariables = Exact<{
+  category: Scalars['String']['input'];
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetExpensesByCategoryQuery = { __typename?: 'Query', expensesByCategory: Array<{ __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, category: string, description?: string | null, createdAt: string, updatedAt: string }> };
+
+export type CreateExpenseMutationVariables = Exact<{
+  input: ExpenseNewInput;
+}>;
+
+
+export type CreateExpenseMutation = { __typename?: 'Mutation', createExpense: { __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, category: string, description?: string | null, createdAt: string, updatedAt: string } };
+
+export type UpdateExpenseMutationVariables = Exact<{
+  input: ExpenseUpdateInput;
+}>;
+
+
+export type UpdateExpenseMutation = { __typename?: 'Mutation', updateExpense: { __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, category: string, description?: string | null, createdAt: string, updatedAt: string } };
+
+export type DeleteExpenseMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteExpenseMutation = { __typename?: 'Mutation', deleteExpense: number };
 
 export type GetTaxesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -1183,6 +1290,68 @@ export const CreateSalesOrderDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<CreateSalesOrderMutation, CreateSalesOrderMutationVariables>;
+export const GetExpensesDocument = new TypedDocumentString(`
+    query GetExpenses($first: Int!, $offset: Int!) {
+  expenses(first: $first, offset: $offset) {
+    id
+    title
+    amount
+    expenseDate
+    category
+    description
+    createdAt
+    updatedAt
+  }
+  totalExpenses
+}
+    `) as unknown as TypedDocumentString<GetExpensesQuery, GetExpensesQueryVariables>;
+export const GetExpensesByCategoryDocument = new TypedDocumentString(`
+    query GetExpensesByCategory($category: String!, $first: Int!, $offset: Int!) {
+  expensesByCategory(category: $category, first: $first, offset: $offset) {
+    id
+    title
+    amount
+    expenseDate
+    category
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetExpensesByCategoryQuery, GetExpensesByCategoryQueryVariables>;
+export const CreateExpenseDocument = new TypedDocumentString(`
+    mutation CreateExpense($input: ExpenseNewInput!) {
+  createExpense(expense: $input) {
+    id
+    title
+    amount
+    expenseDate
+    category
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateExpenseMutation, CreateExpenseMutationVariables>;
+export const UpdateExpenseDocument = new TypedDocumentString(`
+    mutation UpdateExpense($input: ExpenseUpdateInput!) {
+  updateExpense(expense: $input) {
+    id
+    title
+    amount
+    expenseDate
+    category
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateExpenseMutation, UpdateExpenseMutationVariables>;
+export const DeleteExpenseDocument = new TypedDocumentString(`
+    mutation DeleteExpense($id: DbUuid!) {
+  deleteExpense(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteExpenseMutation, DeleteExpenseMutationVariables>;
 export const GetTaxesDocument = new TypedDocumentString(`
     query GetTaxes($first: Int!, $offset: Int!) {
   taxes(first: $first, offset: $offset) {

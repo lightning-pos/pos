@@ -92,6 +92,21 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::{Text, BigInt, Nullable, Timestamp};
+
+    expenses (id) {
+        id -> Text,
+        title -> Text,
+        amount -> BigInt,
+        expense_date -> Timestamp,
+        category -> Text,
+        description -> Nullable<Text>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
     use diesel::sql_types::{BigInt, Text, Nullable, Timestamp};
     use crate::core::models::sales::sales_order_model::SalesOrderStateMapping;
 
