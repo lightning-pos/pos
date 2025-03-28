@@ -13,6 +13,7 @@ use crate::{
                 cart_model::{Cart, CartNewInput, CartUpdateInput},
                 customer_model::{Customer, CustomerNewInput, CustomerUpdateInput},
                 sales_order_model::{SalesOrder, SalesOrderNewInput},
+                supplier_model::{Supplier, SupplierNewInput, SupplierUpdateInput},
             },
         },
         types::db_uuid::DbUuid,
@@ -137,5 +138,18 @@ impl Mutation {
         context: &AppState,
     ) -> FieldResult<i32> {
         super::common::tax_mutations::remove_tax_from_item(item_id, tax_id, context)
+    }
+
+    // Supplier Mutations
+    fn create_supplier(supplier: SupplierNewInput, context: &AppState) -> FieldResult<Supplier> {
+        super::sales::supplier_mutations::create_supplier(supplier, context)
+    }
+
+    fn update_supplier(supplier: SupplierUpdateInput, context: &AppState) -> FieldResult<Supplier> {
+        super::sales::supplier_mutations::update_supplier(supplier, context)
+    }
+
+    fn delete_supplier(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::sales::supplier_mutations::delete_supplier(id, context)
     }
 }

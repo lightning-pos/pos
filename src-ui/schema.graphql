@@ -108,6 +108,19 @@ input SalesOrderNewInput {
   items: [SalesOrderItemInput!]!
 }
 
+input SupplierNewInput {
+  name: String!
+  address: String
+  phone: String
+}
+
+input SupplierUpdateInput {
+  id: DbUuid!
+  name: String
+  address: String
+  phone: String
+}
+
 input TaxNewInput {
   name: String!
   rate: Percentage!
@@ -235,6 +248,9 @@ type Mutation {
   deleteTax(id: DbUuid!): Int!
   assignTaxToItem(input: ItemTaxNewInput!): Int!
   removeTaxFromItem(itemId: DbUuid!, taxId: DbUuid!): Int!
+  createSupplier(supplier: SupplierNewInput!): Supplier!
+  updateSupplier(supplier: SupplierUpdateInput!): Supplier!
+  deleteSupplier(id: DbUuid!): Int!
 }
 
 type Query {
@@ -259,6 +275,9 @@ type Query {
   totalTaxes: Int!
   tax(id: DbUuid!): Tax!
   analyticsOverview(days: Int): AnalyticsOverview!
+  suppliers(first: Int, offset: Int): [Supplier!]!
+  totalSuppliers: Int!
+  supplier(id: DbUuid!): Supplier!
 }
 
 type SalesOrder {
@@ -288,6 +307,15 @@ type SalesOrderItem {
   priceAmount: Money!
   taxAmount: Money!
   totalAmount: Money!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+}
+
+type Supplier {
+  id: DbUuid!
+  name: String!
+  address: String
+  phone: String
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
 }

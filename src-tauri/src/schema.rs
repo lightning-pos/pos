@@ -81,6 +81,17 @@ table! {
 }
 
 table! {
+    suppliers (id) {
+        id -> Text,
+        name -> Text,
+        address -> Nullable<Text>,
+        phone -> Nullable<Text>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
     use diesel::sql_types::{BigInt, Text, Nullable, Timestamp};
     use crate::core::models::sales::sales_order_model::SalesOrderStateMapping;
 

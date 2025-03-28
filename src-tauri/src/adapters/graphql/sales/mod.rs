@@ -8,3 +8,6 @@ pub mod sales_order_item_object;
 pub mod sales_order_mutations;
 pub mod sales_order_object;
 pub mod sales_order_queries;
+pub mod supplier_mutations;
+pub mod supplier_object;
+pub mod supplier_queries;

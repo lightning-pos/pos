@@ -149,11 +149,13 @@ export type Mutation = {
   createItem: Item;
   createItemCategory: ItemGroup;
   createSalesOrder: SalesOrder;
+  createSupplier: Supplier;
   createTax: Tax;
   deleteCart: Scalars['Int']['output'];
   deleteCustomer: Scalars['Int']['output'];
   deleteItem: Scalars['Int']['output'];
   deleteItemCategory: Scalars['Int']['output'];
+  deleteSupplier: Scalars['Int']['output'];
   deleteTax: Scalars['Int']['output'];
   deleteUser: Scalars['Int']['output'];
   login: Scalars['Boolean']['output'];
@@ -163,6 +165,7 @@ export type Mutation = {
   updateCustomer: Customer;
   updateItem: Item;
   updateItemCategory: ItemGroup;
+  updateSupplier: Supplier;
   updateTax: Tax;
   updateUser: User;
   voidSalesOrder: SalesOrder;
@@ -204,6 +207,11 @@ export type MutationCreateSalesOrderArgs = {
 };
 
 
+export type MutationCreateSupplierArgs = {
+  supplier: SupplierNewInput;
+};
+
+
 export type MutationCreateTaxArgs = {
   input: TaxNewInput;
 };
@@ -225,6 +233,11 @@ export type MutationDeleteItemArgs = {
 
 
 export type MutationDeleteItemCategoryArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteSupplierArgs = {
   id: Scalars['DbUuid']['input'];
 };
 
@@ -271,6 +284,11 @@ export type MutationUpdateItemCategoryArgs = {
 };
 
 
+export type MutationUpdateSupplierArgs = {
+  supplier: SupplierUpdateInput;
+};
+
+
 export type MutationUpdateTaxArgs = {
   input: TaxUpdateInput;
 };
@@ -310,11 +328,14 @@ export type Query = {
   itemsCategory: ItemGroup;
   salesOrder: SalesOrder;
   salesOrders: Array<SalesOrder>;
+  supplier: Supplier;
+  suppliers: Array<Supplier>;
   tax: Tax;
   taxes: Array<Tax>;
   totalCarts: Scalars['Int']['output'];
   totalCustomers: Scalars['Int']['output'];
   totalSalesOrders: Scalars['Int']['output'];
+  totalSuppliers: Scalars['Int']['output'];
   totalTaxes: Scalars['Int']['output'];
   user: User;
   users: Array<User>;
@@ -381,6 +402,17 @@ export type QuerySalesOrderArgs = {
 
 
 export type QuerySalesOrdersArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QuerySupplierArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QuerySuppliersArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -468,6 +500,29 @@ export enum SalesOrderState {
   Completed = 'COMPLETED',
   Draft = 'DRAFT'
 }
+
+export type Supplier = {
+  __typename?: 'Supplier';
+  address?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['LocalDateTime']['output'];
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  phone?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type SupplierNewInput = {
+  address?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  phone?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type SupplierUpdateInput = {
+  address?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+};
 
 export type Tax = {
   __typename?: 'Tax';
@@ -724,6 +779,35 @@ export type DeleteTaxMutationVariables = Exact<{
 
 
 export type DeleteTaxMutation = { __typename?: 'Mutation', deleteTax: number };
+
+export type GetSuppliersQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetSuppliersQuery = { __typename?: 'Query', totalSuppliers: number, suppliers: Array<{ __typename?: 'Supplier', id: string, name: string, address?: string | null, phone?: string | null, createdAt: string, updatedAt: string }> };
+
+export type CreateSupplierMutationVariables = Exact<{
+  input: SupplierNewInput;
+}>;
+
+
+export type CreateSupplierMutation = { __typename?: 'Mutation', createSupplier: { __typename?: 'Supplier', id: string, name: string, address?: string | null, phone?: string | null, createdAt: string, updatedAt: string } };
+
+export type UpdateSupplierMutationVariables = Exact<{
+  input: SupplierUpdateInput;
+}>;
+
+
+export type UpdateSupplierMutation = { __typename?: 'Mutation', updateSupplier: { __typename?: 'Supplier', id: string, name: string, address?: string | null, phone?: string | null, createdAt: string, updatedAt: string } };
+
+export type DeleteSupplierMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteSupplierMutation = { __typename?: 'Mutation', deleteSupplier: number };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -1141,3 +1225,45 @@ export const DeleteTaxDocument = new TypedDocumentString(`
   deleteTax(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteTaxMutation, DeleteTaxMutationVariables>;
+export const GetSuppliersDocument = new TypedDocumentString(`
+    query GetSuppliers($first: Int!, $offset: Int!) {
+  suppliers(first: $first, offset: $offset) {
+    id
+    name
+    address
+    phone
+    createdAt
+    updatedAt
+  }
+  totalSuppliers
+}
+    `) as unknown as TypedDocumentString<GetSuppliersQuery, GetSuppliersQueryVariables>;
+export const CreateSupplierDocument = new TypedDocumentString(`
+    mutation CreateSupplier($input: SupplierNewInput!) {
+  createSupplier(supplier: $input) {
+    id
+    name
+    address
+    phone
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateSupplierMutation, CreateSupplierMutationVariables>;
+export const UpdateSupplierDocument = new TypedDocumentString(`
+    mutation UpdateSupplier($input: SupplierUpdateInput!) {
+  updateSupplier(supplier: $input) {
+    id
+    name
+    address
+    phone
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateSupplierMutation, UpdateSupplierMutationVariables>;
+export const DeleteSupplierDocument = new TypedDocumentString(`
+    mutation DeleteSupplier($id: DbUuid!) {
+  deleteSupplier(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteSupplierMutation, DeleteSupplierMutationVariables>;

@@ -1,0 +1,37 @@
+query GetSuppliers($first: Int!, $offset: Int!) {
+    suppliers(first: $first, offset: $offset) {
+        id
+        name
+        address
+        phone
+        createdAt
+        updatedAt
+    }
+    totalSuppliers
+}
+
+mutation CreateSupplier($input: SupplierNewInput!) {
+    createSupplier(supplier: $input) {
+        id
+        name
+        address
+        phone
+        createdAt
+        updatedAt
+    }
+}
+
+mutation UpdateSupplier($input: SupplierUpdateInput!) {
+    updateSupplier(supplier: $input) {
+        id
+        name
+        address
+        phone
+        createdAt
+        updatedAt
+    }
+}
+
+mutation DeleteSupplier($id: DbUuid!) {
+    deleteSupplier(id: $id)
+}
