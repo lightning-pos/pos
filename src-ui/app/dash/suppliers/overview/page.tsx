@@ -102,8 +102,8 @@ const SuppliersOverview = () => {
         <Content className='min-h-[calc(100dvh-3rem)] p-0 flex flex-col'>
             <div className="p-4 flex-grow flex flex-col" style={{ minHeight: 'calc(100vh - 12rem)' }}>
                 <DataTable<Supplier>
-                    title="Suppliers"
-                    description="Manage your suppliers here. You can add, edit, or delete suppliers as needed."
+                    title="Supplier Directory"
+                    description="Manage your supplier information here. You can add, edit, or delete supplier details as needed."
                     headers={headers}
                     tableRows={suppliers}
                     loading={loading}

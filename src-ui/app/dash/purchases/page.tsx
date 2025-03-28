@@ -6,7 +6,7 @@ const Purchases = () => {
     return (
         <Content className='min-h-[calc(100dvh-3rem)] p-4'>
             <h1 className="text-2xl font-bold mb-4">Purchases</h1>
-            <p>Purchases content will go here.</p>
+            <p>Purchases functionality coming soon.</p>
         </Content>
     )
 }
