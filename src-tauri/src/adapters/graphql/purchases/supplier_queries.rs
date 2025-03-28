@@ -2,7 +2,7 @@ use diesel::{dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHel
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::sales::supplier_model::Supplier, types::db_uuid::DbUuid},
+    core::{models::purchases::supplier_model::Supplier, types::db_uuid::DbUuid},
     schema::suppliers,
     AppState,
 };

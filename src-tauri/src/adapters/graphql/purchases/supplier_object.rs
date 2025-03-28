@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use juniper::graphql_object;
 
 use crate::{
-    core::{models::sales::supplier_model::Supplier, types::db_uuid::DbUuid},
+    core::{models::purchases::supplier_model::Supplier, types::db_uuid::DbUuid},
     AppState,
 };
 

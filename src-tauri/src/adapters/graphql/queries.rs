@@ -7,10 +7,8 @@ use crate::{
             auth::user_model::User,
             catalog::{item_group_model::ItemGroup, item_model::Item},
             common::tax_model::Tax,
-            sales::{
-                cart_model::Cart, customer_model::Customer, sales_order_model::SalesOrder,
-                supplier_model::Supplier,
-            },
+            purchases::supplier_model::Supplier,
+            sales::{cart_model::Cart, customer_model::Customer, sales_order_model::SalesOrder},
         },
         types::db_uuid::DbUuid,
     },
@@ -150,14 +148,14 @@ impl Query {
         offset: Option<i32>,
         context: &AppState,
     ) -> FieldResult<Vec<Supplier>> {
-        super::sales::supplier_queries::suppliers(first, offset, context)
+        super::purchases::supplier_queries::suppliers(first, offset, context)
     }
 
     fn total_suppliers(&self, context: &AppState) -> FieldResult<i32> {
-        super::sales::supplier_queries::total_suppliers(context)
+        super::purchases::supplier_queries::total_suppliers(context)
     }
 
     fn supplier(&self, id: DbUuid, context: &AppState) -> FieldResult<Supplier> {
-        super::sales::supplier_queries::supplier(id, context)
+        super::purchases::supplier_queries::supplier(id, context)
     }
 }

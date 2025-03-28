@@ -1,12 +1,12 @@
 use crate::{
     core::{
         commands::{
-            sales::supplier_commands::{
+            purchases::supplier_commands::{
                 CreateSupplierCommand, DeleteSupplierCommand, UpdateSupplierCommand,
             },
             Command,
         },
-        models::sales::supplier_model::{Supplier, SupplierNewInput, SupplierUpdateInput},
+        models::purchases::supplier_model::{Supplier, SupplierNewInput, SupplierUpdateInput},
         types::db_uuid::DbUuid,
     },
     AppState,

@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::{
     core::{
         commands::{app_service::AppService, Command},
-        models::sales::supplier_model::{
+        models::purchases::supplier_model::{
             Supplier, SupplierNewInput, SupplierUpdateChangeset, SupplierUpdateInput,
         },
         types::db_uuid::DbUuid,
