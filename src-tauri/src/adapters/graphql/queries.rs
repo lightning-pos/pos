@@ -7,7 +7,10 @@ use crate::{
             auth::user_model::User,
             catalog::{item_group_model::ItemGroup, item_model::Item},
             common::tax_model::Tax,
-            purchases::{expense_model::Expense, supplier_model::Supplier},
+            purchases::{
+                expense_model::Expense, purchase_category_model::PurchaseCategory,
+                supplier_model::Supplier,
+            },
             sales::{cart_model::Cart, customer_model::Customer, sales_order_model::SalesOrder},
         },
         types::db_uuid::DbUuid,
@@ -47,6 +50,19 @@ impl Query {
 
     fn item(&self, id: DbUuid, context: &AppState) -> FieldResult<Item> {
         super::catalog::item_queries::item(id, context)
+    }
+
+    fn purchase_categories(
+        &self,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<PurchaseCategory>> {
+        super::purchases::purchase_category_queries::purchase_categories(first, offset, context)
+    }
+
+    fn purchase_category(&self, id: DbUuid, context: &AppState) -> FieldResult<PurchaseCategory> {
+        super::purchases::purchase_category_queries::purchase_category(id, context)
     }
 
     fn users(

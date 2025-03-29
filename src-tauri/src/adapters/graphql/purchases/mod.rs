@@ -1,6 +1,9 @@
 pub mod expense_mutations;
 pub mod expense_object;
 pub mod expense_queries;
+pub mod purchase_category_mutations;
+pub mod purchase_category_object;
+pub mod purchase_category_queries;
 pub mod supplier_mutations;
 pub mod supplier_object;
 pub mod supplier_queries;

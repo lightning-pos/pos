@@ -2,7 +2,7 @@
 import React from 'react'
 import { SideNav, SideNavItems, SideNavLink } from '@carbon/react'
 import { useRouter } from 'next/navigation'
-import { Dashboard, Money } from '@carbon/icons-react'
+import { Dashboard, Money, FolderDetails } from '@carbon/icons-react'
 
 export default function PurchasesLayout({
     children,
@@ -20,6 +20,9 @@ export default function PurchasesLayout({
                     </SideNavLink>
                     <SideNavLink renderIcon={Money} large onClick={() => { router.push('/dash/purchases/expenses') }}>
                         Expenses
+                    </SideNavLink>
+                    <SideNavLink renderIcon={FolderDetails} large onClick={() => { router.push('/dash/purchases/categories') }}>
+                        Categories
                     </SideNavLink>
                 </SideNavItems>
             </SideNav>

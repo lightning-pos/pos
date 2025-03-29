@@ -178,6 +178,7 @@ export type Mutation = {
   createExpense: Expense;
   createItem: Item;
   createItemCategory: ItemGroup;
+  createPurchaseCategory: PurchaseCategory;
   createSalesOrder: SalesOrder;
   createSupplier: Supplier;
   createTax: Tax;
@@ -186,6 +187,7 @@ export type Mutation = {
   deleteExpense: Scalars['Int']['output'];
   deleteItem: Scalars['Int']['output'];
   deleteItemCategory: Scalars['Int']['output'];
+  deletePurchaseCategory: Scalars['DbUuid']['output'];
   deleteSupplier: Scalars['Int']['output'];
   deleteTax: Scalars['Int']['output'];
   deleteUser: Scalars['Int']['output'];
@@ -197,6 +199,7 @@ export type Mutation = {
   updateExpense: Expense;
   updateItem: Item;
   updateItemCategory: ItemGroup;
+  updatePurchaseCategory: PurchaseCategory;
   updateSupplier: Supplier;
   updateTax: Tax;
   updateUser: User;
@@ -239,6 +242,12 @@ export type MutationCreateItemCategoryArgs = {
 };
 
 
+export type MutationCreatePurchaseCategoryArgs = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
+
 export type MutationCreateSalesOrderArgs = {
   salesOrder: SalesOrderNewInput;
 };
@@ -275,6 +284,11 @@ export type MutationDeleteItemArgs = {
 
 
 export type MutationDeleteItemCategoryArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeletePurchaseCategoryArgs = {
   id: Scalars['DbUuid']['input'];
 };
 
@@ -331,6 +345,13 @@ export type MutationUpdateItemCategoryArgs = {
 };
 
 
+export type MutationUpdatePurchaseCategoryArgs = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationUpdateSupplierArgs = {
   supplier: SupplierUpdateInput;
 };
@@ -360,6 +381,23 @@ export type NewItem = {
   taxIds?: InputMaybe<Array<Scalars['DbUuid']['input']>>;
 };
 
+/** Purchase Category */
+export type PurchaseCategory = {
+  __typename?: 'PurchaseCategory';
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  state: PurchaseCategoryState;
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export enum PurchaseCategoryState {
+  Active = 'ACTIVE',
+  Deleted = 'DELETED',
+  Inactive = 'INACTIVE'
+}
+
 export type Query = {
   __typename?: 'Query';
   analyticsOverview: AnalyticsOverview;
@@ -376,6 +414,8 @@ export type Query = {
   itemCategories: Array<ItemGroup>;
   items: Array<Item>;
   itemsCategory: ItemGroup;
+  purchaseCategories: Array<PurchaseCategory>;
+  purchaseCategory: PurchaseCategory;
   salesOrder: SalesOrder;
   salesOrders: Array<SalesOrder>;
   supplier: Supplier;
@@ -461,6 +501,17 @@ export type QueryItemsArgs = {
 
 
 export type QueryItemsCategoryArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryPurchaseCategoriesArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryPurchaseCategoryArgs = {
   id: Scalars['DbUuid']['input'];
 };
 
@@ -819,6 +870,45 @@ export type CreateSalesOrderMutationVariables = Exact<{
 
 
 export type CreateSalesOrderMutation = { __typename?: 'Mutation', createSalesOrder: { __typename?: 'SalesOrder', id: string, customerName: string, orderDate: string, netAmount: string, taxAmount: string, totalAmount: string, state: SalesOrderState } };
+
+export type GetPurchaseCategoriesQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetPurchaseCategoriesQuery = { __typename?: 'Query', purchaseCategories: Array<{ __typename?: 'PurchaseCategory', id: string, name: string, description?: string | null, state: PurchaseCategoryState, createdAt: string, updatedAt: string }> };
+
+export type GetPurchaseCategoryQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetPurchaseCategoryQuery = { __typename?: 'Query', purchaseCategory: { __typename?: 'PurchaseCategory', id: string, name: string, description?: string | null, state: PurchaseCategoryState, createdAt: string, updatedAt: string } };
+
+export type CreatePurchaseCategoryMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type CreatePurchaseCategoryMutation = { __typename?: 'Mutation', createPurchaseCategory: { __typename?: 'PurchaseCategory', id: string, name: string, description?: string | null, state: PurchaseCategoryState, createdAt: string, updatedAt: string } };
+
+export type UpdatePurchaseCategoryMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type UpdatePurchaseCategoryMutation = { __typename?: 'Mutation', updatePurchaseCategory: { __typename?: 'PurchaseCategory', id: string, name: string, description?: string | null, state: PurchaseCategoryState, createdAt: string, updatedAt: string } };
+
+export type DeletePurchaseCategoryMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeletePurchaseCategoryMutation = { __typename?: 'Mutation', deletePurchaseCategory: string };
 
 export type GetExpensesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -1290,6 +1380,59 @@ export const CreateSalesOrderDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<CreateSalesOrderMutation, CreateSalesOrderMutationVariables>;
+export const GetPurchaseCategoriesDocument = new TypedDocumentString(`
+    query getPurchaseCategories($first: Int!, $offset: Int!) {
+  purchaseCategories(first: $first, offset: $offset) {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetPurchaseCategoriesQuery, GetPurchaseCategoriesQueryVariables>;
+export const GetPurchaseCategoryDocument = new TypedDocumentString(`
+    query getPurchaseCategory($id: DbUuid!) {
+  purchaseCategory(id: $id) {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetPurchaseCategoryQuery, GetPurchaseCategoryQueryVariables>;
+export const CreatePurchaseCategoryDocument = new TypedDocumentString(`
+    mutation createPurchaseCategory($name: String!, $description: String) {
+  createPurchaseCategory(name: $name, description: $description) {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreatePurchaseCategoryMutation, CreatePurchaseCategoryMutationVariables>;
+export const UpdatePurchaseCategoryDocument = new TypedDocumentString(`
+    mutation updatePurchaseCategory($id: DbUuid!, $name: String, $description: String) {
+  updatePurchaseCategory(id: $id, name: $name, description: $description) {
+    id
+    name
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdatePurchaseCategoryMutation, UpdatePurchaseCategoryMutationVariables>;
+export const DeletePurchaseCategoryDocument = new TypedDocumentString(`
+    mutation deletePurchaseCategory($id: DbUuid!) {
+  deletePurchaseCategory(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeletePurchaseCategoryMutation, DeletePurchaseCategoryMutationVariables>;
 export const GetExpensesDocument = new TypedDocumentString(`
     query GetExpenses($first: Int!, $offset: Int!) {
   expenses(first: $first, offset: $offset) {

@@ -1,0 +1,24 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Code Style and Guidelines (General)
+- Use functional and declarative patterns. Avoid using classes.
+- Use hexagonal (ports and adapter) architecture for a clean code base.
+
+Naming Conventions - TypeScript (src-ui)
+- Use camelCase for variable names
+- Use PascalCase for component names
+- Use UPPERCASE for constants
+- Use kebab-case for folder names (eg. src-ui)
+- Use snake_case for file names
+
+UI Styling
+- Use carbon for ui components
+- Use tailwind for styling and layout adjustments
+- Implement responsive design using tailwind css
+
+Make best developer experience and end user experience a priority.
+
+Make everything type safe whenever possible and utilize best practices for not repeating ourselves.

@@ -11,6 +11,7 @@ use crate::{
             common::tax_model::{ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
             purchases::{
                 expense_model::{Expense, ExpenseNewInput, ExpenseUpdateInput},
+                purchase_category_model::PurchaseCategory,
                 supplier_model::{Supplier, SupplierNewInput, SupplierUpdateInput},
             },
             sales::{
@@ -78,6 +79,38 @@ impl Mutation {
 
     fn delete_item_category(id: DbUuid, context: &AppState) -> FieldResult<i32> {
         super::catalog::item_group_mutations::delete_item_category(id, context)
+    }
+
+    fn create_purchase_category(
+        &self,
+        name: String,
+        description: Option<String>,
+        context: &AppState,
+    ) -> FieldResult<PurchaseCategory> {
+        super::purchases::purchase_category_mutations::create_purchase_category(
+            name,
+            description,
+            context,
+        )
+    }
+
+    fn update_purchase_category(
+        &self,
+        id: DbUuid,
+        name: Option<String>,
+        description: Option<Option<String>>,
+        context: &AppState,
+    ) -> FieldResult<PurchaseCategory> {
+        super::purchases::purchase_category_mutations::update_purchase_category(
+            id,
+            name,
+            description,
+            context,
+        )
+    }
+
+    fn delete_purchase_category(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
+        super::purchases::purchase_category_mutations::delete_purchase_category(id, context)
     }
 
     // Sales Order Mutations

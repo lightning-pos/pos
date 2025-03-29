@@ -107,6 +107,20 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp};
+    use crate::core::models::purchases::purchase_category_model::PurchaseCategoryStateMapping;
+
+    purchase_categories (id) {
+        id -> Text,
+        name -> Text,
+        description -> Nullable<Text>,
+        state -> PurchaseCategoryStateMapping,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
     use diesel::sql_types::{BigInt, Text, Nullable, Timestamp};
     use crate::core::models::sales::sales_order_model::SalesOrderStateMapping;
 

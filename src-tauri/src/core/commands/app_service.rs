@@ -29,7 +29,7 @@ impl AppService {
     fn run_migrations(
         connection: &mut impl MigrationHarness<Sqlite>,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+        const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
         connection.run_pending_migrations(MIGRATIONS)?;
 

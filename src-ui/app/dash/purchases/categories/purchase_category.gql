@@ -1,0 +1,47 @@
+query getPurchaseCategories($first: Int!, $offset: Int!) {
+    purchaseCategories(first: $first, offset: $offset) {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+query getPurchaseCategory($id: DbUuid!) {
+    purchaseCategory(id: $id) {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+mutation createPurchaseCategory($name: String!, $description: String) {
+    createPurchaseCategory(name: $name, description: $description) {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+mutation updatePurchaseCategory($id: DbUuid!, $name: String, $description: String) {
+    updatePurchaseCategory(id: $id, name: $name, description: $description) {
+        id
+        name
+        description
+        state
+        createdAt
+        updatedAt
+    }
+}
+
+mutation deletePurchaseCategory($id: DbUuid!) {
+    deletePurchaseCategory(id: $id)
+}

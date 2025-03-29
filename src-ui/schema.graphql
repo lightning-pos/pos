@@ -20,6 +20,12 @@ enum ItemState {
   DELETED
 }
 
+enum PurchaseCategoryState {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
 enum SalesOrderState {
   DRAFT
   COMPLETED
@@ -263,6 +269,9 @@ type Mutation {
   createItemCategory(newCategory: ItemGroupNew!): ItemGroup!
   updateItemCategory(category: ItemGroupUpdate!): ItemGroup!
   deleteItemCategory(id: DbUuid!): Int!
+  createPurchaseCategory(name: String!, description: String): PurchaseCategory!
+  updatePurchaseCategory(id: DbUuid!, name: String, description: String): PurchaseCategory!
+  deletePurchaseCategory(id: DbUuid!): DbUuid!
   createSalesOrder(salesOrder: SalesOrderNewInput!): SalesOrder!
   voidSalesOrder(id: DbUuid!): SalesOrder!
   createCart(cart: CartNewInput!): Cart!
@@ -284,12 +293,24 @@ type Mutation {
   deleteExpense(id: DbUuid!): Int!
 }
 
+"Purchase Category"
+type PurchaseCategory {
+  id: DbUuid!
+  name: String!
+  description: String
+  state: PurchaseCategoryState!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+}
+
 type Query {
   apiVersion: String!
   itemCategories(first: Int, offset: Int): [ItemGroup!]!
   itemsCategory(id: DbUuid!): ItemGroup!
   items(first: Int, offset: Int): [Item!]!
   item(id: DbUuid!): Item!
+  purchaseCategories(first: Int, offset: Int): [PurchaseCategory!]!
+  purchaseCategory(id: DbUuid!): PurchaseCategory!
   users(first: Int, offset: Int): [User!]!
   user(id: DbUuid!): User!
   customers(first: Int, offset: Int): [Customer!]!
