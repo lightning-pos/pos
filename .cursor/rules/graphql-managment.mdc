@@ -1,0 +1,18 @@
+---
+description: managing any changes in graphql adapter backend or *.gql files in the frontend
+globs: 
+alwaysApply: false
+---
+
+# Graphql Management
+
+File organization
+- src-ui/schema.graphql - Root graphql schema, contains information about all entities, enum and types. Generated from rust backend.
+- src-ui/**/*.gql - Custom graphql queries, mutation and subscriptions. Usually placed alongside the page.tsx file in which the gql is primarily used.
+
+
+## Codegen
+- We need to generate the `schema.graphql` to let the frontend know about the graphql structure.
+- Any changes to files in the `src-tauri/src/adapters/graphql` folder should regenerate schema using the command `pnpm schema:export` from the project's `root` directory
+- After the schema export command is run successfully, create custom `*.gql` files to query/mutate entities. 
+- Run codegen for the new graphql schema and custom gql files using the command `pnpm codegen` from the project's `src-ui` directory to generate type definitions at [graphql.ts](mdc:src-ui/lib/graphql/graphql.ts) automatically

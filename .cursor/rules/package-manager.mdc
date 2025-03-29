@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Project Package Manager
+- Always use only `pnpm` to add/update packages in package.json
+- Always use only `pnpm` package manager when running scripts in the package.json
+
+This project has 2 package.json files
+- root: For managing tauri
+- src-ui: For managing next js frontend
