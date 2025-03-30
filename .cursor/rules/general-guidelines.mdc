@@ -22,3 +22,7 @@ UI Styling
 Make best developer experience and end user experience a priority.
 
 Make everything type safe whenever possible and utilize best practices for not repeating ourselves.
+
+Terminal Commands
+- Ensure you are always running commands from the project's root directory
+- You are allowed to `cd` in to a specific folder but only for executing the command. Always come back to the project's root folder
