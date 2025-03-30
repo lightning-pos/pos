@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, TextInput, Form, DatePicker, DatePickerInput, Select, SelectItem, NumberInput } from '@carbon/react'
-import { Expense, GetPurchaseCategoriesForExpensesDocument } from '@/lib/graphql/graphql'
+import { Expense, GetPurchaseCategoriesForExpensesDocument, GetCostCentersForExpensesDocument, CostCenterState } from '@/lib/graphql/graphql'
 import { formatDateYMD } from '@/lib/util/date_format'
 import { sanitizeDecimalInput } from '@/lib/util/number_format'
 import { gql } from '@/lib/graphql/execute'
@@ -21,24 +21,33 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     setExpense
 }) => {
     const [categories, setCategories] = useState<Array<{ id: string, name: string }>>([]);
+    const [costCenters, setCostCenters] = useState<Array<{ id: string, name: string, code: string, state: CostCenterState }>>([]);
 
     useEffect(() => {
-        const fetchCategories = async () => {
+        const fetchData = async () => {
             try {
-                const result = await gql(GetPurchaseCategoriesForExpensesDocument);
-                setCategories(result.allPurchaseCategories || []);
+                // Fetch categories
+                const categoriesResult = await gql(GetPurchaseCategoriesForExpensesDocument);
+                setCategories(categoriesResult.allPurchaseCategories || []);
+
+                // Fetch cost centers
+                const costCentersResult = await gql(GetCostCentersForExpensesDocument);
+                setCostCenters(costCentersResult.allCostCenters || []);
             } catch (error) {
-                console.error('Error fetching expense categories:', error);
+                console.error('Error fetching data:', error);
             }
         };
 
-        fetchCategories();
+        fetchData();
     }, []);
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = sanitizeDecimalInput(e.target.value, 2);
         setExpense(prev => ({ ...prev, amount: value }));
     };
+
+    // Filter active cost centers
+    const activeCostCenters = costCenters.filter(cc => cc.state === CostCenterState.Active);
 
     return (
         <Modal
@@ -94,6 +103,23 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                     <SelectItem value="" text="Choose a category" disabled hidden />
                     {categories.map(category => (
                         <SelectItem key={category.id} value={category.id} text={category.name} />
+                    ))}
+                </Select>
+
+                <Select
+                    id="costCenter"
+                    labelText="Cost Center"
+                    value={expense?.costCenterId || ''}
+                    onChange={(e) => setExpense(prev => ({ ...prev, costCenterId: e.target.value }))}
+                    required
+                >
+                    <SelectItem value="" text="Choose a cost center" disabled hidden />
+                    {activeCostCenters.map(costCenter => (
+                        <SelectItem
+                            key={costCenter.id}
+                            value={costCenter.id}
+                            text={`${costCenter.code} - ${costCenter.name}`}
+                        />
                     ))}
                 </Select>
 

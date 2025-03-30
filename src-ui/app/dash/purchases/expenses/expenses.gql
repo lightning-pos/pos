@@ -5,12 +5,18 @@ query GetExpenses($first: Int!, $offset: Int!) {
         amount
         expenseDate
         categoryId
+        costCenterId
         description
         createdAt
         updatedAt
         category {
             id
             name
+        }
+        costCenter {
+            id
+            name
+            code
         }
     }
     totalExpenses
@@ -23,6 +29,15 @@ query GetPurchaseCategoriesForExpenses {
     }
 }
 
+query GetCostCentersForExpenses {
+    allCostCenters {
+        id
+        name
+        code
+        state
+    }
+}
+
 query GetExpensesByCategory($categoryId: DbUuid!, $first: Int!, $offset: Int!) {
     expensesByCategory(categoryId: $categoryId, first: $first, offset: $offset) {
         id
@@ -30,12 +45,18 @@ query GetExpensesByCategory($categoryId: DbUuid!, $first: Int!, $offset: Int!) {
         amount
         expenseDate
         categoryId
+        costCenterId
         description
         createdAt
         updatedAt
         category {
             id
             name
+        }
+        costCenter {
+            id
+            name
+            code
         }
     }
 }
@@ -47,12 +68,18 @@ mutation CreateExpense($input: ExpenseNewInput!) {
         amount
         expenseDate
         categoryId
+        costCenterId
         description
         createdAt
         updatedAt
         category {
             id
             name
+        }
+        costCenter {
+            id
+            name
+            code
         }
     }
 }
@@ -64,12 +91,18 @@ mutation UpdateExpense($input: ExpenseUpdateInput!) {
         amount
         expenseDate
         categoryId
+        costCenterId
         description
         createdAt
         updatedAt
         category {
             id
             name
+        }
+        costCenter {
+            id
+            name
+            code
         }
     }
 }

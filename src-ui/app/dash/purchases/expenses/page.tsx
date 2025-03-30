@@ -13,6 +13,8 @@ import { formatDateForDisplay, formatToLocalDateTime, formatDateYMD } from '@/li
 interface TableRow extends Omit<Expense, 'amount'> {
     amount: string;
     formattedDate: string;
+    category: string;
+    costCenter: string;
 }
 
 const ExpensesPage = () => {
@@ -34,7 +36,8 @@ const ExpensesPage = () => {
             ...expense,
             amount: formatCurrency(Number(expense.amount || 0)),
             formattedDate: formatDateForDisplay(expense.expenseDate),
-            category: expense.category?.name || 'Uncategorized'
+            category: expense.category?.name || 'Uncategorized',
+            costCenter: expense.costCenter ? `${expense.costCenter.code} - ${expense.costCenter.name}` : 'Unknown'
         }));
     };
 
@@ -67,6 +70,7 @@ const ExpensesPage = () => {
                     amount: (Number(newExpense.amount) || 0).toString(),
                     expenseDate: formatToLocalDateTime(newExpense.expenseDate),
                     categoryId: newExpense.categoryId || '',
+                    costCenterId: newExpense.costCenterId || '',
                     description: newExpense.description || null
                 }
             })
@@ -90,6 +94,7 @@ const ExpensesPage = () => {
                     amount: (Number(editingExpense.amount) || 0).toString(),
                     expenseDate: formatToLocalDateTime(editingExpense.expenseDate),
                     categoryId: editingExpense.categoryId,
+                    costCenterId: editingExpense.costCenterId,
                     description: editingExpense.description
                 }
             })
@@ -118,6 +123,7 @@ const ExpensesPage = () => {
         { key: 'amount', header: 'Amount' },
         { key: 'formattedDate', header: 'Date' },
         { key: 'category', header: 'Category' },
+        { key: 'costCenter', header: 'Cost Center' },
         { key: 'description', header: 'Description' }
     ]
 

@@ -149,6 +149,8 @@ export type Expense = {
   amount: Scalars['Money']['output'];
   category: PurchaseCategory;
   categoryId: Scalars['DbUuid']['output'];
+  costCenter: CostCenter;
+  costCenterId: Scalars['DbUuid']['output'];
   createdAt: Scalars['LocalDateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
   expenseDate: Scalars['LocalDateTime']['output'];
@@ -160,6 +162,7 @@ export type Expense = {
 export type ExpenseNewInput = {
   amount: Scalars['Money']['input'];
   categoryId: Scalars['DbUuid']['input'];
+  costCenterId: Scalars['DbUuid']['input'];
   description?: InputMaybe<Scalars['String']['input']>;
   expenseDate: Scalars['LocalDateTime']['input'];
   title: Scalars['String']['input'];
@@ -168,6 +171,7 @@ export type ExpenseNewInput = {
 export type ExpenseUpdateInput = {
   amount?: InputMaybe<Scalars['Money']['input']>;
   categoryId?: InputMaybe<Scalars['DbUuid']['input']>;
+  costCenterId?: InputMaybe<Scalars['DbUuid']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   expenseDate?: InputMaybe<Scalars['LocalDateTime']['input']>;
   id: Scalars['DbUuid']['input'];
@@ -1077,12 +1081,17 @@ export type GetExpensesQueryVariables = Exact<{
 }>;
 
 
-export type GetExpensesQuery = { __typename?: 'Query', totalExpenses: number, expenses: Array<{ __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, categoryId: string, description?: string | null, createdAt: string, updatedAt: string, category: { __typename?: 'PurchaseCategory', id: string, name: string } }> };
+export type GetExpensesQuery = { __typename?: 'Query', totalExpenses: number, expenses: Array<{ __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, categoryId: string, costCenterId: string, description?: string | null, createdAt: string, updatedAt: string, category: { __typename?: 'PurchaseCategory', id: string, name: string }, costCenter: { __typename?: 'CostCenter', id: string, name: string, code: string } }> };
 
 export type GetPurchaseCategoriesForExpensesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type GetPurchaseCategoriesForExpensesQuery = { __typename?: 'Query', allPurchaseCategories: Array<{ __typename?: 'PurchaseCategory', id: string, name: string }> };
+
+export type GetCostCentersForExpensesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetCostCentersForExpensesQuery = { __typename?: 'Query', allCostCenters: Array<{ __typename?: 'CostCenter', id: string, name: string, code: string, state: CostCenterState }> };
 
 export type GetExpensesByCategoryQueryVariables = Exact<{
   categoryId: Scalars['DbUuid']['input'];
@@ -1091,21 +1100,21 @@ export type GetExpensesByCategoryQueryVariables = Exact<{
 }>;
 
 
-export type GetExpensesByCategoryQuery = { __typename?: 'Query', expensesByCategory: Array<{ __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, categoryId: string, description?: string | null, createdAt: string, updatedAt: string, category: { __typename?: 'PurchaseCategory', id: string, name: string } }> };
+export type GetExpensesByCategoryQuery = { __typename?: 'Query', expensesByCategory: Array<{ __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, categoryId: string, costCenterId: string, description?: string | null, createdAt: string, updatedAt: string, category: { __typename?: 'PurchaseCategory', id: string, name: string }, costCenter: { __typename?: 'CostCenter', id: string, name: string, code: string } }> };
 
 export type CreateExpenseMutationVariables = Exact<{
   input: ExpenseNewInput;
 }>;
 
 
-export type CreateExpenseMutation = { __typename?: 'Mutation', createExpense: { __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, categoryId: string, description?: string | null, createdAt: string, updatedAt: string, category: { __typename?: 'PurchaseCategory', id: string, name: string } } };
+export type CreateExpenseMutation = { __typename?: 'Mutation', createExpense: { __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, categoryId: string, costCenterId: string, description?: string | null, createdAt: string, updatedAt: string, category: { __typename?: 'PurchaseCategory', id: string, name: string }, costCenter: { __typename?: 'CostCenter', id: string, name: string, code: string } } };
 
 export type UpdateExpenseMutationVariables = Exact<{
   input: ExpenseUpdateInput;
 }>;
 
 
-export type UpdateExpenseMutation = { __typename?: 'Mutation', updateExpense: { __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, categoryId: string, description?: string | null, createdAt: string, updatedAt: string, category: { __typename?: 'PurchaseCategory', id: string, name: string } } };
+export type UpdateExpenseMutation = { __typename?: 'Mutation', updateExpense: { __typename?: 'Expense', id: string, title: string, amount: string, expenseDate: string, categoryId: string, costCenterId: string, description?: string | null, createdAt: string, updatedAt: string, category: { __typename?: 'PurchaseCategory', id: string, name: string }, costCenter: { __typename?: 'CostCenter', id: string, name: string, code: string } } };
 
 export type DeleteExpenseMutationVariables = Exact<{
   id: Scalars['DbUuid']['input'];
@@ -1736,12 +1745,18 @@ export const GetExpensesDocument = new TypedDocumentString(`
     amount
     expenseDate
     categoryId
+    costCenterId
     description
     createdAt
     updatedAt
     category {
       id
       name
+    }
+    costCenter {
+      id
+      name
+      code
     }
   }
   totalExpenses
@@ -1755,6 +1770,16 @@ export const GetPurchaseCategoriesForExpensesDocument = new TypedDocumentString(
   }
 }
     `) as unknown as TypedDocumentString<GetPurchaseCategoriesForExpensesQuery, GetPurchaseCategoriesForExpensesQueryVariables>;
+export const GetCostCentersForExpensesDocument = new TypedDocumentString(`
+    query GetCostCentersForExpenses {
+  allCostCenters {
+    id
+    name
+    code
+    state
+  }
+}
+    `) as unknown as TypedDocumentString<GetCostCentersForExpensesQuery, GetCostCentersForExpensesQueryVariables>;
 export const GetExpensesByCategoryDocument = new TypedDocumentString(`
     query GetExpensesByCategory($categoryId: DbUuid!, $first: Int!, $offset: Int!) {
   expensesByCategory(categoryId: $categoryId, first: $first, offset: $offset) {
@@ -1763,12 +1788,18 @@ export const GetExpensesByCategoryDocument = new TypedDocumentString(`
     amount
     expenseDate
     categoryId
+    costCenterId
     description
     createdAt
     updatedAt
     category {
       id
       name
+    }
+    costCenter {
+      id
+      name
+      code
     }
   }
 }
@@ -1781,12 +1812,18 @@ export const CreateExpenseDocument = new TypedDocumentString(`
     amount
     expenseDate
     categoryId
+    costCenterId
     description
     createdAt
     updatedAt
     category {
       id
       name
+    }
+    costCenter {
+      id
+      name
+      code
     }
   }
 }
@@ -1799,12 +1836,18 @@ export const UpdateExpenseDocument = new TypedDocumentString(`
     amount
     expenseDate
     categoryId
+    costCenterId
     description
     createdAt
     updatedAt
     category {
       id
       name
+    }
+    costCenter {
+      id
+      name
+      code
     }
   }
 }

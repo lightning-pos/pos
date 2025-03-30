@@ -4,10 +4,13 @@ use juniper::FieldResult;
 
 use crate::{
     core::{
-        models::purchases::{expense_model::Expense, purchase_category_model::PurchaseCategory},
+        models::{
+            finance::cost_center_model::CostCenter,
+            purchases::{expense_model::Expense, purchase_category_model::PurchaseCategory},
+        },
         types::{db_uuid::DbUuid, money::Money},
     },
-    schema::purchase_categories,
+    schema::{cost_centers, purchase_categories},
     AppState,
 };
 use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
@@ -34,6 +37,10 @@ impl Expense {
         self.category_id
     }
 
+    pub fn cost_center_id(&self) -> DbUuid {
+        self.cost_center_id
+    }
+
     pub fn description(&self) -> Option<&str> {
         self.description.as_deref()
     }
@@ -53,5 +60,14 @@ impl Expense {
             .first(&mut service.conn)?;
 
         Ok(category)
+    }
+
+    pub fn cost_center(&self, context: &AppState) -> FieldResult<CostCenter> {
+        let mut service = context.service.lock().unwrap();
+        let cost_center = cost_centers::table
+            .filter(cost_centers::id.eq(&self.cost_center_id))
+            .first(&mut service.conn)?;
+
+        Ok(cost_center)
     }
 }
