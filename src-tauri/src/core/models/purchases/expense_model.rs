@@ -15,7 +15,7 @@ pub struct Expense {
     pub title: String,
     pub amount: Money,
     pub expense_date: NaiveDateTime,
-    pub category: String,
+    pub category_id: DbUuid,
     pub description: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -26,7 +26,7 @@ pub struct ExpenseNewInput {
     pub title: String,
     pub amount: Money,
     pub expense_date: NaiveDateTime,
-    pub category: String,
+    pub category_id: DbUuid,
     pub description: Option<String>,
 }
 
@@ -36,7 +36,7 @@ pub struct ExpenseUpdateInput {
     pub title: Option<String>,
     pub amount: Option<Money>,
     pub expense_date: Option<NaiveDateTime>,
-    pub category: Option<String>,
+    pub category_id: Option<DbUuid>,
     pub description: Option<Option<String>>,
 }
 
@@ -47,7 +47,7 @@ pub struct ExpenseUpdateChangeset {
     pub title: Option<String>,
     pub amount: Option<Money>,
     pub expense_date: Option<NaiveDateTime>,
-    pub category: Option<String>,
+    pub category_id: Option<DbUuid>,
     pub description: Option<Option<String>>,
     pub updated_at: NaiveDateTime,
 }

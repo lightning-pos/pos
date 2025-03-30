@@ -4,24 +4,39 @@ query GetExpenses($first: Int!, $offset: Int!) {
         title
         amount
         expenseDate
-        category
+        categoryId
         description
         createdAt
         updatedAt
+        category {
+            id
+            name
+        }
     }
     totalExpenses
 }
 
-query GetExpensesByCategory($category: String!, $first: Int!, $offset: Int!) {
-    expensesByCategory(category: $category, first: $first, offset: $offset) {
+query GetPurchaseCategoriesForExpenses {
+    allPurchaseCategories {
+        id
+        name
+    }
+}
+
+query GetExpensesByCategory($categoryId: DbUuid!, $first: Int!, $offset: Int!) {
+    expensesByCategory(categoryId: $categoryId, first: $first, offset: $offset) {
         id
         title
         amount
         expenseDate
-        category
+        categoryId
         description
         createdAt
         updatedAt
+        category {
+            id
+            name
+        }
     }
 }
 
@@ -31,10 +46,14 @@ mutation CreateExpense($input: ExpenseNewInput!) {
         title
         amount
         expenseDate
-        category
+        categoryId
         description
         createdAt
         updatedAt
+        category {
+            id
+            name
+        }
     }
 }
 
@@ -44,10 +63,14 @@ mutation UpdateExpense($input: ExpenseUpdateInput!) {
         title
         amount
         expenseDate
-        category
+        categoryId
         description
         createdAt
         updatedAt
+        category {
+            id
+            name
+        }
     }
 }
 

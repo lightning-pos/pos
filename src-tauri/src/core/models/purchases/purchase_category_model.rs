@@ -4,13 +4,6 @@ use diesel::prelude::{AsChangeset, Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum)]
-pub enum PurchaseCategoryState {
-    Active,
-    Inactive,
-    Deleted,
-}
-
 #[derive(Debug, Queryable, Insertable, Selectable)]
 #[diesel(table_name = purchase_categories)]
 pub struct PurchaseCategory {
@@ -36,4 +29,11 @@ pub struct PurchaseCategoryUpdate {
     pub description: Option<Option<String>>,
     pub state: Option<PurchaseCategoryState>,
     pub updated_at: Option<NaiveDateTime>,
+}
+
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+pub enum PurchaseCategoryState {
+    Active,
+    Inactive,
+    Deleted,
 }

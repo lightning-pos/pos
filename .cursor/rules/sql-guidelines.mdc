@@ -4,3 +4,5 @@ globs: src-tauri/migrations/**/*.sql
 alwaysApply: false
 ---
 The migrations uses only SQLite. All SQL query should be compatible with SQLite.
+
+When creating a migration with prefilled data by inserting, always use `00000000-0000-0000-0000-000000000000` as the id for all rows

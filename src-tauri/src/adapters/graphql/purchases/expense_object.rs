@@ -1,13 +1,16 @@
 use chrono::NaiveDateTime;
 use juniper::graphql_object;
+use juniper::FieldResult;
 
 use crate::{
     core::{
-        models::purchases::expense_model::Expense,
+        models::purchases::{expense_model::Expense, purchase_category_model::PurchaseCategory},
         types::{db_uuid::DbUuid, money::Money},
     },
+    schema::purchase_categories,
     AppState,
 };
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 
 #[graphql_object(context = AppState)]
 impl Expense {
@@ -27,8 +30,8 @@ impl Expense {
         self.expense_date
     }
 
-    pub fn category(&self) -> &str {
-        &self.category
+    pub fn category_id(&self) -> DbUuid {
+        self.category_id
     }
 
     pub fn description(&self) -> Option<&str> {
@@ -41,5 +44,14 @@ impl Expense {
 
     pub fn updated_at(&self) -> NaiveDateTime {
         self.updated_at
+    }
+
+    pub fn category(&self, context: &AppState) -> FieldResult<PurchaseCategory> {
+        let mut service = context.service.lock().unwrap();
+        let category = purchase_categories::table
+            .filter(purchase_categories::id.eq(&self.category_id))
+            .first(&mut service.conn)?;
+
+        Ok(category)
     }
 }

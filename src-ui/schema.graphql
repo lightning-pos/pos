@@ -67,7 +67,7 @@ input ExpenseNewInput {
   title: String!
   amount: Money!
   expenseDate: LocalDateTime!
-  category: String!
+  categoryId: DbUuid!
   description: String
 }
 
@@ -76,7 +76,7 @@ input ExpenseUpdateInput {
   title: String
   amount: Money
   expenseDate: LocalDateTime
-  category: String
+  categoryId: DbUuid
   description: String
 }
 
@@ -183,6 +183,7 @@ input UserUpdateInput {
   state: UserState
 }
 
+"UUID stored as text"
 scalar DbUuid
 
 """
@@ -229,10 +230,11 @@ type Expense {
   title: String!
   amount: Money!
   expenseDate: LocalDateTime!
-  category: String!
+  categoryId: DbUuid!
   description: String
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
+  category: PurchaseCategory!
 }
 
 type Item {
@@ -311,6 +313,7 @@ type Query {
   item(id: DbUuid!): Item!
   purchaseCategories(first: Int, offset: Int): [PurchaseCategory!]!
   purchaseCategory(id: DbUuid!): PurchaseCategory!
+  allPurchaseCategories: [PurchaseCategory!]!
   users(first: Int, offset: Int): [User!]!
   user(id: DbUuid!): User!
   customers(first: Int, offset: Int): [Customer!]!
@@ -333,7 +336,7 @@ type Query {
   expenses(first: Int, offset: Int): [Expense!]!
   totalExpenses: Int!
   expense(id: DbUuid!): Expense!
-  expensesByCategory(category: String!, first: Int, offset: Int): [Expense!]!
+  expensesByCategory(categoryId: DbUuid!, first: Int, offset: Int): [Expense!]!
 }
 
 type SalesOrder {

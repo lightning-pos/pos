@@ -10,6 +10,7 @@ pub fn graphql(
     vars: Option<Variables<DefaultScalarValue>>,
     state: State<'_, AppState>,
 ) -> Result<(juniper::Value, Vec<ExecutionError<DefaultScalarValue>>)> {
+    println!("yoyo query: {:?}", query);
     juniper::execute_sync(
         &query,
         None,

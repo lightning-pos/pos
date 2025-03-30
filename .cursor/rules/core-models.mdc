@@ -1,0 +1,132 @@
+---
+description: 
+globs: src-tauri/src/core/models/**/*.rs
+alwaysApply: false
+---
+# Core Models: Structure & Conventions
+
+This rule provides guidelines for creating model files in the Rust backend, following our domain-driven design approach.
+
+## Naming Conventions
+
+- **Main Model**: Use `Entity` (e.g., `PurchaseCategory`, `Supplier`)
+- **New Input**: Use `EntityNewInput` (e.g., `ExpenseNewInput`, `PurchaseCategoryNew`)
+- **Update Input**: Use `EntityUpdateInput` (e.g., `SupplierUpdateInput`, `PurchaseCategoryUpdate`)
+- **Update Changeset**: Use `EntityUpdateChangeset`
+- **State Enums**: Use `EntityState` (e.g., `PurchaseCategoryState`)
+- **Enum Mappings**: Use `EntityStateMapping` (automatically created by DbEnum)
+- **File Names**: Use snake_case format (e.g., `purchase_category_model.rs`)
+
+## Model Structure
+
+### Main Entity Struct
+```rust
+#[derive(Debug, Queryable, Selectable, Insertable)]
+#[diesel(table_name = entities)]
+pub struct Entity {
+    pub id: DbUuid,
+    pub field1: String,
+    pub field2: Option<Type>,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+```
+
+### New Input Struct
+```rust
+#[derive(Debug, Clone, GraphQLInputObject)]
+pub struct EntityNewInput {
+    pub field1: String,
+    pub field2: Option<Type>,
+}
+```
+
+### Update Input Struct
+```rust
+#[derive(Debug, Clone, GraphQLInputObject)]
+pub struct EntityUpdateInput {
+    pub id: DbUuid,
+    pub field1: Option<String>,
+    pub field2: Option<Option<Type>>, // Double optional for nullable fields
+}
+```
+
+### Update Changeset Struct
+```rust
+#[derive(Debug, Clone, AsChangeset)]
+#[diesel(table_name = entities)]
+pub struct EntityUpdateChangeset {
+    pub id: DbUuid,
+    pub field1: Option<String>,
+    pub field2: Option<Option<Type>>,
+    pub updated_at: NaiveDateTime,
+}
+```
+
+### State Enum with DbEnum
+```rust
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+pub enum EntityState {
+    Active,
+    Inactive,
+}
+```
+
+## Enum Mappings in Schema
+
+When using the `DbEnum` derive macro:
+
+1. The macro automatically generates a corresponding `EntityStateMapping` type that should be used in `schema.rs`
+2. This mapping type is used ONLY in the schema definition, not in model code
+3. Import and use these mappings in schema.rs table definitions:
+
+```rust
+// In schema.rs
+table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp};
+    use crate::core::models::domain::entity_model::EntityStateMapping;
+
+    entities (id) {
+        id -> Text,
+        name -> Text,
+        state -> EntityStateMapping,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+```
+
+## Key Patterns
+
+- **Base Model**:
+  - Matches database schema exactly
+  - Contains ID and timestamps
+  - Uses appropriate derives for Diesel
+
+- **Input Structs**:
+  - New: Contains only fields needed for creation
+  - Update: Contains optional fields with ID
+  - Use `Option<T>` for nullable fields in New
+  - Use `Option<Option<T>>` for nullable fields in Update
+
+- **Type Usage**:
+  - Use `DbUuid` for IDs
+  - Use `NaiveDateTime` for timestamps
+  - Use `Money` for monetary values
+  - Use domain-specific enums for states
+
+- **Database Enums**:
+  - Use `DbEnum` derive for database-mapped enums
+  - Automatically creates `EntityStateMapping` type for schema.rs
+  - Add `GraphQLEnum` for GraphQL integration
+  - Remember to import the mapping in schema.rs
+
+- **Organization**:
+  - Group models by domain (purchases, catalog, sales, etc.)
+  - Keep one model per file
+  - Import required types and schemas
+
+## Examples
+See implemented models in:
+- `src-tauri/src/core/models/purchases/purchase_category_model.rs`
+- `src-tauri/src/core/models/purchases/expense_model.rs`

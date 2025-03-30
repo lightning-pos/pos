@@ -33,7 +33,8 @@ const ExpensesPage = () => {
         return expenses.map(expense => ({
             ...expense,
             amount: formatCurrency(Number(expense.amount || 0)),
-            formattedDate: formatDateForDisplay(expense.expenseDate)
+            formattedDate: formatDateForDisplay(expense.expenseDate),
+            category: expense.category?.name || 'Uncategorized'
         }));
     };
 
@@ -65,7 +66,7 @@ const ExpensesPage = () => {
                     title: newExpense.title || '',
                     amount: (Number(newExpense.amount) || 0).toString(),
                     expenseDate: formatToLocalDateTime(newExpense.expenseDate),
-                    category: newExpense.category || 'Miscellaneous',
+                    categoryId: newExpense.categoryId || '',
                     description: newExpense.description || null
                 }
             })
@@ -88,7 +89,7 @@ const ExpensesPage = () => {
                     title: editingExpense.title,
                     amount: (Number(editingExpense.amount) || 0).toString(),
                     expenseDate: formatToLocalDateTime(editingExpense.expenseDate),
-                    category: editingExpense.category,
+                    categoryId: editingExpense.categoryId,
                     description: editingExpense.description
                 }
             })

@@ -48,14 +48,14 @@ pub fn expense(id: DbUuid, context: &AppState) -> FieldResult<Expense> {
 }
 
 pub fn expenses_by_category(
-    category: String,
+    category_id: DbUuid,
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<Expense>> {
     let mut service = context.service.lock().unwrap();
     let mut query = expenses::table
-        .filter(expenses::category.eq(category))
+        .filter(expenses::category_id.eq(category_id))
         .order(expenses::expense_date.desc())
         .into_boxed();
 

@@ -65,6 +65,10 @@ impl Query {
         super::purchases::purchase_category_queries::purchase_category(id, context)
     }
 
+    fn all_purchase_categories(&self, context: &AppState) -> FieldResult<Vec<PurchaseCategory>> {
+        super::purchases::purchase_category_queries::all_purchase_categories(context)
+    }
+
     fn users(
         &self,
         first: Option<i32>,
@@ -194,11 +198,11 @@ impl Query {
 
     fn expenses_by_category(
         &self,
-        category: String,
+        category_id: DbUuid,
         first: Option<i32>,
         offset: Option<i32>,
         context: &AppState,
     ) -> FieldResult<Vec<Expense>> {
-        super::purchases::expense_queries::expenses_by_category(category, first, offset, context)
+        super::purchases::expense_queries::expenses_by_category(category_id, first, offset, context)
     }
 }

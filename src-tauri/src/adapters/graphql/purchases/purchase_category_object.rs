@@ -6,30 +6,29 @@ use crate::core::{
     types::db_uuid::DbUuid,
 };
 
-// GraphQL Object Implementation
 #[graphql_object(description = "Purchase Category")]
 impl PurchaseCategory {
-    pub fn id(&self) -> &DbUuid {
-        &self.id
+    pub fn id(&self) -> DbUuid {
+        self.id
     }
 
-    pub fn name(&self) -> &str {
-        &self.name
+    pub fn name(&self) -> String {
+        self.name.clone()
     }
 
-    pub fn description(&self) -> &Option<String> {
-        &self.description
+    pub fn description(&self) -> Option<String> {
+        self.description.clone()
     }
 
-    pub fn state(&self) -> &PurchaseCategoryState {
-        &self.state
+    pub fn state(&self) -> PurchaseCategoryState {
+        self.state
     }
 
-    pub fn created_at(&self) -> &NaiveDateTime {
-        &self.created_at
+    pub fn created_at(&self) -> NaiveDateTime {
+        self.created_at
     }
 
-    pub fn updated_at(&self) -> &NaiveDateTime {
-        &self.updated_at
+    pub fn updated_at(&self) -> NaiveDateTime {
+        self.updated_at
     }
 }

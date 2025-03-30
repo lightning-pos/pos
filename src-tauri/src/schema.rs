@@ -99,7 +99,7 @@ table! {
         title -> Text,
         amount -> BigInt,
         expense_date -> Timestamp,
-        category -> Text,
+        category_id -> Text,
         description -> Nullable<Text>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
@@ -181,3 +181,6 @@ joinable!(sales_orders -> customers (customer_id));
 // ManyToMany (orders, order_items)
 joinable!(sales_order_items -> sales_orders (order_id));
 joinable!(sales_order_items -> items (item_id));
+
+// ManyToOne (expenses, purchase_categories)
+joinable!(expenses -> purchase_categories (category_id));

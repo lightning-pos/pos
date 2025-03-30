@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Modal, TextInput, Form, DatePicker, DatePickerInput, Select, SelectItem } from '@carbon/react'
-import { Expense } from '@/lib/graphql/graphql'
+import { Expense, GetPurchaseCategoriesForExpensesDocument } from '@/lib/graphql/graphql'
 import { formatDateYMD } from '@/lib/util/date_format'
 import { sanitizeDecimalInput } from '@/lib/util/number_format'
+import { gql } from '@/lib/graphql/execute'
 
 interface EditExpenseModalProps {
     isOpen: boolean
@@ -12,19 +13,6 @@ interface EditExpenseModalProps {
     setExpense: React.Dispatch<React.SetStateAction<Expense | null>>
 }
 
-const EXPENSE_CATEGORIES = [
-    'Office Supplies',
-    'Rent',
-    'Utilities',
-    'Equipment',
-    'Salaries',
-    'Marketing',
-    'Travel',
-    'Maintenance',
-    'Inventory',
-    'Miscellaneous'
-];
-
 const EditExpenseModal: React.FC<EditExpenseModalProps> = ({
     isOpen,
     expense,
@@ -32,6 +20,21 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({
     onSave,
     setExpense
 }) => {
+    const [categories, setCategories] = useState<Array<{ id: string, name: string }>>([]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const result = await gql(GetPurchaseCategoriesForExpensesDocument);
+                setCategories(result.allPurchaseCategories || []);
+            } catch (error) {
+                console.error('Error fetching expense categories:', error);
+            }
+        };
+
+        fetchCategories();
+    }, []);
+
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = sanitizeDecimalInput(e.target.value, 2);
         setExpense(prev => prev ? { ...prev, amount: value } : null);
@@ -84,13 +87,13 @@ const EditExpenseModal: React.FC<EditExpenseModalProps> = ({
                 <Select
                     id="category"
                     labelText="Category"
-                    value={expense?.category || ''}
-                    onChange={(e) => setExpense(prev => prev ? { ...prev, category: e.target.value } : null)}
+                    value={expense?.categoryId || ''}
+                    onChange={(e) => setExpense(prev => prev ? { ...prev, categoryId: e.target.value } : null)}
                     required
                 >
                     <SelectItem value="" text="Choose a category" disabled hidden />
-                    {EXPENSE_CATEGORIES.map(category => (
-                        <SelectItem key={category} value={category} text={category} />
+                    {categories.map(category => (
+                        <SelectItem key={category.id} value={category.id} text={category.name} />
                     ))}
                 </Select>
 

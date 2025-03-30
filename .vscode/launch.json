@@ -8,7 +8,7 @@
             "type": "node",
             "request": "launch",
             "name": "Launch via Tauri",
-            "runtimeExecutable": "yarn",
+            "runtimeExecutable": "pnpm",
             "cwd": "${workspaceFolder}",
             "runtimeArgs": [
                 "tauri",
