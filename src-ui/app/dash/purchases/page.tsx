@@ -12,9 +12,12 @@ import {
     TableBody,
     TableCell,
     Pagination,
-    Tag
+    Tag,
+    Button
 } from '@carbon/react'
-
+import { ArrowRight } from '@carbon/icons-react'
+// Carbon Charts
+import '@carbon/charts/styles.css'
 import {
     LineChart,
     GroupedBarChart,
@@ -30,57 +33,17 @@ import {
     GaugeChartOptions,
     ScaleTypes
 } from '@carbon/charts/interfaces'
+import { gql } from '@/lib/graphql/execute'
+import { GetExpensesDocument, GetPurchaseCategoriesForExpensesDocument, GetCostCentersForExpensesDocument } from '@/lib/graphql/graphql'
+import { formatCurrency } from '@/lib/util/number_format'
+import { formatDateForDisplay } from '@/lib/util/date_format'
+import Link from 'next/link'
 
-// Mock Data
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-const mockExpensesByMonth = MONTHS.map((month, i) => ({
-    month,
-    actual: Math.floor(10000 + Math.random() * 15000),
-    budget: Math.floor(15000 + Math.random() * 5000),
-}))
-
-const mockCostCenters = [
-    { id: '1', name: 'Marketing', actual: 45000, budget: 50000 },
-    { id: '2', name: 'Operations', actual: 72000, budget: 65000 },
-    { id: '3', name: 'Sales', actual: 38000, budget: 40000 },
-    { id: '4', name: 'R&D', actual: 55000, budget: 60000 },
-    { id: '5', name: 'Admin', actual: 25000, budget: 30000 },
-]
-
-const mockCategories = [
-    { id: '1', name: 'Payroll', actual: 80000, budget: 85000 },
-    { id: '2', name: 'Travel', actual: 25000, budget: 20000 },
-    { id: '3', name: 'Software', actual: 35000, budget: 30000 },
-    { id: '4', name: 'Office Supplies', actual: 15000, budget: 18000 },
-    { id: '5', name: 'Marketing', actual: 30000, budget: 35000 },
-]
-
-const mockVendors = [
-    { id: '1', name: 'Acme Corp', amount: 45000, transactions: 23 },
-    { id: '2', name: 'Tech Solutions Inc', amount: 38000, transactions: 12 },
-    { id: '3', name: 'Office Depot', amount: 15000, transactions: 45 },
-    { id: '4', name: 'Travel Agency XYZ', amount: 22000, transactions: 18 },
-    { id: '5', name: 'Marketing Partners', amount: 19000, transactions: 8 },
-]
-
-const mockTransactions = Array(50).fill(0).map((_, i) => ({
-    id: `${i + 1}`,
-    date: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-    vendor: mockVendors[Math.floor(Math.random() * mockVendors.length)].name,
-    category: mockCategories[Math.floor(Math.random() * mockCategories.length)].name,
-    costCenter: mockCostCenters[Math.floor(Math.random() * mockCostCenters.length)].name,
-    amount: Math.floor(500 + Math.random() * 5000),
-    description: `Transaction #${i + 1} description`
-}))
-
-// Calculate summary metrics
-const totalActualExpense = mockCostCenters.reduce((sum, cc) => sum + cc.actual, 0)
-const totalBudgetExpense = mockCostCenters.reduce((sum, cc) => sum + cc.budget, 0)
-const budgetUtilizationRate = (totalActualExpense / totalBudgetExpense * 100).toFixed(1)
-const previousPeriodExpense = totalActualExpense * 0.9 // Mock 10% growth
-const growthRateValue = ((totalActualExpense - previousPeriodExpense) / previousPeriodExpense * 100)
-const growthRate = growthRateValue.toFixed(1)
+// A helper function to parse date strings from the API
+const parseISODate = (dateString: string): Date | null => {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+};
 
 // Type definitions for chart data
 interface LineChartDataItem {
@@ -100,36 +63,160 @@ interface DonutChartDataItem {
     value: number;
 }
 
-interface GaugeChartDataItem {
-    group: string;
-    value: number;
+// Define the structure for the expense data
+interface Expense {
+    id: string;
+    title: string;
+    amount: string;
+    expenseDate: string;
+    categoryId: string;
+    costCenterId: string;
+    description?: string | null;
+    category: {
+        id: string;
+        name: string;
+    };
+    costCenter: {
+        id: string;
+        name: string;
+        code: string;
+    };
+}
+
+// Define the structure for the category data
+interface Category {
+    id: string;
+    name: string;
+}
+
+// Define the structure for the cost center data
+interface CostCenter {
+    id: string;
+    name: string;
+    code: string;
+    state: string;
 }
 
 const PurchasesDashboard = () => {
+    // State for expense data
+    const [expenses, setExpenses] = useState<Expense[]>([])
+    const [categories, setCategories] = useState<Category[]>([])
+    const [costCenters, setCostCenters] = useState<CostCenter[]>([])
+    const [totalExpenses, setTotalExpenses] = useState(0)
+    const [loading, setLoading] = useState(true)
+
+    // State for filters
     const [timeFilter, setTimeFilter] = useState('month')
     const [costCenterFilter, setCostCenterFilter] = useState('all')
+
+    // State for pagination
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(10)
 
-    // Prepare chart data for Carbon Charts
+    // Fetch expense data
+    useEffect(() => {
+        const fetchExpenseData = async () => {
+            setLoading(true)
+            try {
+                // Fetch expenses with pagination
+                const expenseResult = await gql(GetExpensesDocument, { first: 100, offset: 0 })
+                setExpenses(expenseResult.expenses)
+                setTotalExpenses(expenseResult.totalExpenses)
 
-    // Line chart data - Expense trends
-    const lineChartData: LineChartDataItem[] = [];
-    mockExpensesByMonth.forEach(item => {
-        lineChartData.push({
-            group: 'Actual',
-            date: item.month,
-            value: item.actual
-        });
-        lineChartData.push({
-            group: 'Budget',
-            date: item.month,
-            value: item.budget
-        });
-    });
+                // Fetch categories
+                const categoryResult = await gql(GetPurchaseCategoriesForExpensesDocument)
+                setCategories(categoryResult.allPurchaseCategories)
+
+                // Fetch cost centers
+                const costCenterResult = await gql(GetCostCentersForExpensesDocument)
+                setCostCenters(costCenterResult.allCostCenters)
+            } catch (error) {
+                console.error('Error fetching expense data:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchExpenseData()
+    }, [])
+
+    // Calculate summary metrics
+    const totalActualExpense = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0)
+
+    // Get expense by month for chart
+    const expensesByMonth = () => {
+        const monthData: { [key: string]: number } = {}
+
+        // Initialize with all months
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        months.forEach(month => {
+            monthData[month] = 0
+        })
+
+        // Fill with actual data
+        expenses.forEach(expense => {
+            const date = parseISODate(expense.expenseDate)
+            if (date) {
+                const month = months[date.getMonth()]
+                monthData[month] += parseFloat(expense.amount)
+            }
+        })
+
+        return monthData
+    }
+
+    // Get expenses by category for chart
+    const expensesByCategory = () => {
+        const categoryData: { [key: string]: number } = {}
+
+        expenses.forEach(expense => {
+            const categoryName = expense.category?.name || 'Uncategorized'
+            if (!categoryData[categoryName]) {
+                categoryData[categoryName] = 0
+            }
+            categoryData[categoryName] += parseFloat(expense.amount)
+        })
+
+        return categoryData
+    }
+
+    // Get expenses by cost center for chart
+    const expensesByCostCenter = () => {
+        const costCenterData: { [key: string]: number } = {}
+
+        expenses.forEach(expense => {
+            const costCenterName = expense.costCenter?.name || 'Uncategorized'
+            if (!costCenterData[costCenterName]) {
+                costCenterData[costCenterName] = 0
+            }
+            costCenterData[costCenterName] += parseFloat(expense.amount)
+        })
+
+        return costCenterData
+    }
+
+    // Calculate average expense per cost center
+    const avgExpensePerCostCenter = costCenters.length
+        ? (totalActualExpense / costCenters.length).toFixed(2)
+        : "0.00"
+
+    // Get recent transactions for display
+    const recentTransactions = expenses
+        .sort((a, b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime())
+        .slice(0, 5)
+
+    // Create chart data for Carbon Charts
+
+    // Line chart data - Monthly expense trends
+    const monthlyData = expensesByMonth()
+    const lineChartData: LineChartDataItem[] = Object.keys(monthlyData).map(month => ({
+        group: 'Expenses',
+        date: month,
+        value: monthlyData[month]
+    }))
 
     const lineChartOptions: LineChartOptions = {
-        title: 'Expense Trends Over Time',
+        title: 'Monthly Expense Trends',
         axes: {
             bottom: {
                 title: 'Month',
@@ -145,30 +232,44 @@ const PurchasesDashboard = () => {
         height: '300px',
         color: {
             scale: {
-                'Actual': '#0f62fe',
-                'Budget': '#da1e28'
+                'Expenses': '#0f62fe'
             }
         },
         curve: 'curveMonotoneX'
-    };
+    }
 
-    // Grouped bar chart - Cost Centers
-    const barChartData: BarChartDataItem[] = [];
-    mockCostCenters.forEach(item => {
-        barChartData.push({
-            group: 'Actual',
-            key: item.name,
-            value: item.actual
-        });
-        barChartData.push({
-            group: 'Budget',
-            key: item.name,
-            value: item.budget
-        });
-    });
+    // Donut chart - Categories
+    const categoryData = expensesByCategory()
+    const donutChartData: DonutChartDataItem[] = Object.keys(categoryData).map(category => ({
+        group: category,
+        value: categoryData[category]
+    }))
+
+    const donutChartOptions: DonutChartOptions = {
+        title: 'Expense Categories',
+        resizable: true,
+        height: '300px',
+        donut: {
+            center: {
+                label: 'Categories'
+            },
+            alignment: 'center'
+        },
+        legend: {
+            alignment: 'center'
+        }
+    }
+
+    // Bar chart - Cost Centers
+    const costCenterData = expensesByCostCenter()
+    const barChartData: BarChartDataItem[] = Object.keys(costCenterData).map(costCenter => ({
+        group: 'Expenses',
+        key: costCenter,
+        value: costCenterData[costCenter]
+    }))
 
     const barChartOptions: BarChartOptions = {
-        title: 'Cost Center Expenses vs Budget',
+        title: 'Expenses by Cost Center',
         axes: {
             left: {
                 title: 'Amount ($)',
@@ -181,101 +282,17 @@ const PurchasesDashboard = () => {
                 scaleType: ScaleTypes.LABELS
             }
         },
-        height: '300px',
-        color: {
-            scale: {
-                'Actual': '#0f62fe',
-                'Budget': '#da1e28'
-            }
-        }
-    };
-
-    // Donut chart - Categories
-    const donutChartData: DonutChartDataItem[] = mockCategories.map(item => ({
-        group: item.name,
-        value: item.actual
-    }));
-
-    const donutChartOptions: DonutChartOptions = {
-        title: 'Expense Categories',
-        resizable: true,
-        height: '300px',
-        donut: {
-            center: {
-                label: 'Categories'
-            },
-            alignment: 'center'
-        }
-    };
-
-    // Stacked bar chart - Vendors
-    const stackedBarData: DonutChartDataItem[] = mockVendors.map(item => ({
-        group: item.name,
-        value: item.amount
-    }));
-
-    const stackedBarOptions: StackedBarChartOptions = {
-        title: 'Top Vendors by Spend',
-        axes: {
-            left: {
-                title: 'Amount ($)',
-                mapsTo: 'value',
-                scaleType: ScaleTypes.LINEAR
-            },
-            bottom: {
-                title: 'Vendor',
-                mapsTo: 'group',
-                scaleType: ScaleTypes.LABELS
-            }
-        },
         height: '300px'
-    };
-
-    // Gauge chart - Budget utilization
-    const gaugeChartData: GaugeChartDataItem[] = [
-        {
-            group: 'Budget Utilization',
-            value: parseFloat(budgetUtilizationRate)
-        }
-    ];
-
-    const gaugeChartOptions: GaugeChartOptions = {
-        title: 'Budget Utilization Rate',
-        height: '250px',
-        resizable: true,
-        gauge: {
-            type: 'semi',
-            status: {
-                ranges: [
-                    {
-                        range: [0, 70],
-                        status: 'success'
-                    },
-                    {
-                        range: [70, 90],
-                        status: 'warning'
-                    },
-                    {
-                        range: [90, 100],
-                        status: 'danger'
-                    }
-                ]
-            } as any // Type cast to any to work around type mismatch
-        }
-    };
-
-    // Calculate metrics for display
-    const overBudgetCostCenters = mockCostCenters.filter(cc => cc.actual > cc.budget)
-    const avgExpensePerCostCenter = (totalActualExpense / mockCostCenters.length).toFixed(2)
-
-    // Transaction pagination
-    const paginatedTransactions = mockTransactions
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
-        .slice((page - 1) * pageSize, page * pageSize)
+    }
 
     return (
         <Content className='min-h-[calc(100dvh-3rem)] p-4'>
-            <h1 className="text-2xl font-bold mb-6">Expense Dashboard</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Expense Dashboard</h1>
+                <Link href="/dash/purchases/expenses">
+                    <Button renderIcon={ArrowRight}>Go to Expenses</Button>
+                </Link>
+            </div>
 
             {/* Filters */}
             <div className="mb-6 flex gap-4">
@@ -290,196 +307,109 @@ const PurchasesDashboard = () => {
                     id="cost-center-filter"
                     titleText="Cost Center"
                     label="All Cost Centers"
-                    items={['All Cost Centers', ...mockCostCenters.map(cc => cc.name)]}
+                    items={['All Cost Centers', ...costCenters.map(cc => cc.name)]}
                     onChange={(e: { selectedItem: string }) => setCostCenterFilter(e.selectedItem === 'All Cost Centers' ? 'all' : e.selectedItem)}
                 />
             </div>
 
-            {/* Summary Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <Tile>
-                    <h3 className="text-sm mb-1">Total Expenses</h3>
-                    <p className="text-3xl font-medium">${totalActualExpense.toLocaleString()}</p>
-                    <p className={`text-sm ${parseFloat(growthRate) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {parseFloat(growthRate) > 0 ? '↑' : '↓'} {Math.abs(parseFloat(growthRate))}% vs prev period
-                    </p>
-                </Tile>
-                <Tile>
-                    <h3 className="text-sm mb-1">Budget Utilization</h3>
-                    <p className="text-3xl font-medium">{budgetUtilizationRate}%</p>
-                    <p className="text-sm">
-                        ${totalActualExpense.toLocaleString()} of ${totalBudgetExpense.toLocaleString()}
-                    </p>
-                </Tile>
-                <Tile>
-                    <h3 className="text-sm mb-1">Avg. per Cost Center</h3>
-                    <p className="text-3xl font-medium">${Number(avgExpensePerCostCenter).toLocaleString()}</p>
-                    <p className="text-sm">Across {mockCostCenters.length} cost centers</p>
-                </Tile>
-                <Tile>
-                    <h3 className="text-sm mb-1">Over Budget Centers</h3>
-                    <p className="text-3xl font-medium">{overBudgetCostCenters.length}</p>
-                    <p className="text-sm text-red-600">
-                        {overBudgetCostCenters.length > 0 ? 'Action required' : 'All within budget'}
-                    </p>
-                </Tile>
-            </div>
-
-            {/* Charts Row 1 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                <div className="lg:col-span-2">
-                    <Tile className="h-full">
-                        <LineChart
-                            data={lineChartData}
-                            options={lineChartOptions}
-                        />
-                    </Tile>
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                    <p>Loading expense data...</p>
                 </div>
-                <div className="lg:col-span-1">
-                    <Tile className="h-full">
-                        <GaugeChart
-                            data={gaugeChartData}
-                            options={gaugeChartOptions}
-                        />
-                    </Tile>
-                </div>
-            </div>
+            ) : (
+                <>
+                    {/* Summary Metrics */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <Tile>
+                            <h3 className="text-sm mb-1">Total Expenses</h3>
+                            <p className="text-3xl font-medium">{formatCurrency(totalActualExpense)}</p>
+                            <p className="text-sm">
+                                From {expenses.length} recorded expenses
+                            </p>
+                        </Tile>
+                        <Tile>
+                            <h3 className="text-sm mb-1">Avg. per Cost Center</h3>
+                            <p className="text-3xl font-medium">{formatCurrency(Number(avgExpensePerCostCenter))}</p>
+                            <p className="text-sm">Across {costCenters.length} cost centers</p>
+                        </Tile>
+                        <Tile>
+                            <h3 className="text-sm mb-1">Categories</h3>
+                            <p className="text-3xl font-medium">{categories.length}</p>
+                            <p className="text-sm">Expense categories available</p>
+                        </Tile>
+                        <Tile>
+                            <h3 className="text-sm mb-1">Recent Activity</h3>
+                            <p className="text-3xl font-medium">{recentTransactions.length}</p>
+                            <p className="text-sm">New expenses in the last period</p>
+                        </Tile>
+                    </div>
 
-            {/* Charts Row 2 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                <Tile>
-                    <GroupedBarChart
-                        data={barChartData}
-                        options={barChartOptions}
-                    />
-                </Tile>
-                <Tile>
-                    <DonutChart
-                        data={donutChartData}
-                        options={donutChartOptions}
-                    />
-                </Tile>
-            </div>
+                    {expenses.length > 0 ? (
+                        <>
+                            {/* Charts Row 1 */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                                <div className="lg:col-span-2">
+                                    <Tile className="h-full">
+                                        <LineChart
+                                            data={lineChartData}
+                                            options={lineChartOptions}
+                                        />
+                                    </Tile>
+                                </div>
+                                <div className="lg:col-span-1">
+                                    <Tile className="h-full">
+                                        <DonutChart
+                                            data={donutChartData}
+                                            options={donutChartOptions}
+                                        />
+                                    </Tile>
+                                </div>
+                            </div>
 
-            {/* Vendors Chart */}
-            <div className="mb-6">
-                <Tile>
-                    <StackedBarChart
-                        data={stackedBarData}
-                        options={stackedBarOptions}
-                    />
-                </Tile>
-            </div>
-
-            {/* Transactions Table */}
-            <Tile className="mb-6">
-                <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
-                <DataTable rows={paginatedTransactions.map(t => ({
-                    ...t,
-                    date: t.date.toLocaleDateString(),
-                    amount: `$${t.amount.toLocaleString()}`
-                }))} headers={[
-                    { header: 'Date', key: 'date' },
-                    { header: 'Vendor', key: 'vendor' },
-                    { header: 'Category', key: 'category' },
-                    { header: 'Cost Center', key: 'costCenter' },
-                    { header: 'Amount', key: 'amount' },
-                    { header: 'Description', key: 'description' },
-                ]}>
-                    {({ rows, headers, getHeaderProps, getRowProps, getTableProps }: any) => (
-                        <Table {...getTableProps()}>
-                            <TableHead>
-                                <TableRow>
-                                    {headers.map((header: any) => (
-                                        <TableHeader key={header.key} {...getHeaderProps({ header })}>
-                                            {header.header}
-                                        </TableHeader>
-                                    ))}
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {rows.map((row: any) => (
-                                    <TableRow key={row.id} {...getRowProps({ row })}>
-                                        {row.cells.map((cell: any) => (
-                                            <TableCell key={cell.id}>{cell.value}</TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                            {/* Charts Row 2 */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                                <Tile>
+                                    <GroupedBarChart
+                                        data={barChartData}
+                                        options={barChartOptions}
+                                    />
+                                </Tile>
+                                <Tile>
+                                    <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+                                    <Table>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableHeader>Title</TableHeader>
+                                                <TableHeader>Amount</TableHeader>
+                                                <TableHeader>Date</TableHeader>
+                                                <TableHeader>Category</TableHeader>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {recentTransactions.map(expense => (
+                                                <TableRow key={expense.id}>
+                                                    <TableCell>{expense.title}</TableCell>
+                                                    <TableCell>{formatCurrency(Number(expense.amount))}</TableCell>
+                                                    <TableCell>{formatDateForDisplay(expense.expenseDate)}</TableCell>
+                                                    <TableCell>{expense.category?.name || 'Uncategorized'}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </Tile>
+                            </div>
+                        </>
+                    ) : (
+                        <Tile className="mb-6 p-6">
+                            <h3 className="text-lg font-semibold mb-4">No Expenses Found</h3>
+                            <p className="mb-4">You haven't added any expenses yet. Start tracking your expenses to see detailed analytics.</p>
+                            <Link href="/dash/purchases/expenses">
+                                <Button>Go to Expenses</Button>
+                            </Link>
+                        </Tile>
                     )}
-                </DataTable>
-                <div className="mt-4">
-                    <Pagination
-                        totalItems={mockTransactions.length}
-                        backwardText="Previous page"
-                        forwardText="Next page"
-                        pageSize={pageSize}
-                        pageSizes={[10, 20, 30, 40, 50]}
-                        itemsPerPageText="Items per page:"
-                        onChange={({ page, pageSize }: { page: number, pageSize: number }) => {
-                            setPage(page);
-                            setPageSize(pageSize);
-                        }}
-                    />
-                </div>
-            </Tile>
-
-            {/* Anomalies and Alerts */}
-            <Tile className="mb-6">
-                <h3 className="text-lg font-semibold mb-4">Alerts & Anomalies</h3>
-                <ul className="space-y-3">
-                    {overBudgetCostCenters.map(cc => (
-                        <li key={cc.id} className="flex items-center">
-                            <Tag type="red" size="sm">Over Budget</Tag>
-                            <span className="ml-2">
-                                {cc.name} cost center is ${(cc.actual - cc.budget).toLocaleString()}
-                                ({((cc.actual - cc.budget) / cc.budget * 100).toFixed(1)}%) over budget
-                            </span>
-                        </li>
-                    ))}
-                    {mockCategories.filter(c => c.actual > c.budget).map(c => (
-                        <li key={c.id} className="flex items-center">
-                            <Tag type="red" size="sm">Over Budget</Tag>
-                            <span className="ml-2">
-                                {c.name} category is ${(c.actual - c.budget).toLocaleString()}
-                                ({((c.actual - c.budget) / c.budget * 100).toFixed(1)}%) over budget
-                            </span>
-                        </li>
-                    ))}
-                    <li className="flex items-center">
-                        <Tag type="blue" size="sm">Insight</Tag>
-                        <span className="ml-2">
-                            Travel expenses increased by 25% compared to previous quarter
-                        </span>
-                    </li>
-                </ul>
-            </Tile>
-
-            {/* Recommendations */}
-            <Tile>
-                <h3 className="text-lg font-semibold mb-4">Recommendations</h3>
-                <ul className="space-y-3">
-                    <li className="flex items-center">
-                        <Tag type="green" size="sm">Cost Saving</Tag>
-                        <span className="ml-2">
-                            Consolidate software subscriptions to reduce redundancy - potential savings of $5,000/year
-                        </span>
-                    </li>
-                    <li className="flex items-center">
-                        <Tag type="green" size="sm">Cost Saving</Tag>
-                        <span className="ml-2">
-                            Renegotiate vendor contracts with Acme Corp - potential savings of $8,000/year
-                        </span>
-                    </li>
-                    <li className="flex items-center">
-                        <Tag type="purple" size="sm">Efficiency</Tag>
-                        <span className="ml-2">
-                            Implement digital receipts to reduce processing time and errors
-                        </span>
-                    </li>
-                </ul>
-            </Tile>
+                </>
+            )}
         </Content>
     )
 }
