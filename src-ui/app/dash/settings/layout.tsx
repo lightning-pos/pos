@@ -26,6 +26,9 @@ const SettingsLayout = ({ children }: { children: ReactNode }) => {
                     <SideNavLink renderIcon={Currency} large onClick={() => { router.push('/dash/settings/cost-centers') }}>
                         Cost Centers
                     </SideNavLink>
+                    <SideNavLink renderIcon={Currency} large onClick={() => { router.push('/dash/settings/payment-methods') }}>
+                        Payment Methods
+                    </SideNavLink>
                     <SideNavMenu renderIcon={Currency} title='Taxes' large>
                         <SideNavMenuItem onClick={() => { router.push('/dash/settings/taxes') }}>Taxes</SideNavMenuItem>
                         <SideNavMenuItem onClick={() => { router.push('/dash/settings/taxes-groups') }}>Tax Groups</SideNavMenuItem>

@@ -7,7 +7,7 @@ use crate::{
             auth::user_model::User,
             catalog::{item_group_model::ItemGroup, item_model::Item},
             common::{brand_model::Brand, channel_model::Channel, tax_model::Tax},
-            finance::cost_center_model::CostCenter,
+            finance::{cost_center_model::CostCenter, payment_method_model::PaymentMethod},
             purchases::{
                 expense_model::Expense, purchase_category_model::PurchaseCategory,
                 supplier_model::Supplier,
@@ -272,5 +272,27 @@ impl Query {
 
     fn total_cost_centers(&self, context: &AppState) -> FieldResult<i32> {
         super::finance::cost_center_queries::total_cost_centers(context)
+    }
+
+    // Payment Method Queries
+    fn payment_methods(
+        &self,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<PaymentMethod>> {
+        super::finance::payment_method_queries::payment_methods(first, offset, context)
+    }
+
+    fn payment_method(&self, id: DbUuid, context: &AppState) -> FieldResult<PaymentMethod> {
+        super::finance::payment_method_queries::payment_method(id, context)
+    }
+
+    fn all_payment_methods(&self, context: &AppState) -> FieldResult<Vec<PaymentMethod>> {
+        super::finance::payment_method_queries::all_payment_methods(context)
+    }
+
+    fn total_payment_methods(&self, context: &AppState) -> FieldResult<i32> {
+        super::finance::payment_method_queries::total_payment_methods(context)
     }
 }

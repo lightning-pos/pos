@@ -13,7 +13,10 @@ use crate::{
                 channel_model::{Channel, ChannelNewInput, ChannelUpdateInput},
                 tax_model::{ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
             },
-            finance::cost_center_model::{CostCenter, CostCenterState},
+            finance::{
+                cost_center_model::{CostCenter, CostCenterState},
+                payment_method_model::{PaymentMethod, PaymentMethodState},
+            },
             purchases::{
                 expense_model::{Expense, ExpenseNewInput, ExpenseUpdateInput},
                 purchase_category_model::{PurchaseCategory, PurchaseCategoryState},
@@ -276,5 +279,46 @@ impl Mutation {
 
     fn delete_cost_center(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
         super::finance::cost_center_mutations::delete_cost_center(id, context)
+    }
+
+    // Payment Method Mutations
+    fn create_payment_method(
+        &self,
+        name: String,
+        code: String,
+        description: Option<String>,
+        state: Option<PaymentMethodState>,
+        context: &AppState,
+    ) -> FieldResult<PaymentMethod> {
+        super::finance::payment_method_mutations::create_payment_method(
+            name,
+            code,
+            description,
+            state,
+            context,
+        )
+    }
+
+    fn update_payment_method(
+        &self,
+        id: DbUuid,
+        name: Option<String>,
+        code: Option<String>,
+        description: Option<Option<String>>,
+        state: Option<PaymentMethodState>,
+        context: &AppState,
+    ) -> FieldResult<PaymentMethod> {
+        super::finance::payment_method_mutations::update_payment_method(
+            id,
+            name,
+            code,
+            description,
+            state,
+            context,
+        )
+    }
+
+    fn delete_payment_method(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
+        super::finance::payment_method_mutations::delete_payment_method(id, context)
     }
 }

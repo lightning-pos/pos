@@ -1,0 +1,77 @@
+query GetPaymentMethods {
+  paymentMethods {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+
+query GetTotalPaymentMethods {
+  totalPaymentMethods
+}
+
+query GetPaymentMethod($id: DbUuid!) {
+  paymentMethod(id: $id) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+
+mutation CreatePaymentMethod(
+  $name: String!
+  $code: String!
+  $description: String
+  $state: PaymentMethodState
+) {
+  createPaymentMethod(
+    name: $name
+    code: $code
+    description: $description
+    state: $state
+  ) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdatePaymentMethod(
+  $id: DbUuid!
+  $name: String
+  $code: String
+  $description: String
+  $state: PaymentMethodState
+) {
+  updatePaymentMethod(
+    id: $id
+    name: $name
+    code: $code
+    description: $description
+    state: $state
+  ) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeletePaymentMethod($id: DbUuid!) {
+  deletePaymentMethod(id: $id)
+}

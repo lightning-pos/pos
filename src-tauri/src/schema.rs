@@ -211,6 +211,21 @@ table! {
     }
 }
 
+table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp};
+    use crate::core::models::finance::payment_method_model::PaymentMethodStateMapping;
+
+    payment_methods (id) {
+        id -> Text,
+        name -> Text,
+        code -> Text,
+        description -> Nullable<Text>,
+        state -> PaymentMethodStateMapping,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
 // ManyToOne (items, item_categories)
 joinable!(items -> item_categories (category_id));
 

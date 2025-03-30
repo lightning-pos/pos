@@ -25,6 +25,11 @@ enum ItemState {
   DELETED
 }
 
+enum PaymentMethodState {
+  ACTIVE
+  INACTIVE
+}
+
 enum PurchaseCategoryState {
   ACTIVE
   INACTIVE
@@ -142,7 +147,7 @@ input NewItem {
 }
 
 input SalesOrderItemInput {
-  itemId: DbUuid!
+  itemId: DbUuid
   itemName: String!
   quantity: Int!
   priceAmount: Money!
@@ -161,6 +166,7 @@ input SalesOrderNewInput {
   taxAmount: Money!
   totalAmount: Money!
   state: SalesOrderState!
+  costCenterId: DbUuid!
   items: [SalesOrderItemInput!]!
 }
 
@@ -365,6 +371,20 @@ type Mutation {
   createCostCenter(name: String!, code: String!, description: String, state: CostCenterState): CostCenter!
   updateCostCenter(id: DbUuid!, name: String, code: String, description: String, state: CostCenterState): CostCenter!
   deleteCostCenter(id: DbUuid!): DbUuid!
+  createPaymentMethod(name: String!, code: String!, description: String, state: PaymentMethodState): PaymentMethod!
+  updatePaymentMethod(id: DbUuid!, name: String, code: String, description: String, state: PaymentMethodState): PaymentMethod!
+  deletePaymentMethod(id: DbUuid!): DbUuid!
+}
+
+"Payment Method"
+type PaymentMethod {
+  id: DbUuid!
+  name: String!
+  code: String!
+  description: String
+  state: PaymentMethodState!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
 }
 
 "Purchase Category"
@@ -419,6 +439,10 @@ type Query {
   costCenter(id: DbUuid!): CostCenter!
   allCostCenters: [CostCenter!]!
   totalCostCenters: Int!
+  paymentMethods(first: Int, offset: Int): [PaymentMethod!]!
+  paymentMethod(id: DbUuid!): PaymentMethod!
+  allPaymentMethods: [PaymentMethod!]!
+  totalPaymentMethods: Int!
 }
 
 type SalesOrder {
@@ -433,16 +457,18 @@ type SalesOrder {
   taxAmount: Money!
   totalAmount: Money!
   state: SalesOrderState!
+  costCenterId: DbUuid!
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
   customer: Customer!
+  costCenter: CostCenter
   items: [SalesOrderItem!]!
 }
 
 type SalesOrderItem {
   id: DbUuid!
   orderId: DbUuid!
-  itemId: DbUuid!
+  itemId: DbUuid
   itemName: String!
   quantity: Int!
   priceAmount: Money!
