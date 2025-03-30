@@ -500,10 +500,7 @@ const PurchasesDashboard = () => {
     return (
         <Content className='min-h-[calc(100dvh-3rem)] p-4'>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Expense Dashboard</h1>
-                <Link href="/dash/purchases/expenses">
-                    <Button renderIcon={ArrowRight}>Go to Expenses</Button>
-                </Link>
+                <h1 className="text-2xl font-bold">Purchase / Expense - Dashboard</h1>
             </div>
 
             {/* Filters */}
