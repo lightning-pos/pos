@@ -15,7 +15,7 @@ use crate::{
             },
             purchases::{
                 expense_model::{Expense, ExpenseNewInput, ExpenseUpdateInput},
-                purchase_category_model::PurchaseCategory,
+                purchase_category_model::{PurchaseCategory, PurchaseCategoryState},
                 supplier_model::{Supplier, SupplierNewInput, SupplierUpdateInput},
             },
             sales::{
@@ -89,11 +89,13 @@ impl Mutation {
         &self,
         name: String,
         description: Option<String>,
+        state: Option<PurchaseCategoryState>,
         context: &AppState,
     ) -> FieldResult<PurchaseCategory> {
         super::purchases::purchase_category_mutations::create_purchase_category(
             name,
             description,
+            state,
             context,
         )
     }
@@ -103,12 +105,14 @@ impl Mutation {
         id: DbUuid,
         name: Option<String>,
         description: Option<Option<String>>,
+        state: Option<PurchaseCategoryState>,
         context: &AppState,
     ) -> FieldResult<PurchaseCategory> {
         super::purchases::purchase_category_mutations::update_purchase_category(
             id,
             name,
             description,
+            state,
             context,
         )
     }

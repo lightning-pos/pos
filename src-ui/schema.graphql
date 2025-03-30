@@ -314,8 +314,8 @@ type Mutation {
   createItemCategory(newCategory: ItemGroupNew!): ItemGroup!
   updateItemCategory(category: ItemGroupUpdate!): ItemGroup!
   deleteItemCategory(id: DbUuid!): Int!
-  createPurchaseCategory(name: String!, description: String): PurchaseCategory!
-  updatePurchaseCategory(id: DbUuid!, name: String, description: String): PurchaseCategory!
+  createPurchaseCategory(name: String!, description: String, state: PurchaseCategoryState): PurchaseCategory!
+  updatePurchaseCategory(id: DbUuid!, name: String, description: String, state: PurchaseCategoryState): PurchaseCategory!
   deletePurchaseCategory(id: DbUuid!): DbUuid!
   createSalesOrder(salesOrder: SalesOrderNewInput!): SalesOrder!
   voidSalesOrder(id: DbUuid!): SalesOrder!

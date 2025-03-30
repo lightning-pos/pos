@@ -108,6 +108,7 @@ mod tests {
             category: PurchaseCategoryNew {
                 name: "Test Category".to_string(),
                 description: None,
+                state: None,
             },
         };
         command.exec(service).unwrap()

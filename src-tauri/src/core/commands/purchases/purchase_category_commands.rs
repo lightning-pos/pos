@@ -47,7 +47,7 @@ impl Command for CreatePurchaseCategoryCommand {
                 id: Uuid::now_v7().into(),
                 name: self.category.name.clone(),
                 description: self.category.description.clone(),
-                state: PurchaseCategoryState::Active,
+                state: self.category.state.unwrap_or(PurchaseCategoryState::Active),
                 created_at: now,
                 updated_at: now,
             };
@@ -121,6 +121,7 @@ mod tests {
             category: PurchaseCategoryNew {
                 name: "Test Category".to_string(),
                 description: Some("This is a test category".to_string()),
+                state: None,
             },
         };
 
@@ -142,6 +143,7 @@ mod tests {
             category: PurchaseCategoryNew {
                 name: "Test Category".to_string(),
                 description: None,
+                state: None,
             },
         };
         command1.exec(&mut service).unwrap();
@@ -151,6 +153,7 @@ mod tests {
             category: PurchaseCategoryNew {
                 name: "Test Category".to_string(),
                 description: None,
+                state: None,
             },
         };
         let result = command2.exec(&mut service);
@@ -166,6 +169,7 @@ mod tests {
             category: PurchaseCategoryNew {
                 name: "Test Category".to_string(),
                 description: None,
+                state: None,
             },
         };
         let category = command.exec(&mut service).unwrap();
@@ -217,6 +221,7 @@ mod tests {
             category: PurchaseCategoryNew {
                 name: "Test Category".to_string(),
                 description: None,
+                state: None,
             },
         };
         let category = command.exec(&mut service).unwrap();

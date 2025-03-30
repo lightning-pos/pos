@@ -19,6 +19,7 @@ pub struct PurchaseCategory {
 pub struct PurchaseCategoryNew {
     pub name: String,
     pub description: Option<String>,
+    pub state: Option<PurchaseCategoryState>,
 }
 
 #[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]

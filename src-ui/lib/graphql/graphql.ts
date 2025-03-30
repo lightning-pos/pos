@@ -308,6 +308,7 @@ export type MutationCreateItemCategoryArgs = {
 export type MutationCreatePurchaseCategoryArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
+  state?: InputMaybe<PurchaseCategoryState>;
 };
 
 
@@ -432,6 +433,7 @@ export type MutationUpdatePurchaseCategoryArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['DbUuid']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
+  state?: InputMaybe<PurchaseCategoryState>;
 };
 
 
@@ -989,6 +991,7 @@ export type GetPurchaseCategoryQuery = { __typename?: 'Query', purchaseCategory:
 export type CreatePurchaseCategoryMutationVariables = Exact<{
   name: Scalars['String']['input'];
   description?: InputMaybe<Scalars['String']['input']>;
+  state?: InputMaybe<PurchaseCategoryState>;
 }>;
 
 
@@ -998,6 +1001,7 @@ export type UpdatePurchaseCategoryMutationVariables = Exact<{
   id: Scalars['DbUuid']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
+  state?: InputMaybe<PurchaseCategoryState>;
 }>;
 
 
@@ -1586,8 +1590,8 @@ export const GetPurchaseCategoryDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<GetPurchaseCategoryQuery, GetPurchaseCategoryQueryVariables>;
 export const CreatePurchaseCategoryDocument = new TypedDocumentString(`
-    mutation createPurchaseCategory($name: String!, $description: String) {
-  createPurchaseCategory(name: $name, description: $description) {
+    mutation createPurchaseCategory($name: String!, $description: String, $state: PurchaseCategoryState) {
+  createPurchaseCategory(name: $name, description: $description, state: $state) {
     id
     name
     description
@@ -1598,8 +1602,13 @@ export const CreatePurchaseCategoryDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<CreatePurchaseCategoryMutation, CreatePurchaseCategoryMutationVariables>;
 export const UpdatePurchaseCategoryDocument = new TypedDocumentString(`
-    mutation updatePurchaseCategory($id: DbUuid!, $name: String, $description: String) {
-  updatePurchaseCategory(id: $id, name: $name, description: $description) {
+    mutation updatePurchaseCategory($id: DbUuid!, $name: String, $description: String, $state: PurchaseCategoryState) {
+  updatePurchaseCategory(
+    id: $id
+    name: $name
+    description: $description
+    state: $state
+  ) {
     id
     name
     description

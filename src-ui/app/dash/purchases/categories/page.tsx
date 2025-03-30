@@ -11,11 +11,22 @@ import {
     CreatePurchaseCategoryDocument,
     UpdatePurchaseCategoryDocument,
     DeletePurchaseCategoryDocument,
-    PurchaseCategory
+    PurchaseCategory,
+    PurchaseCategoryState
 } from '@/lib/graphql/graphql'
 
 // Table row type
 interface TableRow extends PurchaseCategory { }
+
+// Type for displaying in the table
+interface DisplayRow {
+    id: string;
+    name: string;
+    description?: string | null;
+    state: string;
+    createdAt: string;
+    updatedAt: string;
+}
 
 const PurchaseCategories = () => {
     // State declarations
@@ -53,11 +64,12 @@ const PurchaseCategories = () => {
         fetchCategories(currentPage, pageSize)
     }, [fetchCategories, currentPage, pageSize])
 
-    const handleAddCategory = async (name: string, description: string | null) => {
+    const handleAddCategory = async (name: string, description: string | null, state: PurchaseCategoryState) => {
         try {
             await gql(CreatePurchaseCategoryDocument, {
                 name,
-                description
+                description,
+                state
             })
             setIsAddModalOpen(false)
             fetchCategories(currentPage, pageSize)
@@ -66,14 +78,15 @@ const PurchaseCategories = () => {
         }
     }
 
-    const handleEditCategory = async (update: { name?: string | null, description?: string | null }) => {
+    const handleEditCategory = async (update: { name?: string | null, description?: string | null, state?: PurchaseCategoryState | null }) => {
         if (!selectedCategory) return
 
         try {
             await gql(UpdatePurchaseCategoryDocument, {
                 id: selectedCategory.id,
                 name: update.name || null,
-                description: update.description
+                description: update.description,
+                state: update.state || null
             })
             setIsEditModalOpen(false)
             setSelectedCategory(null)
@@ -100,6 +113,26 @@ const PurchaseCategories = () => {
         { key: 'state', header: 'Status' }
     ]
 
+    // Helper function to format state value for display
+    const formatState = (state: PurchaseCategoryState): string => {
+        switch (state) {
+            case PurchaseCategoryState.Active:
+                return 'Active'
+            case PurchaseCategoryState.Inactive:
+                return 'Inactive'
+            case PurchaseCategoryState.Deleted:
+                return 'Deleted'
+            default:
+                return String(state)
+        }
+    }
+
+    // Transform data for display
+    const tableData: DisplayRow[] = categories.map(category => ({
+        ...category,
+        state: formatState(category.state)
+    }))
+
     return (
         <Content className='min-h-[calc(100dvh-3rem)] p-0 flex flex-col'>
             <div className="p-4 flex flex-col gap-4">
@@ -107,11 +140,11 @@ const PurchaseCategories = () => {
                     <h1 className="text-2xl font-bold">Purchase Categories</h1>
                 </div>
 
-                <DataTable<TableRow>
+                <DataTable<DisplayRow>
                     title="Purchase Categories"
                     description="Manage your purchase categories here. You can add, edit, or delete purchase categories as needed."
                     headers={headers}
-                    tableRows={categories}
+                    tableRows={tableData}
                     loading={loading}
                     totalItems={totalCategories}
                     currentPage={currentPage}
@@ -124,12 +157,20 @@ const PurchaseCategories = () => {
                     }}
                     onAddClick={() => setIsAddModalOpen(true)}
                     onEditClick={(item) => {
-                        setSelectedCategory(item)
-                        setIsEditModalOpen(true)
+                        // Find the original category with the PurchaseCategoryState enum
+                        const originalCategory = categories.find(cat => cat.id === item.id);
+                        if (originalCategory) {
+                            setSelectedCategory(originalCategory);
+                            setIsEditModalOpen(true);
+                        }
                     }}
                     onDeleteClick={(item) => {
-                        setSelectedCategory(item)
-                        setIsDeleteModalOpen(true)
+                        // Find the original category with the PurchaseCategoryState enum
+                        const originalCategory = categories.find(cat => cat.id === item.id);
+                        if (originalCategory) {
+                            setSelectedCategory(originalCategory);
+                            setIsDeleteModalOpen(true);
+                        }
                     }}
                 />
 

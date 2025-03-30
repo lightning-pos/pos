@@ -12,6 +12,7 @@ pub fn expenses(
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<Expense>> {
+    println!("yoyo inside expenses");
     let mut service = context.service.lock().unwrap();
     let mut query = expenses::table.into_boxed();
 
@@ -27,6 +28,8 @@ pub fn expenses(
     let result = query
         .select(Expense::as_select())
         .load::<Expense>(&mut service.conn)?;
+
+    println!("yoyo result: {:?}", result);
     Ok(result)
 }
 

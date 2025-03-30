@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { Modal, TextInput, Form, TextArea, ModalProps } from '@carbon/react'
+import { Modal, TextInput, Form, TextArea, ModalProps, Dropdown } from '@carbon/react'
+import { PurchaseCategoryState } from '@/lib/graphql/graphql'
 
 interface AddPurchaseCategoryModalProps extends Omit<ModalProps, 'onSubmit'> {
-    onSave: (name: string, description: string | null) => Promise<void>
+    onSave: (name: string, description: string | null, state: PurchaseCategoryState) => Promise<void>
 }
 
 const AddPurchaseCategoryModal: React.FC<AddPurchaseCategoryModalProps> = ({
@@ -12,18 +13,21 @@ const AddPurchaseCategoryModal: React.FC<AddPurchaseCategoryModalProps> = ({
 }) => {
     const [name, setName] = useState('')
     const [description, setDescription] = useState<string | null>(null)
+    const [state, setState] = useState<PurchaseCategoryState>(PurchaseCategoryState.Active)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        await onSave(name, description)
+        await onSave(name, description, state)
         setName('')
         setDescription(null)
+        setState(PurchaseCategoryState.Active)
     }
 
     const handleClose = (e: React.SyntheticEvent<HTMLElement>) => {
         onRequestClose?.(e)
         setName('')
         setDescription(null)
+        setState(PurchaseCategoryState.Active)
     }
 
     return (
@@ -47,6 +51,24 @@ const AddPurchaseCategoryModal: React.FC<AddPurchaseCategoryModalProps> = ({
                     labelText="Description"
                     value={description || ''}
                     onChange={(e) => setDescription(e.target.value)}
+                />
+                <Dropdown
+                    id="category-state"
+                    titleText="Status"
+                    label="Select status"
+                    items={[
+                        { id: PurchaseCategoryState.Active, label: 'Active' },
+                        { id: PurchaseCategoryState.Inactive, label: 'Inactive' },
+                    ]}
+                    itemToString={(item) => item?.label || ''}
+                    selectedItem={state === PurchaseCategoryState.Active
+                        ? { id: PurchaseCategoryState.Active, label: 'Active' }
+                        : { id: PurchaseCategoryState.Inactive, label: 'Inactive' }}
+                    onChange={(e) => {
+                        if (e.selectedItem) {
+                            setState(e.selectedItem?.id as PurchaseCategoryState)
+                        }
+                    }}
                 />
             </Form>
         </Modal>

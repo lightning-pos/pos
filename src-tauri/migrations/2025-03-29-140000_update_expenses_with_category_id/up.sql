@@ -1,14 +1,3 @@
--- Create a temporary default purchase category if one doesn't exist
-INSERT INTO purchase_categories (id, name, description, state, created_at, updated_at)
-SELECT
-  '00000000-0000-0000-0000-000000000000',
-  'Miscellaneous',
-  'Default category for expenses',
-  'ACTIVE',
-  CURRENT_TIMESTAMP,
-  CURRENT_TIMESTAMP
-WHERE NOT EXISTS (SELECT 1 FROM purchase_categories LIMIT 1);
-
 -- Add the category_id column to expenses (SQLite doesn't support ALTER COLUMN SET NOT NULL directly)
 ALTER TABLE expenses ADD COLUMN category_id TEXT REFERENCES purchase_categories(id);
 

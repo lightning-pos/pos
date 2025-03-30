@@ -10,7 +10,7 @@ use crate::{
             Command,
         },
         models::purchases::purchase_category_model::{
-            PurchaseCategory, PurchaseCategoryNew, PurchaseCategoryUpdate,
+            PurchaseCategory, PurchaseCategoryNew, PurchaseCategoryState, PurchaseCategoryUpdate,
         },
         types::db_uuid::DbUuid,
     },
@@ -20,11 +20,16 @@ use crate::{
 pub fn create_purchase_category(
     name: String,
     description: Option<String>,
+    state: Option<PurchaseCategoryState>,
     context: &AppState,
 ) -> FieldResult<PurchaseCategory> {
     let mut service = context.service.lock().unwrap();
     let command = CreatePurchaseCategoryCommand {
-        category: PurchaseCategoryNew { name, description },
+        category: PurchaseCategoryNew {
+            name,
+            description,
+            state,
+        },
     };
     let result = command.exec(&mut service)?;
     Ok(result)
@@ -34,6 +39,7 @@ pub fn update_purchase_category(
     id: DbUuid,
     name: Option<String>,
     description: Option<Option<String>>,
+    state: Option<PurchaseCategoryState>,
     context: &AppState,
 ) -> FieldResult<PurchaseCategory> {
     let mut service = context.service.lock().unwrap();
@@ -42,7 +48,7 @@ pub fn update_purchase_category(
             id,
             name,
             description,
-            state: None,
+            state,
             updated_at: None,
         },
     };
