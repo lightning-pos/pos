@@ -48,6 +48,19 @@ input CartUpdateInput {
   cartData: String
 }
 
+input ChannelNewInput {
+  name: String!
+  description: String
+  isActive: Boolean
+}
+
+input ChannelUpdateInput {
+  id: DbUuid!
+  name: String
+  description: String
+  isActive: Boolean
+}
+
 input CustomerNewInput {
   fullName: String!
   email: String
@@ -183,7 +196,6 @@ input UserUpdateInput {
   state: UserState
 }
 
-"UUID stored as text"
 scalar DbUuid
 
 """
@@ -213,6 +225,15 @@ type Cart {
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
   customer: Customer
+}
+
+type Channel {
+  id: DbUuid!
+  name: String!
+  description: String
+  isActive: Boolean!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
 }
 
 type Customer {
@@ -293,6 +314,9 @@ type Mutation {
   createExpense(expense: ExpenseNewInput!): Expense!
   updateExpense(expense: ExpenseUpdateInput!): Expense!
   deleteExpense(id: DbUuid!): Int!
+  createChannel(input: ChannelNewInput!): Channel!
+  updateChannel(input: ChannelUpdateInput!): Channel!
+  deleteChannel(id: DbUuid!): Int!
 }
 
 "Purchase Category"
@@ -329,6 +353,9 @@ type Query {
   taxes(first: Int, offset: Int): [Tax!]!
   totalTaxes: Int!
   tax(id: DbUuid!): Tax!
+  channels: [Channel!]!
+  activeChannels: [Channel!]!
+  channel(id: DbUuid!): Channel!
   analyticsOverview(days: Int): AnalyticsOverview!
   suppliers(first: Int, offset: Int): [Supplier!]!
   totalSuppliers: Int!

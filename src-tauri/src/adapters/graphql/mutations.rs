@@ -8,7 +8,10 @@ use crate::{
                 item_group_model::{ItemGroup, ItemGroupNew, ItemGroupUpdate},
                 item_model::{Item, NewItem, UpdateItem},
             },
-            common::tax_model::{ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
+            common::{
+                channel_model::{Channel, ChannelNewInput, ChannelUpdateInput},
+                tax_model::{ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
+            },
             purchases::{
                 expense_model::{Expense, ExpenseNewInput, ExpenseUpdateInput},
                 purchase_category_model::PurchaseCategory,
@@ -200,5 +203,18 @@ impl Mutation {
 
     fn delete_expense(id: DbUuid, context: &AppState) -> FieldResult<i32> {
         super::purchases::expense_mutations::delete_expense(id, context)
+    }
+
+    // Channel Mutations
+    fn create_channel(input: ChannelNewInput, context: &AppState) -> FieldResult<Channel> {
+        super::common::channel_mutations::create_channel(input, context)
+    }
+
+    fn update_channel(input: ChannelUpdateInput, context: &AppState) -> FieldResult<Channel> {
+        super::common::channel_mutations::update_channel(input, context)
+    }
+
+    fn delete_channel(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::common::channel_mutations::delete_channel(id, context)
     }
 }

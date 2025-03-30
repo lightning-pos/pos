@@ -1,0 +1,58 @@
+query GetChannels {
+  channels {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+query GetChannel($id: DbUuid!) {
+  channel(id: $id) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+query GetActiveChannels {
+  activeChannels {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation CreateChannel($input: ChannelNewInput!) {
+  createChannel(input: $input) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateChannel($input: ChannelUpdateInput!) {
+  updateChannel(input: $input) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteChannel($id: DbUuid!) {
+  deleteChannel(id: $id)
+}

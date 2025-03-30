@@ -14,7 +14,6 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
-  /** UUID stored as text */
   DbUuid: { input: string; output: string; }
   /**
    * Combined date and time (without time zone) in `yyyy-MM-dd HH:mm:ss` format.
@@ -54,6 +53,29 @@ export type CartNewInput = {
 export type CartUpdateInput = {
   cartData?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['DbUuid']['input'];
+};
+
+export type Channel = {
+  __typename?: 'Channel';
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  isActive: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type ChannelNewInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export type ChannelUpdateInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type Customer = {
@@ -176,6 +198,7 @@ export type Mutation = {
   addUser: User;
   assignTaxToItem: Scalars['Int']['output'];
   createCart: Cart;
+  createChannel: Channel;
   createCustomer: Customer;
   createExpense: Expense;
   createItem: Item;
@@ -185,6 +208,7 @@ export type Mutation = {
   createSupplier: Supplier;
   createTax: Tax;
   deleteCart: Scalars['Int']['output'];
+  deleteChannel: Scalars['Int']['output'];
   deleteCustomer: Scalars['Int']['output'];
   deleteExpense: Scalars['Int']['output'];
   deleteItem: Scalars['Int']['output'];
@@ -197,6 +221,7 @@ export type Mutation = {
   logout: Scalars['Boolean']['output'];
   removeTaxFromItem: Scalars['Int']['output'];
   updateCart: Cart;
+  updateChannel: Channel;
   updateCustomer: Customer;
   updateExpense: Expense;
   updateItem: Item;
@@ -221,6 +246,11 @@ export type MutationAssignTaxToItemArgs = {
 
 export type MutationCreateCartArgs = {
   cart: CartNewInput;
+};
+
+
+export type MutationCreateChannelArgs = {
+  input: ChannelNewInput;
 };
 
 
@@ -266,6 +296,11 @@ export type MutationCreateTaxArgs = {
 
 
 export type MutationDeleteCartArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteChannelArgs = {
   id: Scalars['DbUuid']['input'];
 };
 
@@ -324,6 +359,11 @@ export type MutationRemoveTaxFromItemArgs = {
 
 export type MutationUpdateCartArgs = {
   cart: CartUpdateInput;
+};
+
+
+export type MutationUpdateChannelArgs = {
+  input: ChannelUpdateInput;
 };
 
 
@@ -402,11 +442,14 @@ export enum PurchaseCategoryState {
 
 export type Query = {
   __typename?: 'Query';
+  activeChannels: Array<Channel>;
   allPurchaseCategories: Array<PurchaseCategory>;
   analyticsOverview: AnalyticsOverview;
   apiVersion: Scalars['String']['output'];
   cart: Cart;
   carts: Array<Cart>;
+  channel: Channel;
+  channels: Array<Channel>;
   customer: Customer;
   customerByPhone: Customer;
   customers: Array<Customer>;
@@ -449,6 +492,11 @@ export type QueryCartArgs = {
 export type QueryCartsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryChannelArgs = {
+  id: Scalars['DbUuid']['input'];
 };
 
 
@@ -955,6 +1003,44 @@ export type DeleteExpenseMutationVariables = Exact<{
 
 
 export type DeleteExpenseMutation = { __typename?: 'Mutation', deleteExpense: number };
+
+export type GetChannelsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetChannelsQuery = { __typename?: 'Query', channels: Array<{ __typename?: 'Channel', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string }> };
+
+export type GetChannelQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetChannelQuery = { __typename?: 'Query', channel: { __typename?: 'Channel', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string } };
+
+export type GetActiveChannelsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetActiveChannelsQuery = { __typename?: 'Query', activeChannels: Array<{ __typename?: 'Channel', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string }> };
+
+export type CreateChannelMutationVariables = Exact<{
+  input: ChannelNewInput;
+}>;
+
+
+export type CreateChannelMutation = { __typename?: 'Mutation', createChannel: { __typename?: 'Channel', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string } };
+
+export type UpdateChannelMutationVariables = Exact<{
+  input: ChannelUpdateInput;
+}>;
+
+
+export type UpdateChannelMutation = { __typename?: 'Mutation', updateChannel: { __typename?: 'Channel', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string } };
+
+export type DeleteChannelMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteChannelMutation = { __typename?: 'Mutation', deleteChannel: number };
 
 export type GetTaxesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -1527,6 +1613,71 @@ export const DeleteExpenseDocument = new TypedDocumentString(`
   deleteExpense(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteExpenseMutation, DeleteExpenseMutationVariables>;
+export const GetChannelsDocument = new TypedDocumentString(`
+    query GetChannels {
+  channels {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetChannelsQuery, GetChannelsQueryVariables>;
+export const GetChannelDocument = new TypedDocumentString(`
+    query GetChannel($id: DbUuid!) {
+  channel(id: $id) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetChannelQuery, GetChannelQueryVariables>;
+export const GetActiveChannelsDocument = new TypedDocumentString(`
+    query GetActiveChannels {
+  activeChannels {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetActiveChannelsQuery, GetActiveChannelsQueryVariables>;
+export const CreateChannelDocument = new TypedDocumentString(`
+    mutation CreateChannel($input: ChannelNewInput!) {
+  createChannel(input: $input) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateChannelMutation, CreateChannelMutationVariables>;
+export const UpdateChannelDocument = new TypedDocumentString(`
+    mutation UpdateChannel($input: ChannelUpdateInput!) {
+  updateChannel(input: $input) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateChannelMutation, UpdateChannelMutationVariables>;
+export const DeleteChannelDocument = new TypedDocumentString(`
+    mutation DeleteChannel($id: DbUuid!) {
+  deleteChannel(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteChannelMutation, DeleteChannelMutationVariables>;
 export const GetTaxesDocument = new TypedDocumentString(`
     query GetTaxes($first: Int!, $offset: Int!) {
   taxes(first: $first, offset: $offset) {

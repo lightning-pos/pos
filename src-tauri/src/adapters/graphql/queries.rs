@@ -6,7 +6,7 @@ use crate::{
         models::{
             auth::user_model::User,
             catalog::{item_group_model::ItemGroup, item_model::Item},
-            common::tax_model::Tax,
+            common::{channel_model::Channel, tax_model::Tax},
             purchases::{
                 expense_model::Expense, purchase_category_model::PurchaseCategory,
                 supplier_model::Supplier,
@@ -152,6 +152,18 @@ impl Query {
 
     fn tax(&self, id: DbUuid, context: &AppState) -> FieldResult<Tax> {
         super::common::tax_queries::tax(id, context)
+    }
+
+    fn channels(&self, context: &AppState) -> FieldResult<Vec<Channel>> {
+        super::common::channel_queries::get_channels(context)
+    }
+
+    fn active_channels(&self, context: &AppState) -> FieldResult<Vec<Channel>> {
+        super::common::channel_queries::get_active_channels(context)
+    }
+
+    fn channel(&self, id: DbUuid, context: &AppState) -> FieldResult<Channel> {
+        super::common::channel_queries::get_channel(id, context)
     }
 
     fn analytics_overview(

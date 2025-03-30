@@ -168,6 +168,19 @@ table! {
     }
 }
 
+table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp, Bool};
+
+    channels (id) {
+        id -> Text,
+        name -> Text,
+        description -> Nullable<Text>,
+        is_active -> Bool,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
 // ManyToOne (items, item_categories)
 joinable!(items -> item_categories (category_id));
 

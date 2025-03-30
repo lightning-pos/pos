@@ -2,7 +2,7 @@
 import { Content, SideNav, SideNavItems, SideNavLink, SideNavMenu, SideNavMenuItem } from '@carbon/react'
 import { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Printer, Network_2, Currency } from '@carbon/icons-react'
+import { Settings, Printer, Network_2, Currency, Network_3 } from '@carbon/icons-react'
 
 const SettingsLayout = ({ children }: { children: ReactNode }) => {
     const router = useRouter()
@@ -19,6 +19,9 @@ const SettingsLayout = ({ children }: { children: ReactNode }) => {
                     </SideNavLink>
                     <SideNavLink renderIcon={Network_2} large onClick={() => { router.push('/dash/settings/channels') }}>
                         Channels
+                    </SideNavLink>
+                    <SideNavLink renderIcon={Network_3} large onClick={() => { router.push('/dash/settings/brands') }}>
+                        Brands
                     </SideNavLink>
                     <SideNavMenu renderIcon={Currency} title='Taxes' large>
                         <SideNavMenuItem onClick={() => { router.push('/dash/settings/taxes') }}>Taxes</SideNavMenuItem>
