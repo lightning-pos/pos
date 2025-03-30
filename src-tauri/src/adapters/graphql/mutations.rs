@@ -9,6 +9,7 @@ use crate::{
                 item_model::{Item, NewItem, UpdateItem},
             },
             common::{
+                brand_model::{Brand, BrandNewInput, BrandUpdateInput},
                 channel_model::{Channel, ChannelNewInput, ChannelUpdateInput},
                 tax_model::{ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
             },
@@ -216,5 +217,18 @@ impl Mutation {
 
     fn delete_channel(id: DbUuid, context: &AppState) -> FieldResult<i32> {
         super::common::channel_mutations::delete_channel(id, context)
+    }
+
+    // Brand Mutations
+    fn create_brand(input: BrandNewInput, context: &AppState) -> FieldResult<Brand> {
+        super::common::brand_mutations::create_brand(input, context)
+    }
+
+    fn update_brand(input: BrandUpdateInput, context: &AppState) -> FieldResult<Brand> {
+        super::common::brand_mutations::update_brand(input, context)
+    }
+
+    fn delete_brand(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::common::brand_mutations::delete_brand(id, context)
     }
 }

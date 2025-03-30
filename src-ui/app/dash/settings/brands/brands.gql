@@ -1,0 +1,58 @@
+query GetBrands {
+  brands {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+query GetBrand($id: DbUuid!) {
+  brand(id: $id) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+query GetActiveBrands {
+  activeBrands {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation CreateBrand($input: BrandNewInput!) {
+  createBrand(input: $input) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateBrand($input: BrandUpdateInput!) {
+  updateBrand(input: $input) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteBrand($id: DbUuid!) {
+  deleteBrand(id: $id)
+}

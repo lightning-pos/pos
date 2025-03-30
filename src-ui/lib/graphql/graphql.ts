@@ -35,6 +35,29 @@ export type AnalyticsOverview = {
   totalSales: Scalars['Money']['output'];
 };
 
+export type Brand = {
+  __typename?: 'Brand';
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  isActive: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type BrandNewInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export type BrandUpdateInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type Cart = {
   __typename?: 'Cart';
   cartData: Scalars['String']['output'];
@@ -197,6 +220,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   addUser: User;
   assignTaxToItem: Scalars['Int']['output'];
+  createBrand: Brand;
   createCart: Cart;
   createChannel: Channel;
   createCustomer: Customer;
@@ -207,6 +231,7 @@ export type Mutation = {
   createSalesOrder: SalesOrder;
   createSupplier: Supplier;
   createTax: Tax;
+  deleteBrand: Scalars['Int']['output'];
   deleteCart: Scalars['Int']['output'];
   deleteChannel: Scalars['Int']['output'];
   deleteCustomer: Scalars['Int']['output'];
@@ -220,6 +245,7 @@ export type Mutation = {
   login: Scalars['Boolean']['output'];
   logout: Scalars['Boolean']['output'];
   removeTaxFromItem: Scalars['Int']['output'];
+  updateBrand: Brand;
   updateCart: Cart;
   updateChannel: Channel;
   updateCustomer: Customer;
@@ -241,6 +267,11 @@ export type MutationAddUserArgs = {
 
 export type MutationAssignTaxToItemArgs = {
   input: ItemTaxNewInput;
+};
+
+
+export type MutationCreateBrandArgs = {
+  input: BrandNewInput;
 };
 
 
@@ -292,6 +323,11 @@ export type MutationCreateSupplierArgs = {
 
 export type MutationCreateTaxArgs = {
   input: TaxNewInput;
+};
+
+
+export type MutationDeleteBrandArgs = {
+  id: Scalars['DbUuid']['input'];
 };
 
 
@@ -354,6 +390,11 @@ export type MutationLoginArgs = {
 export type MutationRemoveTaxFromItemArgs = {
   itemId: Scalars['DbUuid']['input'];
   taxId: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationUpdateBrandArgs = {
+  input: BrandUpdateInput;
 };
 
 
@@ -442,10 +483,13 @@ export enum PurchaseCategoryState {
 
 export type Query = {
   __typename?: 'Query';
+  activeBrands: Array<Brand>;
   activeChannels: Array<Channel>;
   allPurchaseCategories: Array<PurchaseCategory>;
   analyticsOverview: AnalyticsOverview;
   apiVersion: Scalars['String']['output'];
+  brand: Brand;
+  brands: Array<Brand>;
   cart: Cart;
   carts: Array<Cart>;
   channel: Channel;
@@ -481,6 +525,11 @@ export type Query = {
 
 export type QueryAnalyticsOverviewArgs = {
   days?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryBrandArgs = {
+  id: Scalars['DbUuid']['input'];
 };
 
 
@@ -1003,6 +1052,44 @@ export type DeleteExpenseMutationVariables = Exact<{
 
 
 export type DeleteExpenseMutation = { __typename?: 'Mutation', deleteExpense: number };
+
+export type GetBrandsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetBrandsQuery = { __typename?: 'Query', brands: Array<{ __typename?: 'Brand', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string }> };
+
+export type GetBrandQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetBrandQuery = { __typename?: 'Query', brand: { __typename?: 'Brand', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string } };
+
+export type GetActiveBrandsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetActiveBrandsQuery = { __typename?: 'Query', activeBrands: Array<{ __typename?: 'Brand', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string }> };
+
+export type CreateBrandMutationVariables = Exact<{
+  input: BrandNewInput;
+}>;
+
+
+export type CreateBrandMutation = { __typename?: 'Mutation', createBrand: { __typename?: 'Brand', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string } };
+
+export type UpdateBrandMutationVariables = Exact<{
+  input: BrandUpdateInput;
+}>;
+
+
+export type UpdateBrandMutation = { __typename?: 'Mutation', updateBrand: { __typename?: 'Brand', id: string, name: string, description?: string | null, isActive: boolean, createdAt: string, updatedAt: string } };
+
+export type DeleteBrandMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteBrandMutation = { __typename?: 'Mutation', deleteBrand: number };
 
 export type GetChannelsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1613,6 +1700,71 @@ export const DeleteExpenseDocument = new TypedDocumentString(`
   deleteExpense(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteExpenseMutation, DeleteExpenseMutationVariables>;
+export const GetBrandsDocument = new TypedDocumentString(`
+    query GetBrands {
+  brands {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetBrandsQuery, GetBrandsQueryVariables>;
+export const GetBrandDocument = new TypedDocumentString(`
+    query GetBrand($id: DbUuid!) {
+  brand(id: $id) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetBrandQuery, GetBrandQueryVariables>;
+export const GetActiveBrandsDocument = new TypedDocumentString(`
+    query GetActiveBrands {
+  activeBrands {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetActiveBrandsQuery, GetActiveBrandsQueryVariables>;
+export const CreateBrandDocument = new TypedDocumentString(`
+    mutation CreateBrand($input: BrandNewInput!) {
+  createBrand(input: $input) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateBrandMutation, CreateBrandMutationVariables>;
+export const UpdateBrandDocument = new TypedDocumentString(`
+    mutation UpdateBrand($input: BrandUpdateInput!) {
+  updateBrand(input: $input) {
+    id
+    name
+    description
+    isActive
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateBrandMutation, UpdateBrandMutationVariables>;
+export const DeleteBrandDocument = new TypedDocumentString(`
+    mutation DeleteBrand($id: DbUuid!) {
+  deleteBrand(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteBrandMutation, DeleteBrandMutationVariables>;
 export const GetChannelsDocument = new TypedDocumentString(`
     query GetChannels {
   channels {

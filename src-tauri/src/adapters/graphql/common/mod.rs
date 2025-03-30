@@ -1,3 +1,6 @@
+pub mod brand_mutations;
+pub mod brand_object;
+pub mod brand_queries;
 pub mod channel_mutations;
 pub mod channel_object;
 pub mod channel_queries;

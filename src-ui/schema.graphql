@@ -38,6 +38,19 @@ enum UserState {
   LOCKED
 }
 
+input BrandNewInput {
+  name: String!
+  description: String
+  isActive: Boolean
+}
+
+input BrandUpdateInput {
+  id: DbUuid!
+  name: String
+  description: String
+  isActive: Boolean
+}
+
 input CartNewInput {
   customerId: DbUuid
   cartData: String!
@@ -218,6 +231,15 @@ type AnalyticsOverview {
   totalProducts: Int!
 }
 
+type Brand {
+  id: DbUuid!
+  name: String!
+  description: String
+  isActive: Boolean!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+}
+
 type Cart {
   id: DbUuid!
   cartData: String!
@@ -317,6 +339,9 @@ type Mutation {
   createChannel(input: ChannelNewInput!): Channel!
   updateChannel(input: ChannelUpdateInput!): Channel!
   deleteChannel(id: DbUuid!): Int!
+  createBrand(input: BrandNewInput!): Brand!
+  updateBrand(input: BrandUpdateInput!): Brand!
+  deleteBrand(id: DbUuid!): Int!
 }
 
 "Purchase Category"
@@ -356,6 +381,9 @@ type Query {
   channels: [Channel!]!
   activeChannels: [Channel!]!
   channel(id: DbUuid!): Channel!
+  brands: [Brand!]!
+  activeBrands: [Brand!]!
+  brand(id: DbUuid!): Brand!
   analyticsOverview(days: Int): AnalyticsOverview!
   suppliers(first: Int, offset: Int): [Supplier!]!
   totalSuppliers: Int!
