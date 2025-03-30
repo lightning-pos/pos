@@ -208,13 +208,34 @@ impl Query {
         &self,
         first: Option<i32>,
         offset: Option<i32>,
+        cost_center_id: Option<DbUuid>,
+        start_date: Option<String>,
+        end_date: Option<String>,
         context: &AppState,
     ) -> FieldResult<Vec<Expense>> {
-        super::purchases::expense_queries::expenses(first, offset, context)
+        super::purchases::expense_queries::expenses(
+            first,
+            offset,
+            cost_center_id,
+            start_date,
+            end_date,
+            context,
+        )
     }
 
-    fn total_expenses(&self, context: &AppState) -> FieldResult<i32> {
-        super::purchases::expense_queries::total_expenses(context)
+    fn total_expenses(
+        &self,
+        cost_center_id: Option<DbUuid>,
+        start_date: Option<String>,
+        end_date: Option<String>,
+        context: &AppState,
+    ) -> FieldResult<i32> {
+        super::purchases::expense_queries::total_expenses(
+            cost_center_id,
+            start_date,
+            end_date,
+            context,
+        )
     }
 
     fn expense(&self, id: DbUuid, context: &AppState) -> FieldResult<Expense> {

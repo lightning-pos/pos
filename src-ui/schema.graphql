@@ -411,8 +411,8 @@ type Query {
   suppliers(first: Int, offset: Int): [Supplier!]!
   totalSuppliers: Int!
   supplier(id: DbUuid!): Supplier!
-  expenses(first: Int, offset: Int): [Expense!]!
-  totalExpenses: Int!
+  expenses(first: Int, offset: Int, costCenterId: DbUuid, startDate: String, endDate: String): [Expense!]!
+  totalExpenses(costCenterId: DbUuid, startDate: String, endDate: String): Int!
   expense(id: DbUuid!): Expense!
   expensesByCategory(categoryId: DbUuid!, first: Int, offset: Int): [Expense!]!
   costCenters(first: Int, offset: Int): [CostCenter!]!

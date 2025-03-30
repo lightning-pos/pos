@@ -634,8 +634,11 @@ export type QueryExpenseArgs = {
 
 
 export type QueryExpensesArgs = {
+  costCenterId?: InputMaybe<Scalars['DbUuid']['input']>;
+  endDate?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+  startDate?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -709,6 +712,13 @@ export type QueryTaxArgs = {
 export type QueryTaxesArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryTotalExpensesArgs = {
+  costCenterId?: InputMaybe<Scalars['DbUuid']['input']>;
+  endDate?: InputMaybe<Scalars['String']['input']>;
+  startDate?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -1078,6 +1088,9 @@ export type DeletePurchaseCategoryMutation = { __typename?: 'Mutation', deletePu
 export type GetExpensesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
   offset: Scalars['Int']['input'];
+  costCenterId?: InputMaybe<Scalars['DbUuid']['input']>;
+  startDate?: InputMaybe<Scalars['String']['input']>;
+  endDate?: InputMaybe<Scalars['String']['input']>;
 }>;
 
 
@@ -1738,8 +1751,14 @@ export const DeletePurchaseCategoryDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<DeletePurchaseCategoryMutation, DeletePurchaseCategoryMutationVariables>;
 export const GetExpensesDocument = new TypedDocumentString(`
-    query GetExpenses($first: Int!, $offset: Int!) {
-  expenses(first: $first, offset: $offset) {
+    query GetExpenses($first: Int!, $offset: Int!, $costCenterId: DbUuid, $startDate: String, $endDate: String) {
+  expenses(
+    first: $first
+    offset: $offset
+    costCenterId: $costCenterId
+    startDate: $startDate
+    endDate: $endDate
+  ) {
     id
     title
     amount
@@ -1759,7 +1778,11 @@ export const GetExpensesDocument = new TypedDocumentString(`
       code
     }
   }
-  totalExpenses
+  totalExpenses(
+    costCenterId: $costCenterId
+    startDate: $startDate
+    endDate: $endDate
+  )
 }
     `) as unknown as TypedDocumentString<GetExpensesQuery, GetExpensesQueryVariables>;
 export const GetPurchaseCategoriesForExpensesDocument = new TypedDocumentString(`

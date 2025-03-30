@@ -1,5 +1,5 @@
-query GetExpenses($first: Int!, $offset: Int!) {
-    expenses(first: $first, offset: $offset) {
+query GetExpenses($first: Int!, $offset: Int!, $costCenterId: DbUuid, $startDate: String, $endDate: String) {
+    expenses(first: $first, offset: $offset, costCenterId: $costCenterId, startDate: $startDate, endDate: $endDate) {
         id
         title
         amount
@@ -19,7 +19,7 @@ query GetExpenses($first: Int!, $offset: Int!) {
             code
         }
     }
-    totalExpenses
+    totalExpenses(costCenterId: $costCenterId, startDate: $startDate, endDate: $endDate)
 }
 
 query GetPurchaseCategoriesForExpenses {

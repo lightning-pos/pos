@@ -34,7 +34,13 @@ import {
     ScaleTypes
 } from '@carbon/charts/interfaces'
 import { gql } from '@/lib/graphql/execute'
-import { GetExpensesDocument, GetPurchaseCategoriesForExpensesDocument, GetCostCentersForExpensesDocument } from '@/lib/graphql/graphql'
+import {
+    GetExpensesDocument,
+    GetPurchaseCategoriesForExpensesDocument,
+    GetCostCentersForExpensesDocument,
+    Exact,
+    InputMaybe
+} from '@/lib/graphql/graphql'
 import { formatCurrency } from '@/lib/util/number_format'
 import { formatDateForDisplay } from '@/lib/util/date_format'
 import Link from 'next/link'
@@ -108,18 +114,74 @@ const PurchasesDashboard = () => {
     // State for filters
     const [timeFilter, setTimeFilter] = useState('month')
     const [costCenterFilter, setCostCenterFilter] = useState('all')
+    const [selectedCostCenterId, setSelectedCostCenterId] = useState<string | null>(null)
+    const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
+        startDate: null,
+        endDate: null
+    })
 
     // State for pagination
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(10)
 
-    // Fetch expense data
+    // Calculate date range based on time filter
+    useEffect(() => {
+        const now = new Date()
+        const endDate = now.toISOString()
+        let startDate: string
+
+        switch (timeFilter) {
+            case 'month':
+                // Last 30 days
+                const lastMonth = new Date()
+                lastMonth.setDate(now.getDate() - 30)
+                startDate = lastMonth.toISOString()
+                break
+            case 'quarter':
+                // Last 90 days
+                const lastQuarter = new Date()
+                lastQuarter.setDate(now.getDate() - 90)
+                startDate = lastQuarter.toISOString()
+                break
+            case 'year':
+                // Last 365 days
+                const lastYear = new Date()
+                lastYear.setDate(now.getDate() - 365)
+                startDate = lastYear.toISOString()
+                break
+            default:
+                // Last 30 days is default
+                const defaultLast = new Date()
+                defaultLast.setDate(now.getDate() - 30)
+                startDate = defaultLast.toISOString()
+        }
+
+        setDateRange({ startDate, endDate })
+    }, [timeFilter])
+
+    // Update costCenterId when filter changes
+    useEffect(() => {
+        if (costCenterFilter === 'all') {
+            setSelectedCostCenterId(null)
+        } else {
+            const selectedCostCenter = costCenters.find(cc => cc.name === costCenterFilter)
+            setSelectedCostCenterId(selectedCostCenter?.id || null)
+        }
+    }, [costCenterFilter, costCenters])
+
+    // Fetch expense data with filters
     useEffect(() => {
         const fetchExpenseData = async () => {
             setLoading(true)
             try {
-                // Fetch expenses with pagination
-                const expenseResult = await gql(GetExpensesDocument, { first: 100, offset: 0 })
+                // Fetch expenses with pagination and filters
+                const expenseResult = await gql(GetExpensesDocument, {
+                    first: 100,
+                    offset: 0,
+                    costCenterId: selectedCostCenterId,
+                    startDate: dateRange.startDate,
+                    endDate: dateRange.endDate
+                })
                 setExpenses(expenseResult.expenses)
                 setTotalExpenses(expenseResult.totalExpenses)
 
@@ -138,7 +200,7 @@ const PurchasesDashboard = () => {
         }
 
         fetchExpenseData()
-    }, [])
+    }, [selectedCostCenterId, dateRange.startDate, dateRange.endDate])
 
     // Calculate summary metrics
     const totalActualExpense = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0)
@@ -300,15 +362,24 @@ const PurchasesDashboard = () => {
                     id="time-filter"
                     titleText="Time Period"
                     label="Monthly"
-                    items={['Monthly', 'Quarterly', 'Yearly']}
-                    onChange={(e: { selectedItem: string }) => setTimeFilter(e.selectedItem.toLowerCase())}
+                    items={['month', 'quarter', 'year']}
+                    itemToString={(item: string) => {
+                        switch (item) {
+                            case 'month': return 'Last 30 Days';
+                            case 'quarter': return 'Last 90 Days';
+                            case 'year': return 'Last 365 Days';
+                            default: return item;
+                        }
+                    }}
+                    onChange={(e: { selectedItem: string }) => setTimeFilter(e.selectedItem)}
                 />
                 <Dropdown
                     id="cost-center-filter"
                     titleText="Cost Center"
                     label="All Cost Centers"
-                    items={['All Cost Centers', ...costCenters.map(cc => cc.name)]}
-                    onChange={(e: { selectedItem: string }) => setCostCenterFilter(e.selectedItem === 'All Cost Centers' ? 'all' : e.selectedItem)}
+                    items={['all', ...costCenters.map(cc => cc.name)]}
+                    itemToString={(item: string) => item === 'all' ? 'All Cost Centers' : item}
+                    onChange={(e: { selectedItem: string }) => setCostCenterFilter(e.selectedItem)}
                 />
             </div>
 
