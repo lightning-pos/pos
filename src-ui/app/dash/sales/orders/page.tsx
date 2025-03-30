@@ -1,18 +1,17 @@
 'use client'
-import { Receipt } from '@carbon/icons-react'
-import { Content, SideNav, SideNavItems, SideNavLink, DataTable, TableContainer, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination } from '@carbon/react'
 import React, { useEffect, useState } from 'react'
-import OrderDetailsModal from './order_details_modal'
+import { Content, DataTable, TableContainer, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination } from '@carbon/react'
 import { gql } from '@/lib/graphql/execute'
 import { GetSalesOrdersDocument, SalesOrder, SalesOrderItem } from '@/lib/graphql/graphql'
 import { formatCurrency } from '@/lib/util/number_format'
+import OrderDetailsModal from './order_details_modal'
 
 interface PaymentMethod {
     method: string
     amount: number
 }
 
-const Orders = () => {
+const SalesOrdersPage = () => {
     const [orders, setOrders] = useState<SalesOrder[]>([])
     const [page, setPage] = useState(1)
     const [pageSize, setPageSize] = useState(10)
@@ -90,60 +89,53 @@ const Orders = () => {
     }
 
     return (
-        <>
-            <SideNav isFixedNav expanded={true} isChildOfHeader={false} aria-label="Side navigation">
-                <SideNavItems>
-                    <SideNavLink renderIcon={Receipt} large href='#'>Overview</SideNavLink>
-                </SideNavItems>
-            </SideNav>
-            <Content className='min-h-[calc(100dvh-3rem)] p-0'>
-                <div className="p-4">
-                    <h1 className="text-2xl font-bold mb-4">Orders</h1>
-                    <DataTable rows={rows} headers={headers} isSortable>
-                        {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
-                            <TableContainer>
-                                <Table {...getTableProps()}>
-                                    <TableHead>
-                                        <TableRow>
-                                            {headers.map((header) => (
-                                                <TableHeader
-                                                    {...getHeaderProps({ header })}
-                                                    key={header.key}
-                                                    onClick={(e: React.MouseEvent) => getHeaderProps({ header }).onClick(e as any)}>
-                                                    {header.header}
-                                                </TableHeader>
+        <Content className='min-h-[calc(100dvh-3rem)] p-0'>
+            <div className="p-4">
+                <h1 className="text-2xl font-bold mb-4">Sales Orders</h1>
+                <DataTable rows={rows} headers={headers} isSortable>
+                    {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
+                        <TableContainer>
+                            <Table {...getTableProps()}>
+                                <TableHead>
+                                    <TableRow>
+                                        {headers.map((header) => (
+                                            <TableHeader
+                                                {...getHeaderProps({ header })}
+                                                key={header.key}
+                                                onClick={(e: React.MouseEvent) => getHeaderProps({ header }).onClick(e as any)}>
+                                                {header.header}
+                                            </TableHeader>
+                                        ))}
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {rows.map((row) => (
+                                        <TableRow {...getRowProps({ row })} key={row.id} onClick={() => handleOrderClick(row.id as string)}>
+                                            {row.cells.map((cell) => (
+                                                <TableCell key={cell.id}>{cell.value}</TableCell>
                                             ))}
                                         </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {rows.map((row) => (
-                                            <TableRow {...getRowProps({ row })} key={row.id} onClick={() => handleOrderClick(row.id as string)}>
-                                                {row.cells.map((cell) => (
-                                                    <TableCell key={cell.id}>{cell.value}</TableCell>
-                                                ))}
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        )}
-                    </DataTable>
-                    <Pagination
-                        backwardText="Previous page"
-                        forwardText="Next page"
-                        itemsPerPageText="Items per page:"
-                        page={page}
-                        pageNumberText="Page Number"
-                        pageSize={pageSize}
-                        pageSizes={[10, 20, 30, 40, 50]}
-                        totalItems={totalOrders}
-                        onChange={({ page, pageSize }) => {
-                            setPage(page)
-                            setPageSize(pageSize)
-                        }}
-                    />
-                </div>
-            </Content>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    )}
+                </DataTable>
+                <Pagination
+                    backwardText="Previous page"
+                    forwardText="Next page"
+                    itemsPerPageText="Items per page:"
+                    page={page}
+                    pageNumberText="Page Number"
+                    pageSize={pageSize}
+                    pageSizes={[10, 20, 30, 40, 50]}
+                    totalItems={totalOrders}
+                    onChange={({ page, pageSize }) => {
+                        setPage(page)
+                        setPageSize(pageSize)
+                    }}
+                />
+            </div>
 
             {selectedOrder && (
                 <OrderDetailsModal
@@ -153,8 +145,8 @@ const Orders = () => {
                     orderItems={selectedOrderItems}
                 />
             )}
-        </>
+        </Content>
     )
 }
 
-export default Orders
+export default SalesOrdersPage

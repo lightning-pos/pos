@@ -42,7 +42,7 @@ export default function DashboardLayout({
                 <HeaderPanel expanded={isSideNavExpanded}>
                     <Switcher aria-label="Switcher Container" expanded={isSideNavExpanded} >
                         <SwitcherItem aria-label="POS" onClick={() => { router.push('/dash/pos') }}>Point of Sale</SwitcherItem>
-                        <SwitcherItem aria-label="Sales" onClick={() => { router.push('/dash/orders') }}>Sales</SwitcherItem>
+                        <SwitcherItem aria-label="Sales" onClick={() => { router.push('/dash/sales') }}>Sales</SwitcherItem>
                         <SwitcherItem aria-label="Purchases" onClick={() => { router.push('/dash/purchases') }}>Purchases</SwitcherItem>
                         <SwitcherItem aria-label="Catalog" onClick={() => { router.push('/dash/catalog/categories') }}>Catalog</SwitcherItem>
                         <SwitcherItem aria-label="Inventory" onClick={() => { router.push('/dash/inventory') }}>Inventory</SwitcherItem>
