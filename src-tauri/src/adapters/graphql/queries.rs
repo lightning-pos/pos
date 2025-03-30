@@ -7,6 +7,7 @@ use crate::{
             auth::user_model::User,
             catalog::{item_group_model::ItemGroup, item_model::Item},
             common::{brand_model::Brand, channel_model::Channel, tax_model::Tax},
+            finance::cost_center_model::CostCenter,
             purchases::{
                 expense_model::Expense, purchase_category_model::PurchaseCategory,
                 supplier_model::Supplier,
@@ -228,5 +229,27 @@ impl Query {
         context: &AppState,
     ) -> FieldResult<Vec<Expense>> {
         super::purchases::expense_queries::expenses_by_category(category_id, first, offset, context)
+    }
+
+    // Cost Center Queries
+    fn cost_centers(
+        &self,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<CostCenter>> {
+        super::finance::cost_center_queries::cost_centers(first, offset, context)
+    }
+
+    fn cost_center(&self, id: DbUuid, context: &AppState) -> FieldResult<CostCenter> {
+        super::finance::cost_center_queries::cost_center(id, context)
+    }
+
+    fn all_cost_centers(&self, context: &AppState) -> FieldResult<Vec<CostCenter>> {
+        super::finance::cost_center_queries::all_cost_centers(context)
+    }
+
+    fn total_cost_centers(&self, context: &AppState) -> FieldResult<i32> {
+        super::finance::cost_center_queries::total_cost_centers(context)
     }
 }

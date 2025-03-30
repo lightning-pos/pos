@@ -13,6 +13,7 @@ use crate::{
                 channel_model::{Channel, ChannelNewInput, ChannelUpdateInput},
                 tax_model::{ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
             },
+            finance::cost_center_model::{CostCenter, CostCenterState},
             purchases::{
                 expense_model::{Expense, ExpenseNewInput, ExpenseUpdateInput},
                 purchase_category_model::{PurchaseCategory, PurchaseCategoryState},
@@ -234,5 +235,46 @@ impl Mutation {
 
     fn delete_brand(id: DbUuid, context: &AppState) -> FieldResult<i32> {
         super::common::brand_mutations::delete_brand(id, context)
+    }
+
+    // Cost Center Mutations
+    fn create_cost_center(
+        &self,
+        name: String,
+        code: String,
+        description: Option<String>,
+        state: Option<CostCenterState>,
+        context: &AppState,
+    ) -> FieldResult<CostCenter> {
+        super::finance::cost_center_mutations::create_cost_center(
+            name,
+            code,
+            description,
+            state,
+            context,
+        )
+    }
+
+    fn update_cost_center(
+        &self,
+        id: DbUuid,
+        name: Option<String>,
+        code: Option<String>,
+        description: Option<Option<String>>,
+        state: Option<CostCenterState>,
+        context: &AppState,
+    ) -> FieldResult<CostCenter> {
+        super::finance::cost_center_mutations::update_cost_center(
+            id,
+            name,
+            code,
+            description,
+            state,
+            context,
+        )
+    }
+
+    fn delete_cost_center(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
+        super::finance::cost_center_mutations::delete_cost_center(id, context)
     }
 }

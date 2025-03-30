@@ -1,0 +1,62 @@
+query GetCostCenters($first: Int, $offset: Int) {
+  costCenters(first: $first, offset: $offset) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+  totalCostCenters
+}
+
+query GetCostCenter($id: DbUuid!) {
+  costCenter(id: $id) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+
+query GetAllCostCenters {
+  allCostCenters {
+    id
+    name
+    code
+    description
+    state
+  }
+}
+
+mutation CreateCostCenter($name: String!, $code: String!, $description: String, $state: CostCenterState) {
+  createCostCenter(name: $name, code: $code, description: $description, state: $state) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateCostCenter($id: DbUuid!, $name: String, $code: String, $description: String, $state: CostCenterState) {
+  updateCostCenter(id: $id, name: $name, code: $code, description: $description, state: $state) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteCostCenter($id: DbUuid!) {
+  deleteCostCenter(id: $id)
+}

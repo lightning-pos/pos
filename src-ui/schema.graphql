@@ -3,6 +3,11 @@ schema {
   mutation: Mutation
 }
 
+enum CostCenterState {
+  ACTIVE
+  INACTIVE
+}
+
 enum ItemGroupState {
   ACTIVE
   INACTIVE
@@ -258,6 +263,17 @@ type Channel {
   updatedAt: LocalDateTime!
 }
 
+"Cost Center"
+type CostCenter {
+  id: DbUuid!
+  name: String!
+  code: String!
+  description: String
+  state: CostCenterState!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+}
+
 type Customer {
   id: DbUuid!
   fullName: String!
@@ -342,6 +358,9 @@ type Mutation {
   createBrand(input: BrandNewInput!): Brand!
   updateBrand(input: BrandUpdateInput!): Brand!
   deleteBrand(id: DbUuid!): Int!
+  createCostCenter(name: String!, code: String!, description: String, state: CostCenterState): CostCenter!
+  updateCostCenter(id: DbUuid!, name: String, code: String, description: String, state: CostCenterState): CostCenter!
+  deleteCostCenter(id: DbUuid!): DbUuid!
 }
 
 "Purchase Category"
@@ -392,6 +411,10 @@ type Query {
   totalExpenses: Int!
   expense(id: DbUuid!): Expense!
   expensesByCategory(categoryId: DbUuid!, first: Int, offset: Int): [Expense!]!
+  costCenters(first: Int, offset: Int): [CostCenter!]!
+  costCenter(id: DbUuid!): CostCenter!
+  allCostCenters: [CostCenter!]!
+  totalCostCenters: Int!
 }
 
 type SalesOrder {

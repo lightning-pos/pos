@@ -1,5 +1,5 @@
 ---
-description:
+description: 
 globs: src-tauri/src/core/models/**/*.rs
 alwaysApply: false
 ---

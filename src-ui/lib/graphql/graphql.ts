@@ -101,6 +101,23 @@ export type ChannelUpdateInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** Cost Center */
+export type CostCenter = {
+  __typename?: 'CostCenter';
+  code: Scalars['String']['output'];
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  state: CostCenterState;
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export enum CostCenterState {
+  Active = 'ACTIVE',
+  Inactive = 'INACTIVE'
+}
+
 export type Customer = {
   __typename?: 'Customer';
   address?: Maybe<Scalars['String']['output']>;
@@ -223,6 +240,7 @@ export type Mutation = {
   createBrand: Brand;
   createCart: Cart;
   createChannel: Channel;
+  createCostCenter: CostCenter;
   createCustomer: Customer;
   createExpense: Expense;
   createItem: Item;
@@ -234,6 +252,7 @@ export type Mutation = {
   deleteBrand: Scalars['Int']['output'];
   deleteCart: Scalars['Int']['output'];
   deleteChannel: Scalars['Int']['output'];
+  deleteCostCenter: Scalars['DbUuid']['output'];
   deleteCustomer: Scalars['Int']['output'];
   deleteExpense: Scalars['Int']['output'];
   deleteItem: Scalars['Int']['output'];
@@ -248,6 +267,7 @@ export type Mutation = {
   updateBrand: Brand;
   updateCart: Cart;
   updateChannel: Channel;
+  updateCostCenter: CostCenter;
   updateCustomer: Customer;
   updateExpense: Expense;
   updateItem: Item;
@@ -282,6 +302,14 @@ export type MutationCreateCartArgs = {
 
 export type MutationCreateChannelArgs = {
   input: ChannelNewInput;
+};
+
+
+export type MutationCreateCostCenterArgs = {
+  code: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  state?: InputMaybe<CostCenterState>;
 };
 
 
@@ -338,6 +366,11 @@ export type MutationDeleteCartArgs = {
 
 
 export type MutationDeleteChannelArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteCostCenterArgs = {
   id: Scalars['DbUuid']['input'];
 };
 
@@ -406,6 +439,15 @@ export type MutationUpdateCartArgs = {
 
 export type MutationUpdateChannelArgs = {
   input: ChannelUpdateInput;
+};
+
+
+export type MutationUpdateCostCenterArgs = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  state?: InputMaybe<CostCenterState>;
 };
 
 
@@ -487,6 +529,7 @@ export type Query = {
   __typename?: 'Query';
   activeBrands: Array<Brand>;
   activeChannels: Array<Channel>;
+  allCostCenters: Array<CostCenter>;
   allPurchaseCategories: Array<PurchaseCategory>;
   analyticsOverview: AnalyticsOverview;
   apiVersion: Scalars['String']['output'];
@@ -496,6 +539,8 @@ export type Query = {
   carts: Array<Cart>;
   channel: Channel;
   channels: Array<Channel>;
+  costCenter: CostCenter;
+  costCenters: Array<CostCenter>;
   customer: Customer;
   customerByPhone: Customer;
   customers: Array<Customer>;
@@ -515,6 +560,7 @@ export type Query = {
   tax: Tax;
   taxes: Array<Tax>;
   totalCarts: Scalars['Int']['output'];
+  totalCostCenters: Scalars['Int']['output'];
   totalCustomers: Scalars['Int']['output'];
   totalExpenses: Scalars['Int']['output'];
   totalSalesOrders: Scalars['Int']['output'];
@@ -548,6 +594,17 @@ export type QueryCartsArgs = {
 
 export type QueryChannelArgs = {
   id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryCostCenterArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryCostCentersArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1132,6 +1189,54 @@ export type DeleteChannelMutationVariables = Exact<{
 
 
 export type DeleteChannelMutation = { __typename?: 'Mutation', deleteChannel: number };
+
+export type GetCostCentersQueryVariables = Exact<{
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type GetCostCentersQuery = { __typename?: 'Query', totalCostCenters: number, costCenters: Array<{ __typename?: 'CostCenter', id: string, name: string, code: string, description?: string | null, state: CostCenterState, createdAt: string, updatedAt: string }> };
+
+export type GetCostCenterQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetCostCenterQuery = { __typename?: 'Query', costCenter: { __typename?: 'CostCenter', id: string, name: string, code: string, description?: string | null, state: CostCenterState, createdAt: string, updatedAt: string } };
+
+export type GetAllCostCentersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetAllCostCentersQuery = { __typename?: 'Query', allCostCenters: Array<{ __typename?: 'CostCenter', id: string, name: string, code: string, description?: string | null, state: CostCenterState }> };
+
+export type CreateCostCenterMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+  code: Scalars['String']['input'];
+  description?: InputMaybe<Scalars['String']['input']>;
+  state?: InputMaybe<CostCenterState>;
+}>;
+
+
+export type CreateCostCenterMutation = { __typename?: 'Mutation', createCostCenter: { __typename?: 'CostCenter', id: string, name: string, code: string, description?: string | null, state: CostCenterState, createdAt: string, updatedAt: string } };
+
+export type UpdateCostCenterMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  code?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  state?: InputMaybe<CostCenterState>;
+}>;
+
+
+export type UpdateCostCenterMutation = { __typename?: 'Mutation', updateCostCenter: { __typename?: 'CostCenter', id: string, name: string, code: string, description?: string | null, state: CostCenterState, createdAt: string, updatedAt: string } };
+
+export type DeleteCostCenterMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteCostCenterMutation = { __typename?: 'Mutation', deleteCostCenter: string };
 
 export type GetTaxesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -1839,6 +1944,86 @@ export const DeleteChannelDocument = new TypedDocumentString(`
   deleteChannel(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteChannelMutation, DeleteChannelMutationVariables>;
+export const GetCostCentersDocument = new TypedDocumentString(`
+    query GetCostCenters($first: Int, $offset: Int) {
+  costCenters(first: $first, offset: $offset) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+  totalCostCenters
+}
+    `) as unknown as TypedDocumentString<GetCostCentersQuery, GetCostCentersQueryVariables>;
+export const GetCostCenterDocument = new TypedDocumentString(`
+    query GetCostCenter($id: DbUuid!) {
+  costCenter(id: $id) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetCostCenterQuery, GetCostCenterQueryVariables>;
+export const GetAllCostCentersDocument = new TypedDocumentString(`
+    query GetAllCostCenters {
+  allCostCenters {
+    id
+    name
+    code
+    description
+    state
+  }
+}
+    `) as unknown as TypedDocumentString<GetAllCostCentersQuery, GetAllCostCentersQueryVariables>;
+export const CreateCostCenterDocument = new TypedDocumentString(`
+    mutation CreateCostCenter($name: String!, $code: String!, $description: String, $state: CostCenterState) {
+  createCostCenter(
+    name: $name
+    code: $code
+    description: $description
+    state: $state
+  ) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateCostCenterMutation, CreateCostCenterMutationVariables>;
+export const UpdateCostCenterDocument = new TypedDocumentString(`
+    mutation UpdateCostCenter($id: DbUuid!, $name: String, $code: String, $description: String, $state: CostCenterState) {
+  updateCostCenter(
+    id: $id
+    name: $name
+    code: $code
+    description: $description
+    state: $state
+  ) {
+    id
+    name
+    code
+    description
+    state
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateCostCenterMutation, UpdateCostCenterMutationVariables>;
+export const DeleteCostCenterDocument = new TypedDocumentString(`
+    mutation DeleteCostCenter($id: DbUuid!) {
+  deleteCostCenter(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteCostCenterMutation, DeleteCostCenterMutationVariables>;
 export const GetTaxesDocument = new TypedDocumentString(`
     query GetTaxes($first: Int!, $offset: Int!) {
   taxes(first: $first, offset: $offset) {

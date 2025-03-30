@@ -194,6 +194,21 @@ table! {
     }
 }
 
+table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp};
+    use crate::core::models::finance::cost_center_model::CostCenterStateMapping;
+
+    cost_centers (id) {
+        id -> Text,
+        name -> Text,
+        code -> Text,
+        description -> Nullable<Text>,
+        state -> CostCenterStateMapping,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
 // ManyToOne (items, item_categories)
 joinable!(items -> item_categories (category_id));
 
