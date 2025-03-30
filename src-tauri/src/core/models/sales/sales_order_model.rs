@@ -27,6 +27,7 @@ pub struct SalesOrder {
     pub tax_amount: Money,
     pub total_amount: Money,
     pub state: SalesOrderState,
+    pub cost_center_id: DbUuid,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -43,6 +44,7 @@ pub struct SalesOrderNewInput {
     pub tax_amount: Money,
     pub total_amount: Money,
     pub state: SalesOrderState,
+    pub cost_center_id: DbUuid,
     pub items: Vec<SalesOrderItemInput>,
 }
 
@@ -58,6 +60,7 @@ pub struct SalesOrderUpdateInput {
     pub tax_amount: Option<Money>,
     pub total_amount: Option<Money>,
     pub state: Option<SalesOrderState>,
+    pub cost_center_id: Option<DbUuid>,
 }
 
 #[derive(Debug, Clone, AsChangeset)]
@@ -73,6 +76,7 @@ pub struct SalesOrderUpdateChangeset {
     pub tax_amount: Option<Money>,
     pub total_amount: Option<Money>,
     pub state: Option<SalesOrderState>,
+    pub cost_center_id: Option<DbUuid>,
     pub updated_at: NaiveDateTime,
 }
 

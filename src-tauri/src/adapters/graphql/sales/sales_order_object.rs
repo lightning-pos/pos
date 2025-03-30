@@ -7,14 +7,17 @@ use juniper::{graphql_object, FieldResult};
 
 use crate::{
     core::{
-        models::sales::{
-            customer_model::Customer,
-            sales_order_item_model::SalesOrderItem,
-            sales_order_model::{SalesOrder, SalesOrderState},
+        models::{
+            finance::cost_center_model::CostCenter,
+            sales::{
+                customer_model::Customer,
+                sales_order_item_model::SalesOrderItem,
+                sales_order_model::{SalesOrder, SalesOrderState},
+            },
         },
         types::{db_uuid::DbUuid, money::Money},
     },
-    schema::{customers, sales_order_items},
+    schema::{cost_centers, customers, sales_order_items},
     AppState,
 };
 
@@ -64,6 +67,10 @@ impl SalesOrder {
         self.state
     }
 
+    pub fn cost_center_id(&self) -> DbUuid {
+        self.cost_center_id
+    }
+
     pub fn created_at(&self) -> NaiveDateTime {
         self.created_at
     }
@@ -80,6 +87,15 @@ impl SalesOrder {
             .select(Customer::as_select())
             .first::<Customer>(&mut service.conn)?;
         Ok(customer)
+    }
+
+    pub fn cost_center(&self, context: &AppState) -> FieldResult<Option<CostCenter>> {
+        let mut service = context.service.lock().unwrap();
+        let cost_center = cost_centers::table
+            .find(self.cost_center_id)
+            .select(CostCenter::as_select())
+            .first::<CostCenter>(&mut service.conn)?;
+        Ok(Some(cost_center))
     }
 
     pub fn items(&self, context: &AppState) -> FieldResult<Vec<SalesOrderItem>> {

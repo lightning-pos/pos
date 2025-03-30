@@ -15,7 +15,7 @@ use crate::{
 pub struct SalesOrderItem {
     pub id: DbUuid,
     pub order_id: DbUuid,
-    pub item_id: DbUuid,
+    pub item_id: Option<DbUuid>,
     pub item_name: String,
     pub quantity: i32,
     pub price_amount: Money,
@@ -27,7 +27,7 @@ pub struct SalesOrderItem {
 
 #[derive(Debug, Clone, GraphQLInputObject)]
 pub struct SalesOrderItemInput {
-    pub item_id: DbUuid,
+    pub item_id: Option<DbUuid>,
     pub item_name: String,
     pub quantity: i32,
     pub price_amount: Money,

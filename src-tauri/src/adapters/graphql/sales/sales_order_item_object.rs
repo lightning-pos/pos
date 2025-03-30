@@ -19,7 +19,7 @@ impl SalesOrderItem {
         self.order_id
     }
 
-    pub fn item_id(&self) -> DbUuid {
+    pub fn item_id(&self) -> Option<DbUuid> {
         self.item_id
     }
 

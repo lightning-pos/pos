@@ -137,6 +137,7 @@ table! {
         tax_amount -> BigInt,
         total_amount -> BigInt,
         state -> SalesOrderStateMapping,
+        cost_center_id -> Text,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -146,7 +147,7 @@ table! {
     sales_order_items (id) {
         id -> Text,
         order_id -> Text,
-        item_id -> Text,
+        item_id -> Nullable<Text>,
         item_name -> Text,
         quantity -> Integer,
         price_amount -> BigInt,
@@ -229,3 +230,6 @@ joinable!(expenses -> purchase_categories (category_id));
 
 // ManyToOne (expenses, cost_centers)
 joinable!(expenses -> cost_centers (cost_center_id));
+
+// ManyToOne (orders, cost_centers)
+joinable!(sales_orders -> cost_centers (cost_center_id));

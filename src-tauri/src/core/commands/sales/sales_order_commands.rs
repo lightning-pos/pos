@@ -1,5 +1,5 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, RunQueryDsl, SelectableHelper};
+use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
 use uuid::Uuid;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
         },
         types::db_uuid::DbUuid,
     },
-    error::Result,
+    error::{Error, Result},
     schema::{sales_order_items, sales_orders},
 };
 
@@ -43,6 +43,7 @@ impl Command for CreateSalesOrderCommand {
                 tax_amount: self.sales_order.tax_amount,
                 total_amount: self.sales_order.total_amount,
                 state: SalesOrderState::Completed, // Orders are created in Completed state from cart
+                cost_center_id: self.sales_order.cost_center_id,
                 created_at: now,
                 updated_at: now,
             };
@@ -88,9 +89,16 @@ impl Command for VoidSalesOrderCommand {
         service.conn.transaction(|conn| {
             let now = Utc::now().naive_utc();
 
+            // Check if the order exists and can be voided
+            let _order = sales_orders::table
+                .find(self.id)
+                .filter(sales_orders::state.eq(SalesOrderState::Completed)) // Can only void completed orders
+                .first::<SalesOrder>(conn)
+                .map_err(|_| Error::NotFoundError)?;
+
+            // Update order state
             let res = diesel::update(sales_orders::table)
                 .filter(sales_orders::id.eq(self.id))
-                .filter(sales_orders::state.eq(SalesOrderState::Completed)) // Can only void completed orders
                 .set((
                     sales_orders::state.eq(SalesOrderState::Cancelled),
                     sales_orders::updated_at.eq(now),
@@ -105,14 +113,33 @@ impl Command for VoidSalesOrderCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::models::finance::cost_center_model::CostCenter;
     use crate::core::models::sales::sales_order_item_model::SalesOrderItemInput;
 
     use super::*;
+
+    fn create_test_cost_center(service: &mut AppService) -> CostCenter {
+        use crate::core::{
+            commands::{finance::cost_center_commands::CreateCostCenterCommand, Command},
+            models::finance::cost_center_model::{CostCenterNewInput, CostCenterState},
+        };
+
+        let command = CreateCostCenterCommand {
+            cost_center: CostCenterNewInput {
+                name: "Test Cost Center".to_string(),
+                code: "TCC001".to_string(),
+                description: None,
+                state: Some(CostCenterState::Active),
+            },
+        };
+        command.exec(service).unwrap()
+    }
 
     #[test]
     fn test_create_sales_order() {
         let mut service = AppService::new(":memory:");
         let now = Utc::now().naive_utc();
+        let cost_center = create_test_cost_center(&mut service);
 
         let input = SalesOrderNewInput {
             customer_id: Uuid::now_v7().into(),
@@ -125,9 +152,10 @@ mod tests {
             tax_amount: 90.into(),
             total_amount: 990.into(),
             state: SalesOrderState::Completed,
+            cost_center_id: cost_center.id,
             items: vec![
                 SalesOrderItemInput {
-                    item_id: Uuid::now_v7().into(),
+                    item_id: Some(Uuid::now_v7().into()),
                     item_name: "Item 1".to_string(),
                     quantity: 2,
                     price_amount: 500.into(),
@@ -135,7 +163,7 @@ mod tests {
                     total_amount: 1000.into(),
                 },
                 SalesOrderItemInput {
-                    item_id: Uuid::now_v7().into(),
+                    item_id: Some(Uuid::now_v7().into()),
                     item_name: "Item 2".to_string(),
                     quantity: 1,
                     price_amount: 100.into(),
@@ -150,12 +178,85 @@ mod tests {
         let result = cmd.exec(&mut service).unwrap();
         assert_eq!(result.customer_name, "John Doe");
         assert_eq!(result.state, SalesOrderState::Completed);
+        assert_eq!(result.cost_center_id, cost_center.id);
+    }
+
+    #[test]
+    fn test_create_sales_order_with_cost_center() {
+        let mut service = AppService::new(":memory:");
+        let now = Utc::now().naive_utc();
+        let cost_center = create_test_cost_center(&mut service);
+
+        let input = SalesOrderNewInput {
+            customer_id: Uuid::now_v7().into(),
+            customer_name: "Jane Doe".to_string(),
+            customer_phone_number: "+1987654321".to_string(),
+            order_date: now,
+            net_amount: 2000.into(),
+            disc_amount: 200.into(),
+            taxable_amount: 1800.into(),
+            tax_amount: 180.into(),
+            total_amount: 1980.into(),
+            state: SalesOrderState::Completed,
+            cost_center_id: cost_center.id,
+            items: vec![SalesOrderItemInput {
+                item_id: Some(Uuid::now_v7().into()),
+                item_name: "Item 3".to_string(),
+                quantity: 2,
+                price_amount: 1000.into(),
+                tax_amount: 100.into(),
+                total_amount: 2000.into(),
+            }],
+        };
+
+        let cmd = CreateSalesOrderCommand { sales_order: input };
+
+        let result = cmd.exec(&mut service).unwrap();
+        assert_eq!(result.customer_name, "Jane Doe");
+        assert_eq!(result.cost_center_id, cost_center.id);
+    }
+
+    #[test]
+    fn test_create_sales_order_with_no_item_id() {
+        let mut service = AppService::new(":memory:");
+        let now = Utc::now().naive_utc();
+        let cost_center = create_test_cost_center(&mut service);
+
+        let input = SalesOrderNewInput {
+            customer_id: Uuid::now_v7().into(),
+            customer_name: "Custom Order".to_string(),
+            customer_phone_number: "+1234567890".to_string(),
+            order_date: now,
+            net_amount: 500.into(),
+            disc_amount: 0.into(),
+            taxable_amount: 500.into(),
+            tax_amount: 50.into(),
+            total_amount: 550.into(),
+            state: SalesOrderState::Completed,
+            cost_center_id: cost_center.id,
+            items: vec![SalesOrderItemInput {
+                item_id: None, // No item ID
+                item_name: "Custom Item".to_string(),
+                quantity: 1,
+                price_amount: 500.into(),
+                tax_amount: 50.into(),
+                total_amount: 550.into(),
+            }],
+        };
+
+        let cmd = CreateSalesOrderCommand { sales_order: input };
+
+        let result = cmd.exec(&mut service).unwrap();
+        assert_eq!(result.customer_name, "Custom Order");
+        assert_eq!(result.cost_center_id, cost_center.id);
+        // We could query for order items here, but that would require additional schema setup
     }
 
     #[test]
     fn test_void_sales_order() {
         let mut service = AppService::new(":memory:");
         let now = Utc::now().naive_utc();
+        let cost_center = create_test_cost_center(&mut service);
 
         // First create a sales order
         let input = SalesOrderNewInput {
@@ -169,8 +270,9 @@ mod tests {
             tax_amount: 90.into(),
             total_amount: 990.into(),
             state: SalesOrderState::Completed,
+            cost_center_id: cost_center.id,
             items: vec![SalesOrderItemInput {
-                item_id: Uuid::now_v7().into(),
+                item_id: Some(Uuid::now_v7().into()),
                 item_name: "Item 1".to_string(),
                 quantity: 2,
                 price_amount: 500.into(),
@@ -193,6 +295,7 @@ mod tests {
     fn test_void_already_cancelled_order() {
         let mut service = AppService::new(":memory:");
         let now = Utc::now().naive_utc();
+        let cost_center = create_test_cost_center(&mut service);
 
         // First create a sales order
         let input = SalesOrderNewInput {
@@ -206,8 +309,9 @@ mod tests {
             tax_amount: 90.into(),
             total_amount: 990.into(),
             state: SalesOrderState::Completed,
+            cost_center_id: cost_center.id,
             items: vec![SalesOrderItemInput {
-                item_id: Uuid::now_v7().into(),
+                item_id: Some(Uuid::now_v7().into()),
                 item_name: "Item 1".to_string(),
                 quantity: 2,
                 price_amount: 500.into(),
