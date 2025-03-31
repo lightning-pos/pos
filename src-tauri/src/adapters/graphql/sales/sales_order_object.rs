@@ -7,8 +7,11 @@ use juniper::{graphql_object, FieldResult};
 
 use crate::{
     core::{
+        commands::{finance::sales_order_payment_commands::GetSalesOrderPaymentsCommand, Command},
         models::{
-            finance::cost_center_model::CostCenter,
+            finance::{
+                cost_center_model::CostCenter, sales_order_payment_model::SalesOrderPayment,
+            },
             sales::{
                 customer_model::Customer,
                 sales_order_item_model::SalesOrderItem,
@@ -101,9 +104,29 @@ impl SalesOrder {
     pub fn items(&self, context: &AppState) -> FieldResult<Vec<SalesOrderItem>> {
         let mut service = context.service.lock().unwrap();
         let items = sales_order_items::table
-            .filter(sales_order_items::order_id.eq(self.id))
-            .select(SalesOrderItem::as_select())
+            .filter(sales_order_items::order_id.eq(&self.id))
             .load::<SalesOrderItem>(&mut service.conn)?;
         Ok(items)
+    }
+
+    pub fn payments(&self, context: &AppState) -> FieldResult<Vec<SalesOrderPayment>> {
+        let mut service = context.service.lock().unwrap();
+        let cmd = GetSalesOrderPaymentsCommand { order_id: self.id };
+        let payments = cmd.exec(&mut service)?;
+        Ok(payments)
+    }
+
+    pub fn total_paid_amount(&self, context: &AppState) -> FieldResult<Money> {
+        let mut service = context.service.lock().unwrap();
+        let cmd = GetSalesOrderPaymentsCommand { order_id: self.id };
+        let payments = cmd.exec(&mut service)?;
+
+        let total: Money = payments
+            .iter()
+            .filter(|p| p.state == crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentState::Completed)
+            .map(|p| p.amount)
+            .sum();
+
+        Ok(total)
     }
 }

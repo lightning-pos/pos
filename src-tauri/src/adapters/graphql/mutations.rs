@@ -321,4 +321,32 @@ impl Mutation {
     fn delete_payment_method(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
         super::finance::payment_method_mutations::delete_payment_method(id, context)
     }
+
+    // Sales Order Payment Mutations
+    fn create_sales_order_payment(
+        &self,
+        payment: crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentNewInput,
+        context: &AppState,
+    ) -> FieldResult<crate::core::models::finance::sales_order_payment_model::SalesOrderPayment>
+    {
+        super::finance::sales_order_payment_mutations::create_sales_order_payment(context, payment)
+    }
+
+    fn update_sales_order_payment(
+        &self,
+        payment: crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentUpdateInput,
+        context: &AppState,
+    ) -> FieldResult<crate::core::models::finance::sales_order_payment_model::SalesOrderPayment>
+    {
+        super::finance::sales_order_payment_mutations::update_sales_order_payment(context, payment)
+    }
+
+    fn void_sales_order_payment(
+        &self,
+        id: DbUuid,
+        context: &AppState,
+    ) -> FieldResult<crate::core::models::finance::sales_order_payment_model::SalesOrderPayment>
+    {
+        super::finance::sales_order_payment_mutations::void_sales_order_payment(context, id)
+    }
 }

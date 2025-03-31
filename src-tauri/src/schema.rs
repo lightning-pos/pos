@@ -159,6 +159,24 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::{BigInt, Text, Nullable, Timestamp};
+    use crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentStateMapping;
+
+    sales_order_payments (id) {
+        id -> Text,
+        order_id -> Text,
+        payment_method_id -> Text,
+        payment_date -> Timestamp,
+        amount -> BigInt,
+        reference_number -> Nullable<Text>,
+        notes -> Nullable<Text>,
+        state -> SalesOrderPaymentStateMapping,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
     use diesel::sql_types::{Nullable, Text, Timestamp};
 
     carts (id) {
@@ -248,3 +266,9 @@ joinable!(expenses -> cost_centers (cost_center_id));
 
 // ManyToOne (orders, cost_centers)
 joinable!(sales_orders -> cost_centers (cost_center_id));
+
+// ManyToOne (sales_order_payments, sales_orders)
+joinable!(sales_order_payments -> sales_orders (order_id));
+
+// ManyToOne (sales_order_payments, payment_methods)
+joinable!(sales_order_payments -> payment_methods (payment_method_id));

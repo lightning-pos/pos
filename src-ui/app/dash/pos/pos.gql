@@ -73,7 +73,7 @@ mutation createPosCustomer($fullName: String!, $phone: String!) {
     }
 }
 
-mutation createSalesOrder($salesOrder: SalesOrderNewInput!) {
+mutation PosCreateSalesOrder($salesOrder: SalesOrderNewInput!) {
     createSalesOrder(salesOrder: $salesOrder) {
         id
         customerName

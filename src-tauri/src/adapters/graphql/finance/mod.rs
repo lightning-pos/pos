@@ -4,3 +4,6 @@ pub mod cost_center_queries;
 pub mod payment_method_mutations;
 pub mod payment_method_object;
 pub mod payment_method_queries;
+pub mod sales_order_payment_mutations;
+pub mod sales_order_payment_object;
+pub mod sales_order_payment_queries;

@@ -295,4 +295,13 @@ impl Query {
     fn total_payment_methods(&self, context: &AppState) -> FieldResult<i32> {
         super::finance::payment_method_queries::total_payment_methods(context)
     }
+
+    fn sales_order_payments(
+        &self,
+        order_id: DbUuid,
+        context: &AppState,
+    ) -> FieldResult<Vec<crate::core::models::finance::sales_order_payment_model::SalesOrderPayment>>
+    {
+        super::finance::sales_order_payment_queries::sales_order_payments(context, order_id)
+    }
 }

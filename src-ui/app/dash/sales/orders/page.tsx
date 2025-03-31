@@ -1,10 +1,12 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { Content, DataTable, TableContainer, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination } from '@carbon/react'
+import { Content, DataTable, TableContainer, Table, TableHead, TableRow, TableHeader, TableBody, TableCell, Pagination, Button } from '@carbon/react'
 import { gql } from '@/lib/graphql/execute'
 import { GetSalesOrdersDocument, SalesOrder, SalesOrderItem } from '@/lib/graphql/graphql'
 import { formatCurrency } from '@/lib/util/number_format'
 import OrderDetailsModal from './order_details_modal'
+import AddSalesOrderModal from './add_sales_order_modal'
+import { Add } from '@carbon/icons-react'
 
 interface PaymentMethod {
     method: string
@@ -19,6 +21,7 @@ const SalesOrdersPage = () => {
     const [selectedOrderItems, setSelectedOrderItems] = useState<SalesOrderItem[]>([])
     const [loading, setLoading] = useState(false)
     const [totalOrders, setTotalOrders] = useState(0)
+    const [showAddModal, setShowAddModal] = useState(false)
 
     const fetchOrders = async (page: number, size: number) => {
         setLoading(true)
@@ -27,7 +30,7 @@ const SalesOrdersPage = () => {
             const result = await gql(GetSalesOrdersDocument, { first: size, offset })
 
             if (result.salesOrders) {
-                setOrders(result.salesOrders)
+                setOrders(result.salesOrders as SalesOrder[])
                 setTotalOrders(result.totalSalesOrders)
             }
         } catch (error) {
@@ -55,6 +58,15 @@ const SalesOrdersPage = () => {
         fetchOrders(page, pageSize) // Refresh the order list to reflect any changes
     }
 
+    const handleAddOrder = () => {
+        setShowAddModal(true)
+    }
+
+    const handleAddOrderComplete = () => {
+        setShowAddModal(false)
+        fetchOrders(page, pageSize) // Refresh to show the new order
+    }
+
     const formatPaymentMethods = (paymentMethodJson: string): string => {
         try {
             const paymentMethods: PaymentMethod[] = JSON.parse(paymentMethodJson)
@@ -71,6 +83,7 @@ const SalesOrdersPage = () => {
     const headers = [
         { key: 'id', header: 'Order ID' },
         { key: 'totalAmount', header: 'Total Amount' },
+        { key: 'paidAmount', header: 'Paid Amount' },
         { key: 'customerName', header: 'Customer' },
         { key: 'createdAt', header: 'Created At' },
         { key: 'status', header: 'Status' },
@@ -79,7 +92,8 @@ const SalesOrdersPage = () => {
     const rows = orders.map(order => ({
         id: order.id,
         totalAmount: formatCurrency(parseFloat(order.totalAmount)),
-        customerName: order.customerPhoneNumber,
+        paidAmount: formatCurrency(parseFloat(order.totalPaidAmount?.toString() || "0")),
+        customerName: order.customerName,
         createdAt: new Date(order.createdAt ?? 0).toLocaleString(),
         status: order.state,
     }))
@@ -91,7 +105,16 @@ const SalesOrdersPage = () => {
     return (
         <Content className='min-h-[calc(100dvh-3rem)] p-0'>
             <div className="p-4">
-                <h1 className="text-2xl font-bold mb-4">Sales Orders</h1>
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-2xl font-bold">Sales Orders</h1>
+                    <Button
+                        kind="primary"
+                        renderIcon={Add}
+                        onClick={handleAddOrder}>
+                        Add Order
+                    </Button>
+                </div>
+
                 <DataTable rows={rows} headers={headers} isSortable>
                     {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
                         <TableContainer>
@@ -145,6 +168,12 @@ const SalesOrdersPage = () => {
                     orderItems={selectedOrderItems}
                 />
             )}
+
+            <AddSalesOrderModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSave={handleAddOrderComplete}
+            />
         </Content>
     )
 }

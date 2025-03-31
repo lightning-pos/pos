@@ -36,6 +36,11 @@ enum PurchaseCategoryState {
   DELETED
 }
 
+enum SalesOrderPaymentState {
+  COMPLETED
+  VOIDED
+}
+
 enum SalesOrderState {
   DRAFT
   COMPLETED
@@ -168,6 +173,26 @@ input SalesOrderNewInput {
   state: SalesOrderState!
   costCenterId: DbUuid!
   items: [SalesOrderItemInput!]!
+}
+
+input SalesOrderPaymentNewInput {
+  orderId: DbUuid!
+  paymentMethodId: DbUuid!
+  paymentDate: LocalDateTime!
+  amount: Money!
+  referenceNumber: String
+  notes: String
+  state: SalesOrderPaymentState
+}
+
+input SalesOrderPaymentUpdateInput {
+  id: DbUuid!
+  paymentMethodId: DbUuid
+  paymentDate: LocalDateTime
+  amount: Money
+  referenceNumber: String
+  notes: String
+  state: SalesOrderPaymentState
 }
 
 input SupplierNewInput {
@@ -374,6 +399,9 @@ type Mutation {
   createPaymentMethod(name: String!, code: String!, description: String, state: PaymentMethodState): PaymentMethod!
   updatePaymentMethod(id: DbUuid!, name: String, code: String, description: String, state: PaymentMethodState): PaymentMethod!
   deletePaymentMethod(id: DbUuid!): DbUuid!
+  createSalesOrderPayment(payment: SalesOrderPaymentNewInput!): SalesOrderPayment!
+  updateSalesOrderPayment(payment: SalesOrderPaymentUpdateInput!): SalesOrderPayment!
+  voidSalesOrderPayment(id: DbUuid!): SalesOrderPayment!
 }
 
 "Payment Method"
@@ -443,6 +471,7 @@ type Query {
   paymentMethod(id: DbUuid!): PaymentMethod!
   allPaymentMethods: [PaymentMethod!]!
   totalPaymentMethods: Int!
+  salesOrderPayments(orderId: DbUuid!): [SalesOrderPayment!]!
 }
 
 type SalesOrder {
@@ -463,6 +492,8 @@ type SalesOrder {
   customer: Customer!
   costCenter: CostCenter
   items: [SalesOrderItem!]!
+  payments: [SalesOrderPayment!]!
+  totalPaidAmount: Money!
 }
 
 type SalesOrderItem {
@@ -476,6 +507,18 @@ type SalesOrderItem {
   totalAmount: Money!
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
+}
+
+"Sales Order Payment"
+type SalesOrderPayment {
+  id: DbUuid!
+  orderId: DbUuid!
+  paymentMethodId: DbUuid!
+  paymentDate: LocalDateTime!
+  amount: Money!
+  referenceNumber: String
+  notes: String
+  state: SalesOrderPaymentState!
 }
 
 type Supplier {

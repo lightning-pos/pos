@@ -11,6 +11,7 @@ query GetSalesOrders($first: Int!, $offset: Int!) {
         taxAmount
         totalAmount
         state
+        costCenterId
         createdAt
         updatedAt
         customer {
@@ -32,6 +33,120 @@ query GetSalesOrders($first: Int!, $offset: Int!) {
             createdAt
             updatedAt
         }
+        payments {
+            id
+            orderId
+            paymentMethodId
+            paymentDate
+            amount
+            referenceNumber
+            notes
+            state
+        }
+        totalPaidAmount
     }
     totalSalesOrders
+}
+
+query GetSalesOrder($id: DbUuid!) {
+    salesOrder(id: $id) {
+        id
+        customerId
+        customerName
+        customerPhoneNumber
+        orderDate
+        netAmount
+        discAmount
+        taxableAmount
+        taxAmount
+        totalAmount
+        state
+        costCenterId
+        createdAt
+        updatedAt
+        items {
+            id
+            orderId
+            itemId
+            itemName
+            quantity
+            priceAmount
+            taxAmount
+            totalAmount
+            createdAt
+            updatedAt
+        }
+        payments {
+            id
+            orderId
+            paymentMethodId
+            paymentDate
+            amount
+            referenceNumber
+            notes
+            state
+        }
+        totalPaidAmount
+    }
+}
+
+query GetSalesOrdersCustomers {
+    customers {
+        id
+        fullName
+        phone
+        email
+    }
+}
+
+query GetSalesOrdersPaymentMethods {
+    paymentMethods {
+        id
+        name
+        code
+    }
+}
+
+query GetSalesOrdersCostCenters {
+    costCenters {
+        id
+        name
+        code
+    }
+}
+
+mutation SalesOrdersCreateSalesOrder($order: SalesOrderNewInput!) {
+    createSalesOrder(salesOrder: $order) {
+        id
+        customerName
+        totalAmount
+        state
+    }
+}
+
+mutation CreateSalesOrderPayment($payment: SalesOrderPaymentNewInput!) {
+    createSalesOrderPayment(payment: $payment) {
+        id
+        orderId
+        paymentMethodId
+        paymentDate
+        amount
+        referenceNumber
+        notes
+        state
+    }
+}
+
+mutation VoidSalesOrder($id: DbUuid!) {
+    voidSalesOrder(id: $id) {
+        id
+        state
+    }
+}
+
+mutation VoidSalesOrderPayment($id: DbUuid!) {
+    voidSalesOrderPayment(id: $id) {
+        id
+        state
+    }
 }

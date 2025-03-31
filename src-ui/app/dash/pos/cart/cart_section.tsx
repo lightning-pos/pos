@@ -1,16 +1,19 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Button } from '@carbon/react'
+import { Button, ToastNotification, InlineNotification } from '@carbon/react'
 import { ShoppingCart, Close } from '@carbon/icons-react'
 import { gql } from '@/lib/graphql/execute'
 import {
     GetPosTaxesDocument,
+    GetPosCustomerByPhoneDocument,
+    CreatePosCustomerDocument,
     Item,
     Tax,
     Customer,
     SalesOrderState,
     SalesOrderNewInput,
-    CreateSalesOrderDocument
+    SalesOrderItemInput,
+    PosCreateSalesOrderDocument
 } from '@/lib/graphql/graphql'
 import CheckoutModal from './checkout_modal'
 import CustomerSelect from './customer_select'
@@ -32,6 +35,15 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     const [checkoutModalKey, setCheckoutModalKey] = useState(0)
     const [taxes, setTaxes] = useState<Tax[]>([])
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [customerPhone, setCustomerPhone] = useState('')
+    const [customerName, setCustomerName] = useState('')
+    const [notification, setNotification] = useState<{
+        type: 'success' | 'error',
+        title: string,
+        subtitle?: string,
+        show: boolean
+    } | null>(null)
 
     useEffect(() => {
         const fetchTaxes = async () => {
@@ -85,12 +97,13 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
     const totalTax = calculateTotalTax()
     const totalAmount = subtotal + totalTax
 
+    const showNotification = (type: 'success' | 'error', title: string, subtitle?: string) => {
+        setNotification({ type, title, subtitle, show: true })
+        setTimeout(() => setNotification(null), 5000)
+    }
+
     const handleCheckout = () => {
-        if (!selectedCustomer) {
-            alert('Please select a customer before checkout')
-            return
-        }
-        setCheckoutModalKey(prev => prev + 1)
+        if (cart.length === 0) return
         setIsCheckoutModalOpen(true)
     }
 
@@ -98,13 +111,28 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
         if (!selectedCustomer) return
 
         try {
-            const now = new Date();
-            const orderDate = now.getUTCFullYear() + '-' +
-                String(now.getUTCMonth() + 1).padStart(2, '0') + '-' +
-                String(now.getUTCDate()).padStart(2, '0') + ' ' +
-                String(now.getUTCHours()).padStart(2, '0') + ':' +
-                String(now.getUTCMinutes()).padStart(2, '0') + ':' +
-                String(now.getUTCSeconds()).padStart(2, '0')
+            setIsSubmitting(true)
+
+            const now = new Date()
+            const orderDate = now.toISOString()
+
+            const orderItems: SalesOrderItemInput[] = cart.map(item => ({
+                itemId: item.id,
+                itemName: item.name,
+                quantity: item.quantity,
+                priceAmount: item.price,
+                taxAmount: item.taxIds
+                    ? taxes
+                        .filter(tax => item.taxIds?.includes(tax.id))
+                        .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
+                        .toString()
+                    : '0',
+                totalAmount: ((parseFloat(item.price) + (item.taxIds
+                    ? taxes
+                        .filter(tax => item.taxIds?.includes(tax.id))
+                        .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
+                    : 0)) * item.quantity).toString(),
+            }))
 
             const orderInput: SalesOrderNewInput = {
                 customerId: selectedCustomer.id,
@@ -117,37 +145,117 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
                 taxAmount: totalTax.toString(),
                 totalAmount: totalAmount.toString(),
                 state: SalesOrderState.Completed,
-                items: cart.map(item => ({
-                    itemId: item.id,
-                    itemName: item.name,
-                    quantity: item.quantity,
-                    priceAmount: item.price.toString(),
-                    taxAmount: item.taxIds
-                        ? taxes
-                            .filter(tax => item.taxIds?.includes(tax.id))
-                            .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
-                            .toString()
-                        : '0',
-                    totalAmount: ((parseFloat(item.price) + (item.taxIds
-                        ? taxes
-                            .filter(tax => item.taxIds?.includes(tax.id))
-                            .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
-                        : 0)) * item.quantity).toString(),
-                }))
+                costCenterId: '00000000-0000-0000-0000-000000000000',
+                items: orderItems
             }
 
-            await gql(CreateSalesOrderDocument, { salesOrder: orderInput })
+            await gql(PosCreateSalesOrderDocument, { salesOrder: orderInput })
             setCart([])
             setIsCheckoutModalOpen(false)
             setSelectedCustomer(null)
+            showNotification('success', 'Success', 'Order has been submitted successfully')
         } catch (error) {
-            console.error('Error creating order:', error)
-            alert('Failed to create order. Please try again.')
+            console.error('Error submitting order:', error)
+            showNotification('error', 'Error', 'Failed to submit order')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleSubmitOrder = async () => {
+        if (cart.length === 0) return
+
+        try {
+            setIsSubmitting(true)
+
+            let customerId = null
+            if (customerPhone) {
+                try {
+                    const customerResult = await gql(GetPosCustomerByPhoneDocument, { phone: customerPhone })
+                    if (customerResult.customerByPhone) {
+                        customerId = customerResult.customerByPhone.id
+                    } else {
+                        const createResult = await gql(CreatePosCustomerDocument, {
+                            fullName: customerName || 'Guest',
+                            phone: customerPhone
+                        })
+                        if (createResult.createCustomer) {
+                            customerId = createResult.createCustomer.id
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error with customer lookup/creation:', error)
+                }
+            }
+
+            const orderItems: SalesOrderItemInput[] = cart.map(item => ({
+                itemId: item.id,
+                itemName: item.name,
+                quantity: item.quantity,
+                priceAmount: item.price,
+                taxAmount: item.taxIds
+                    ? taxes
+                        .filter(tax => item.taxIds?.includes(tax.id))
+                        .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
+                        .toString()
+                    : '0',
+                totalAmount: ((parseFloat(item.price) + (item.taxIds
+                    ? taxes
+                        .filter(tax => item.taxIds?.includes(tax.id))
+                        .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
+                    : 0)) * item.quantity).toString(),
+            }))
+
+            const orderInput: SalesOrderNewInput = {
+                customerId: customerId || '00000000-0000-0000-0000-000000000000',
+                customerName: customerName || 'Walk-in Customer',
+                customerPhoneNumber: customerPhone || '',
+                orderDate: new Date().toISOString(),
+                netAmount: subtotal.toString(),
+                discAmount: '0',
+                taxableAmount: subtotal.toString(),
+                taxAmount: totalTax.toString(),
+                totalAmount: totalAmount.toString(),
+                state: SalesOrderState.Completed,
+                costCenterId: '00000000-0000-0000-0000-000000000000',
+                items: orderItems
+            }
+
+            await gql(PosCreateSalesOrderDocument, { salesOrder: orderInput })
+            setCart([])
+            setIsCheckoutModalOpen(false)
+            setSelectedCustomer(null)
+            showNotification('success', 'Success', 'Order has been submitted successfully')
+        } catch (error) {
+            console.error('Error submitting order:', error)
+            showNotification('error', 'Error', 'Failed to submit order')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
     return (
         <div className='flex flex-col h-[calc(100dvh-4rem)]'>
+            {notification && notification.show && (
+                <div className="mb-4">
+                    {notification.type === 'success' ? (
+                        <InlineNotification
+                            kind="success"
+                            title={notification.title}
+                            subtitle={notification.subtitle}
+                            onClose={() => setNotification(null)}
+                        />
+                    ) : (
+                        <InlineNotification
+                            kind="error"
+                            title={notification.title}
+                            subtitle={notification.subtitle}
+                            onClose={() => setNotification(null)}
+                        />
+                    )}
+                </div>
+            )}
+
             <CustomerSelect selectedCustomer={selectedCustomer} setSelectedCustomer={setSelectedCustomer} />
 
             <div className='flex-grow overflow-y-auto py-4'>
