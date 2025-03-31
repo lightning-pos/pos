@@ -244,6 +244,27 @@ table! {
     }
 }
 
+table! {
+    use diesel::sql_types::{BigInt, Text, Nullable, Timestamp};
+    use crate::core::models::catalog::discount_model::DiscountStateMapping;
+    use crate::core::models::catalog::discount_model::DiscountTypeMapping;
+    use crate::core::models::catalog::discount_model::DiscountScopeMapping;
+
+    discounts (id) {
+        id -> Text,
+        name -> Text,
+        description -> Nullable<Text>,
+        discount_type -> DiscountTypeMapping,
+        value -> BigInt,
+        scope -> DiscountScopeMapping,
+        state -> DiscountStateMapping,
+        start_date -> Nullable<Timestamp>,
+        end_date -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
 // ManyToOne (items, item_categories)
 joinable!(items -> item_categories (category_id));
 

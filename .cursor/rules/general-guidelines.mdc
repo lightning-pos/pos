@@ -11,6 +11,8 @@ Always check the `.cursor/rules` folder to look for rules(files) on how to imple
 
 Every module has its own README.md file. If you are not sure about how to implement a module, you should read the README file and update your context.
 
+READ existing files in any module you are working on to take reference and create context
+
 ## Project Package Manager
 - Always use only `pnpm` to add/update packages in package.json
 - Always use only `pnpm` package manager when running scripts in the package.json

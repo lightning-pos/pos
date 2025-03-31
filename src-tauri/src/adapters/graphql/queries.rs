@@ -5,7 +5,11 @@ use crate::{
     core::{
         models::{
             auth::user_model::User,
-            catalog::{item_group_model::ItemGroup, item_model::Item},
+            catalog::{
+                discount_model::{Discount, DiscountState},
+                item_group_model::ItemGroup,
+                item_model::Item,
+            },
             common::{brand_model::Brand, channel_model::Channel, tax_model::Tax},
             finance::{cost_center_model::CostCenter, payment_method_model::PaymentMethod},
             purchases::{
@@ -303,5 +307,20 @@ impl Query {
     ) -> FieldResult<Vec<crate::core::models::finance::sales_order_payment_model::SalesOrderPayment>>
     {
         super::finance::sales_order_payment_queries::sales_order_payments(context, order_id)
+    }
+
+    // Add new discount queries
+    fn discounts(
+        &self,
+        first: Option<i32>,
+        offset: Option<i32>,
+        state: Option<DiscountState>,
+        context: &AppState,
+    ) -> FieldResult<Vec<Discount>> {
+        super::catalog::discount_queries::discounts(first, offset, state, context)
+    }
+
+    fn discount(&self, id: DbUuid, context: &AppState) -> FieldResult<Discount> {
+        super::catalog::discount_queries::discount(id, context)
     }
 }

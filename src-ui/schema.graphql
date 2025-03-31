@@ -8,6 +8,22 @@ enum CostCenterState {
   INACTIVE
 }
 
+enum DiscountScope {
+  ALL_ITEMS
+}
+
+enum DiscountState {
+  ACTIVE
+  INACTIVE
+  SCHEDULED
+  EXPIRED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
 enum ItemGroupState {
   ACTIVE
   INACTIVE
@@ -102,6 +118,29 @@ input CustomerUpdateInput {
   email: String
   phone: String
   address: String
+}
+
+input DiscountNewInput {
+  name: String!
+  description: String
+  discountType: DiscountType!
+  value: Money!
+  scope: DiscountScope!
+  state: DiscountState
+  startDate: LocalDateTime
+  endDate: LocalDateTime
+}
+
+input DiscountUpdateInput {
+  id: DbUuid!
+  name: String
+  description: String
+  discountType: DiscountType
+  value: Money
+  scope: DiscountScope
+  state: DiscountState
+  startDate: LocalDateTime
+  endDate: LocalDateTime
 }
 
 input ExpenseNewInput {
@@ -317,6 +356,20 @@ type Customer {
   updatedAt: LocalDateTime!
 }
 
+type Discount {
+  id: DbUuid!
+  name: String!
+  description: String
+  discountType: DiscountType!
+  value: Money!
+  scope: DiscountScope!
+  state: DiscountState!
+  startDate: LocalDateTime
+  endDate: LocalDateTime
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+}
+
 type Expense {
   id: DbUuid!
   title: String!
@@ -402,6 +455,9 @@ type Mutation {
   createSalesOrderPayment(payment: SalesOrderPaymentNewInput!): SalesOrderPayment!
   updateSalesOrderPayment(payment: SalesOrderPaymentUpdateInput!): SalesOrderPayment!
   voidSalesOrderPayment(id: DbUuid!): SalesOrderPayment!
+  createDiscount(discount: DiscountNewInput!): Discount!
+  updateDiscount(discount: DiscountUpdateInput!): Discount!
+  deleteDiscount(id: DbUuid!): Int!
 }
 
 "Payment Method"
@@ -472,6 +528,8 @@ type Query {
   allPaymentMethods: [PaymentMethod!]!
   totalPaymentMethods: Int!
   salesOrderPayments(orderId: DbUuid!): [SalesOrderPayment!]!
+  discounts(first: Int, offset: Int, state: DiscountState): [Discount!]!
+  discount(id: DbUuid!): Discount!
 }
 
 type SalesOrder {

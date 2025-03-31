@@ -1,0 +1,67 @@
+query getDiscounts($first: Int, $offset: Int, $state: DiscountState) {
+    discounts(first: $first, offset: $offset, state: $state) {
+        id
+        name
+        description
+        discountType
+        value
+        scope
+        state
+        startDate
+        endDate
+        createdAt
+        updatedAt
+    }
+}
+
+query getDiscount($id: DbUuid!) {
+    discount(id: $id) {
+        id
+        name
+        description
+        discountType
+        value
+        scope
+        state
+        startDate
+        endDate
+        createdAt
+        updatedAt
+    }
+}
+
+mutation createDiscount($discount: DiscountNewInput!) {
+    createDiscount(discount: $discount) {
+        id
+        name
+        description
+        discountType
+        value
+        scope
+        state
+        startDate
+        endDate
+        createdAt
+        updatedAt
+    }
+}
+
+mutation updateDiscount($discount: DiscountUpdateInput!) {
+    updateDiscount(discount: $discount) {
+        id
+        name
+        description
+        discountType
+        value
+        scope
+        state
+        startDate
+        endDate
+        createdAt
+        updatedAt
+    }
+}
+
+mutation deleteDiscount($id: DbUuid!) {
+    deleteDiscount(id: $id)
+}

@@ -5,6 +5,7 @@ use crate::{
         models::{
             auth::user_model::{User, UserNewInput, UserUpdateInput},
             catalog::{
+                discount_model::{Discount, DiscountNewInput, DiscountUpdateInput},
                 item_group_model::{ItemGroup, ItemGroupNew, ItemGroupUpdate},
                 item_model::{Item, NewItem, UpdateItem},
             },
@@ -348,5 +349,18 @@ impl Mutation {
     ) -> FieldResult<crate::core::models::finance::sales_order_payment_model::SalesOrderPayment>
     {
         super::finance::sales_order_payment_mutations::void_sales_order_payment(context, id)
+    }
+
+    // Discount Mutations
+    fn create_discount(discount: DiscountNewInput, context: &AppState) -> FieldResult<Discount> {
+        super::catalog::discount_mutations::create_discount(discount, context)
+    }
+
+    fn update_discount(discount: DiscountUpdateInput, context: &AppState) -> FieldResult<Discount> {
+        super::catalog::discount_mutations::update_discount(discount, context)
+    }
+
+    fn delete_discount(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::catalog::discount_mutations::delete_discount(id, context)
     }
 }

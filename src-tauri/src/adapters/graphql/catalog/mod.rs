@@ -1,3 +1,6 @@
+pub mod discount_mutations;
+pub mod discount_object;
+pub mod discount_queries;
 pub mod item_group_mutations;
 pub mod item_group_object;
 pub mod item_group_queries;

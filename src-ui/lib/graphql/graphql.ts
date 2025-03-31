@@ -144,6 +144,60 @@ export type CustomerUpdateInput = {
   phone?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type Discount = {
+  __typename?: 'Discount';
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  discountType: DiscountType;
+  endDate?: Maybe<Scalars['LocalDateTime']['output']>;
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  scope: DiscountScope;
+  startDate?: Maybe<Scalars['LocalDateTime']['output']>;
+  state: DiscountState;
+  updatedAt: Scalars['LocalDateTime']['output'];
+  value: Scalars['Money']['output'];
+};
+
+export type DiscountNewInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  discountType: DiscountType;
+  endDate?: InputMaybe<Scalars['LocalDateTime']['input']>;
+  name: Scalars['String']['input'];
+  scope: DiscountScope;
+  startDate?: InputMaybe<Scalars['LocalDateTime']['input']>;
+  state?: InputMaybe<DiscountState>;
+  value: Scalars['Money']['input'];
+};
+
+export enum DiscountScope {
+  AllItems = 'ALL_ITEMS'
+}
+
+export enum DiscountState {
+  Active = 'ACTIVE',
+  Expired = 'EXPIRED',
+  Inactive = 'INACTIVE',
+  Scheduled = 'SCHEDULED'
+}
+
+export enum DiscountType {
+  FixedAmount = 'FIXED_AMOUNT',
+  Percentage = 'PERCENTAGE'
+}
+
+export type DiscountUpdateInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  discountType?: InputMaybe<DiscountType>;
+  endDate?: InputMaybe<Scalars['LocalDateTime']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  scope?: InputMaybe<DiscountScope>;
+  startDate?: InputMaybe<Scalars['LocalDateTime']['input']>;
+  state?: InputMaybe<DiscountState>;
+  value?: InputMaybe<Scalars['Money']['input']>;
+};
+
 export type Expense = {
   __typename?: 'Expense';
   amount: Scalars['Money']['output'];
@@ -246,6 +300,7 @@ export type Mutation = {
   createChannel: Channel;
   createCostCenter: CostCenter;
   createCustomer: Customer;
+  createDiscount: Discount;
   createExpense: Expense;
   createItem: Item;
   createItemCategory: ItemGroup;
@@ -260,6 +315,7 @@ export type Mutation = {
   deleteChannel: Scalars['Int']['output'];
   deleteCostCenter: Scalars['DbUuid']['output'];
   deleteCustomer: Scalars['Int']['output'];
+  deleteDiscount: Scalars['Int']['output'];
   deleteExpense: Scalars['Int']['output'];
   deleteItem: Scalars['Int']['output'];
   deleteItemCategory: Scalars['Int']['output'];
@@ -276,6 +332,7 @@ export type Mutation = {
   updateChannel: Channel;
   updateCostCenter: CostCenter;
   updateCustomer: Customer;
+  updateDiscount: Discount;
   updateExpense: Expense;
   updateItem: Item;
   updateItemCategory: ItemGroup;
@@ -325,6 +382,11 @@ export type MutationCreateCostCenterArgs = {
 
 export type MutationCreateCustomerArgs = {
   customer: CustomerNewInput;
+};
+
+
+export type MutationCreateDiscountArgs = {
+  discount: DiscountNewInput;
 };
 
 
@@ -399,6 +461,11 @@ export type MutationDeleteCostCenterArgs = {
 
 
 export type MutationDeleteCustomerArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteDiscountArgs = {
   id: Scalars['DbUuid']['input'];
 };
 
@@ -481,6 +548,11 @@ export type MutationUpdateCostCenterArgs = {
 
 export type MutationUpdateCustomerArgs = {
   customer: CustomerUpdateInput;
+};
+
+
+export type MutationUpdateDiscountArgs = {
+  discount: DiscountUpdateInput;
 };
 
 
@@ -609,6 +681,8 @@ export type Query = {
   customer: Customer;
   customerByPhone: Customer;
   customers: Array<Customer>;
+  discount: Discount;
+  discounts: Array<Discount>;
   expense: Expense;
   expenses: Array<Expense>;
   expensesByCategory: Array<Expense>;
@@ -690,6 +764,18 @@ export type QueryCustomerByPhoneArgs = {
 export type QueryCustomersArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryDiscountArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryDiscountsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  state?: InputMaybe<DiscountState>;
 };
 
 
@@ -1049,6 +1135,43 @@ export type DeleteCategoryMutationVariables = Exact<{
 
 
 export type DeleteCategoryMutation = { __typename?: 'Mutation', deleteItemCategory: number };
+
+export type GetDiscountsQueryVariables = Exact<{
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  state?: InputMaybe<DiscountState>;
+}>;
+
+
+export type GetDiscountsQuery = { __typename?: 'Query', discounts: Array<{ __typename?: 'Discount', id: string, name: string, description?: string | null, discountType: DiscountType, value: string, scope: DiscountScope, state: DiscountState, startDate?: string | null, endDate?: string | null, createdAt: string, updatedAt: string }> };
+
+export type GetDiscountQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetDiscountQuery = { __typename?: 'Query', discount: { __typename?: 'Discount', id: string, name: string, description?: string | null, discountType: DiscountType, value: string, scope: DiscountScope, state: DiscountState, startDate?: string | null, endDate?: string | null, createdAt: string, updatedAt: string } };
+
+export type CreateDiscountMutationVariables = Exact<{
+  discount: DiscountNewInput;
+}>;
+
+
+export type CreateDiscountMutation = { __typename?: 'Mutation', createDiscount: { __typename?: 'Discount', id: string, name: string, description?: string | null, discountType: DiscountType, value: string, scope: DiscountScope, state: DiscountState, startDate?: string | null, endDate?: string | null, createdAt: string, updatedAt: string } };
+
+export type UpdateDiscountMutationVariables = Exact<{
+  discount: DiscountUpdateInput;
+}>;
+
+
+export type UpdateDiscountMutation = { __typename?: 'Mutation', updateDiscount: { __typename?: 'Discount', id: string, name: string, description?: string | null, discountType: DiscountType, value: string, scope: DiscountScope, state: DiscountState, startDate?: string | null, endDate?: string | null, createdAt: string, updatedAt: string } };
+
+export type DeleteDiscountMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteDiscountMutation = { __typename?: 'Mutation', deleteDiscount: number };
 
 export type GetItemsQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -1615,6 +1738,79 @@ export const DeleteCategoryDocument = new TypedDocumentString(`
   deleteItemCategory(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteCategoryMutation, DeleteCategoryMutationVariables>;
+export const GetDiscountsDocument = new TypedDocumentString(`
+    query getDiscounts($first: Int, $offset: Int, $state: DiscountState) {
+  discounts(first: $first, offset: $offset, state: $state) {
+    id
+    name
+    description
+    discountType
+    value
+    scope
+    state
+    startDate
+    endDate
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetDiscountsQuery, GetDiscountsQueryVariables>;
+export const GetDiscountDocument = new TypedDocumentString(`
+    query getDiscount($id: DbUuid!) {
+  discount(id: $id) {
+    id
+    name
+    description
+    discountType
+    value
+    scope
+    state
+    startDate
+    endDate
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetDiscountQuery, GetDiscountQueryVariables>;
+export const CreateDiscountDocument = new TypedDocumentString(`
+    mutation createDiscount($discount: DiscountNewInput!) {
+  createDiscount(discount: $discount) {
+    id
+    name
+    description
+    discountType
+    value
+    scope
+    state
+    startDate
+    endDate
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateDiscountMutation, CreateDiscountMutationVariables>;
+export const UpdateDiscountDocument = new TypedDocumentString(`
+    mutation updateDiscount($discount: DiscountUpdateInput!) {
+  updateDiscount(discount: $discount) {
+    id
+    name
+    description
+    discountType
+    value
+    scope
+    state
+    startDate
+    endDate
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateDiscountMutation, UpdateDiscountMutationVariables>;
+export const DeleteDiscountDocument = new TypedDocumentString(`
+    mutation deleteDiscount($id: DbUuid!) {
+  deleteDiscount(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteDiscountMutation, DeleteDiscountMutationVariables>;
 export const GetItemsDocument = new TypedDocumentString(`
     query getItems($first: Int!, $offset: Int!) {
   items(first: $first, offset: $offset) {
