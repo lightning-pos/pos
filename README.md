@@ -14,7 +14,7 @@ Lightning POS is a powerful, feature-rich Point of Sale solution designed to mee
 	- [ ] discounts
 	- [ ] charges
 - [ ] sales
-	- [-] overview
+	- [ ] overview
 	- [x] orders
 - [ ] purchases
 	- [ ] overview
