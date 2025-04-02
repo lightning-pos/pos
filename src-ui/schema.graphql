@@ -53,7 +53,12 @@ enum PurchaseCategoryState {
 }
 
 enum SalesOrderPaymentState {
-  COMPLETED
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  REFUNDED
+  PARTIALLY_REFUNDED
+  FAILED
   VOIDED
 }
 
@@ -190,28 +195,45 @@ input NewItem {
   taxIds: [DbUuid!]
 }
 
+input SalesOrderChargeNewInput {
+  chargeTypeId: DbUuid!
+  chargeTypeName: String!
+  amount: Money!
+  taxAmount: Money!
+  taxGroupId: DbUuid
+}
+
 input SalesOrderItemInput {
   itemId: DbUuid
   itemName: String!
   quantity: Int!
+  sku: String
   priceAmount: Money!
+  discAmount: Money!
+  taxableAmount: Money!
   taxAmount: Money!
   totalAmount: Money!
 }
 
 input SalesOrderNewInput {
-  customerId: DbUuid!
-  customerName: String!
-  customerPhoneNumber: String!
   orderDate: LocalDateTime!
+  customerId: DbUuid
+  customerName: String
+  customerPhoneNumber: String
+  billingAddress: String
+  shippingAddress: String
   netAmount: Money!
   discAmount: Money!
   taxableAmount: Money!
   taxAmount: Money!
   totalAmount: Money!
-  state: SalesOrderState!
+  notes: String
+  channelId: DbUuid!
+  locationId: DbUuid!
   costCenterId: DbUuid!
+  discountId: DbUuid
   items: [SalesOrderItemInput!]!
+  charges: [SalesOrderChargeNewInput!]
 }
 
 input SalesOrderPaymentNewInput {
@@ -534,24 +556,47 @@ type Query {
 
 type SalesOrder {
   id: DbUuid!
-  customerId: DbUuid!
-  customerName: String!
-  customerPhoneNumber: String!
+  orderReadableId: String!
+  customerId: DbUuid
+  customerName: String
+  customerPhoneNumber: String
+  billingAddress: String
+  shippingAddress: String
   orderDate: LocalDateTime!
   netAmount: Money!
   discAmount: Money!
   taxableAmount: Money!
   taxAmount: Money!
   totalAmount: Money!
-  state: SalesOrderState!
+  orderState: SalesOrderState!
+  paymentState: SalesOrderPaymentState!
+  notes: String
+  channelId: DbUuid!
+  locationId: DbUuid!
   costCenterId: DbUuid!
+  createdBy: DbUuid!
+  updatedBy: DbUuid!
+  discountId: DbUuid
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
-  customer: Customer!
-  costCenter: CostCenter
+  customer: Customer
+  costCenter: CostCenter!
   items: [SalesOrderItem!]!
+  charges: [SalesOrderCharge!]!
   payments: [SalesOrderPayment!]!
   totalPaidAmount: Money!
+}
+
+type SalesOrderCharge {
+  id: DbUuid!
+  orderId: DbUuid!
+  chargeTypeId: DbUuid!
+  chargeTypeName: String!
+  amount: Money!
+  taxAmount: Money!
+  taxGroupId: DbUuid
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
 }
 
 type SalesOrderItem {

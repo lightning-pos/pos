@@ -46,7 +46,8 @@ impl Command for CreateSalesOrderPaymentCommand {
             // Check if the order exists and is in Completed state
             let _order = sales_orders::table
                 .find(self.payment.order_id)
-                .filter(sales_orders::state.eq(SalesOrderState::Completed))
+                .filter(sales_orders::order_state.eq(SalesOrderState::Completed))
+                .select(SalesOrder::as_select())
                 .first::<SalesOrder>(conn)
                 .map_err(|_| Error::NotFoundError)?;
 
@@ -167,6 +168,7 @@ impl Command for GetSalesOrderPaymentsCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentState as FinancePaymentState;
     use crate::core::{
         commands::{
             finance::payment_method_commands::CreatePaymentMethodCommand,
@@ -174,8 +176,11 @@ mod tests {
         },
         models::{
             finance::payment_method_model::{PaymentMethodNewInput, PaymentMethodState},
-            sales::sales_order_item_model::SalesOrderItemInput,
-            sales::sales_order_model::SalesOrderNewInput,
+            sales::{
+                sales_order_charge_model::SalesOrderChargeNewInput,
+                sales_order_item_model::SalesOrderItemInput,
+                sales_order_model::{SalesOrderNewInput, SalesOrderState},
+            },
         },
     };
 
@@ -215,30 +220,45 @@ mod tests {
     fn create_test_sales_order(service: &mut AppService) -> SalesOrder {
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(service);
+        let user_id = Uuid::new_v4().into();
+        let channel_id = Uuid::new_v4().into();
+        let location_id = Uuid::new_v4().into();
 
         let input = SalesOrderNewInput {
-            customer_id: Uuid::now_v7().into(),
-            customer_name: "John Doe".to_string(),
-            customer_phone_number: "+1234567890".to_string(),
+            customer_id: Some(Uuid::now_v7().into()),
+            customer_name: Some("John Doe".to_string()),
+            customer_phone_number: Some("+1234567890".to_string()),
+            billing_address: None,
+            shipping_address: None,
             order_date: now,
             net_amount: 1000.into(),
             disc_amount: 100.into(),
             taxable_amount: 900.into(),
             tax_amount: 90.into(),
             total_amount: 990.into(),
-            state: SalesOrderState::Completed,
+            notes: None,
+            channel_id,
+            location_id,
             cost_center_id: cost_center.id,
+            discount_id: None,
             items: vec![SalesOrderItemInput {
                 item_id: Some(Uuid::now_v7().into()),
                 item_name: "Item 1".to_string(),
                 quantity: 2,
+                sku: None,
                 price_amount: 500.into(),
+                disc_amount: 50.into(),
+                taxable_amount: 450.into(),
                 tax_amount: 50.into(),
-                total_amount: 1000.into(),
+                total_amount: 990.into(),
             }],
+            charges: None,
         };
 
-        let cmd = CreateSalesOrderCommand { sales_order: input };
+        let cmd = CreateSalesOrderCommand {
+            sales_order: input,
+            created_by_user_id: user_id,
+        };
         cmd.exec(service).unwrap()
     }
 
@@ -265,7 +285,7 @@ mod tests {
         assert_eq!(result.order_id, order.id);
         assert_eq!(result.payment_method_id, payment_method.id);
         assert_eq!(result.amount, 500.into());
-        assert_eq!(result.state, SalesOrderPaymentState::Completed);
+        assert_eq!(result.state, FinancePaymentState::Completed);
     }
 
     #[test]
@@ -373,7 +393,6 @@ mod tests {
         let order = create_test_sales_order(&mut service);
         let payment_method = create_test_payment_method(&mut service);
 
-        // Create a payment
         let input = SalesOrderPaymentNewInput {
             order_id: order.id,
             payment_method_id: payment_method.id,
@@ -387,12 +406,11 @@ mod tests {
         let cmd = CreateSalesOrderPaymentCommand { payment: input };
         let payment = cmd.exec(&mut service).unwrap();
 
-        // Void the payment
         let void_cmd = VoidSalesOrderPaymentCommand { id: payment.id };
         let voided_payment = void_cmd.exec(&mut service).unwrap();
 
         assert_eq!(voided_payment.id, payment.id);
-        assert_eq!(voided_payment.state, SalesOrderPaymentState::Voided);
+        assert_eq!(voided_payment.state, FinancePaymentState::Voided);
     }
 
     #[test]
@@ -402,7 +420,6 @@ mod tests {
         let order = create_test_sales_order(&mut service);
         let payment_method = create_test_payment_method(&mut service);
 
-        // Create a payment
         let input = SalesOrderPaymentNewInput {
             order_id: order.id,
             payment_method_id: payment_method.id,
@@ -415,15 +432,11 @@ mod tests {
 
         let cmd = CreateSalesOrderPaymentCommand { payment: input };
         let payment = cmd.exec(&mut service).unwrap();
-
-        // Void the payment
         let void_cmd = VoidSalesOrderPaymentCommand { id: payment.id };
-        let _ = void_cmd.exec(&mut service).unwrap();
-
-        // Try to void again, should fail
-        let void_again_cmd = VoidSalesOrderPaymentCommand { id: payment.id };
-        let result = void_again_cmd.exec(&mut service);
-        assert!(result.is_err());
+        let _ = void_cmd.exec(&mut service).unwrap(); // First void
+        let result = void_cmd.exec(&mut service); // Second void
+                                                  // Expect NotFoundError because the payment is no longer in Completed state
+        assert!(matches!(result, Err(Error::NotFoundError)));
     }
 
     #[test]

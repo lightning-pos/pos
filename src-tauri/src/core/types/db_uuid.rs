@@ -6,12 +6,32 @@ use diesel::{
     sqlite::{Sqlite, SqliteValue},
 };
 use juniper::graphql_scalar;
+use serde::{Deserialize, Serialize};
+use std::{
+    fmt::{self, Display, Formatter},
+    hash::{Hash, Hasher},
+    ops::Deref,
+    str::FromStr,
+};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, AsExpression, FromSqlRow)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    AsExpression,
+    FromSqlRow,
+    Serialize,
+    Deserialize,
+)]
 #[diesel(sql_type = Text)]
 #[graphql_scalar]
 #[graphql(transparent)]
+#[derive(Hash)]
 pub struct DbUuid(Uuid);
 
 impl From<Uuid> for DbUuid {

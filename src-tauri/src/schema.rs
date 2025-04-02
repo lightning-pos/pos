@@ -124,20 +124,45 @@ table! {
 table! {
     use diesel::sql_types::{BigInt, Text, Nullable, Timestamp};
     use crate::core::models::sales::sales_order_model::SalesOrderStateMapping;
+    use crate::core::models::sales::sales_order_model::SalesOrderPaymentStateMapping;
 
     sales_orders (id) {
         id -> Text,
-        customer_id -> Text,
-        customer_name -> Text,
-        customer_phone_number -> Text,
+        order_readable_id -> Text, // Human readable ID
         order_date -> Timestamp,
+
+        // Customer
+        customer_id -> Nullable<Text>,
+        customer_name -> Nullable<Text>,
+        customer_phone_number -> Nullable<Text>,
+        billing_address -> Nullable<Text>,
+        shipping_address -> Nullable<Text>,
+
+        // Amounts
         net_amount -> BigInt,
         disc_amount -> BigInt,
         taxable_amount -> BigInt,
         tax_amount -> BigInt,
         total_amount -> BigInt,
-        state -> SalesOrderStateMapping,
-        cost_center_id -> Text,
+
+        // State
+        order_state -> SalesOrderStateMapping,
+        payment_state -> SalesOrderPaymentStateMapping,
+
+        // Notes
+        notes -> Nullable<Text>,
+
+        // Mappings
+        channel_id -> Text, // For channel-wise reporting (Eg. Dine-in, Take-away, etc.)
+        location_id -> Text, // For inventory tracking
+        cost_center_id -> Text, // For accounting
+        created_by -> Text, // User ID for audit trail
+        updated_by -> Text, // User ID for audit trail
+
+        // Optional Mappings
+        discount_id -> Nullable<Text>, // For discount tracking
+
+        // Timestamps
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -146,13 +171,56 @@ table! {
 table! {
     sales_order_items (id) {
         id -> Text,
-        order_id -> Text,
+
+        // Item
         item_id -> Nullable<Text>,
         item_name -> Text,
         quantity -> Integer,
+        sku -> Nullable<Text>,
+
+        // Amounts
         price_amount -> BigInt,
+        disc_amount -> BigInt,
+        taxable_amount -> BigInt,
         tax_amount -> BigInt,
         total_amount -> BigInt,
+
+        // Mappings
+        order_id -> Text,
+
+        // Timestamps
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    sales_order_charges (id) {
+        id -> Text,
+
+        // Charge
+        charge_type_id -> Text,
+        charge_type_name -> Text,
+
+        // Amounts
+        amount -> BigInt,
+        tax_amount -> BigInt,
+
+        // Mappings
+        order_id -> Text,
+        tax_group_id -> Nullable<Text>,
+
+        // Timestamps
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    sales_charge_types (id) {
+        id -> Text,
+        name -> Text,
+        description -> Nullable<Text>,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -278,6 +346,10 @@ joinable!(sales_orders -> customers (customer_id));
 // ManyToMany (orders, order_items)
 joinable!(sales_order_items -> sales_orders (order_id));
 joinable!(sales_order_items -> items (item_id));
+
+// ManyToMany (orders, order_charges)
+joinable!(sales_order_charges -> sales_orders (order_id));
+joinable!(sales_order_charges -> sales_charge_types (charge_type_id));
 
 // ManyToOne (expenses, purchase_categories)
 joinable!(expenses -> purchase_categories (category_id));

@@ -59,5 +59,6 @@ pub struct SalesOrderPaymentUpdateChangeset {
 #[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
 pub enum SalesOrderPaymentState {
     Completed,
+    Failed,
     Voided,
 }
