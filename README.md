@@ -34,7 +34,7 @@ Lightning POS is a powerful, feature-rich Point of Sale solution designed to mee
   - [x] Cost centers - *Track financial activities by department or location*
   - [x] Payment methods - *Configure accepted payment types and processing*
   - [x] Taxes - *Set up tax rates and rules*
-  - [ ] Tax groups - *Group related taxes together (e.g., CGST2.5 and SGST2.5) for simplified application*
+  - [x] Tax groups - *Group related taxes together (e.g., CGST2.5 and SGST2.5) for simplified application*
   - [ ] Printer configuration - *Set up receipt printers and printing preferences*
 
 ### Priority 2 (Business Operations)
