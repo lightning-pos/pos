@@ -185,8 +185,11 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
             itemName: newItemName,
             quantity: newItemQuantity,
             priceAmount: newItemPrice.toString(),
+            discAmount: "0", // No discount for now
+            taxableAmount: newItemPrice.toString(),
             taxAmount: newItemTax.toString(),
-            totalAmount: ((newItemPrice + newItemTax) * newItemQuantity).toString()
+            totalAmount: ((newItemPrice + newItemTax) * newItemQuantity).toString(),
+            sku: undefined // Optional field
         }
 
         setItems([...items, newItem])
@@ -266,7 +269,8 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                 taxableAmount: totalNetAmount.toString(),
                 taxAmount: totalTaxAmount.toString(),
                 totalAmount: totalAmount.toString(),
-                state: SalesOrderState.Completed,
+                channelId: '00000000-0000-0000-0000-000000000000', // Required field
+                locationId: '00000000-0000-0000-0000-000000000000', // Required field
                 costCenterId,
                 items
             }
@@ -285,7 +289,7 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                                 ...payment,
                                 orderId,
                                 paymentDate: formatToLocalDateTime(new Date()),
-                                state: SalesOrderPaymentState.Completed
+                                state: SalesOrderPaymentState.Paid
                             }
                         })
                     )

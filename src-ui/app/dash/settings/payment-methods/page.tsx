@@ -5,7 +5,7 @@ import { Content } from '@carbon/react';
 import DataTable from '@/components/ui/DataTable';
 import { formatDateYMD } from '@/lib/util/date_format';
 import { gql } from '@/lib/graphql/execute';
-import { GetPaymentMethodsDocument, PaymentMethodState, PaymentMethod } from '@/lib/graphql/graphql';
+import { GetPaymentMethodsDocument, GetTotalPaymentMethodsDocument, PaymentMethodState, PaymentMethod } from '@/lib/graphql/graphql';
 import AddPaymentMethodModal from '@/app/dash/settings/payment-methods/add_payment_method_modal';
 import EditPaymentMethodModal from '@/app/dash/settings/payment-methods/edit_payment_method_modal';
 import DeletePaymentMethodModal from '@/app/dash/settings/payment-methods/delete_payment_method_modal';
@@ -54,13 +54,14 @@ export default function PaymentMethodsPage() {
 
             const offset = (currentPage - 1) * pageSize;
             const result = await gql(GetPaymentMethodsDocument, { first: pageSize, offset });
+            const totalResult = await gql(GetTotalPaymentMethodsDocument);
 
             if (result.paymentMethods) {
                 setPaymentMethods(formatPaymentMethodData(result.paymentMethods.map((item) => ({
                     ...item,
                     description: item.description || null,
                 }))));
-                setTotalPaymentMethods(result.totalPaymentMethods);
+                setTotalPaymentMethods(totalResult.totalPaymentMethods);
             }
         } catch (err) {
             setError('Failed to load payment methods. Please try again.');

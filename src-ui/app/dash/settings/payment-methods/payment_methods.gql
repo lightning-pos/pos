@@ -1,5 +1,5 @@
-query GetPaymentMethods {
-  paymentMethods {
+query GetPaymentMethods($first: Int!, $offset: Int!) {
+  paymentMethods(first: $first, offset: $offset) {
     id
     name
     code

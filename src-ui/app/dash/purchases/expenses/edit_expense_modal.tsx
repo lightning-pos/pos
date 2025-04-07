@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, TextInput, Form, DatePicker, DatePickerInput, Select, SelectItem } from '@carbon/react'
-import { Expense, GetPurchaseCategoriesForExpensesDocument, GetCostCentersForExpensesDocument, CostCenterState } from '@/lib/graphql/graphql'
+import { GetPurchaseCategoriesForExpensesDocument, GetCostCentersForExpensesDocument, CostCenterState } from '@/lib/graphql/graphql'
+import { TableRow } from './types'
 import { formatDateYMD } from '@/lib/util/date_format'
 import { sanitizeDecimalInput } from '@/lib/util/number_format'
 import { gql } from '@/lib/graphql/execute'
 
 interface EditExpenseModalProps {
     isOpen: boolean
-    expense: Expense | null
+    expense: TableRow | null
     onClose: () => void
     onSave: () => void
-    setExpense: React.Dispatch<React.SetStateAction<Expense | null>>
+    setExpense: React.Dispatch<React.SetStateAction<TableRow | null>>
 }
 
 const EditExpenseModal: React.FC<EditExpenseModalProps> = ({

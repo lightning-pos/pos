@@ -1,0 +1,44 @@
+query GetSalesChargeTypes($first: Int!, $offset: Int!) {
+  salesChargeTypes(first: $first, offset: $offset) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+  salesChargeTypesCount
+}
+
+query GetSalesChargeType($id: DbUuid!) {
+  salesChargeType(id: $id) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+
+mutation CreateSalesChargeType($input: SalesChargeTypeNewInput!) {
+  createSalesChargeType(chargeType: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+
+mutation UpdateSalesChargeType($input: SalesChargeTypeUpdateInput!) {
+  updateSalesChargeType(chargeType: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+
+mutation DeleteSalesChargeType($id: DbUuid!) {
+  deleteSalesChargeType(id: $id)
+}

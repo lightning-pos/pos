@@ -306,6 +306,7 @@ export type Mutation = {
   createItemCategory: ItemGroup;
   createPaymentMethod: PaymentMethod;
   createPurchaseCategory: PurchaseCategory;
+  createSalesChargeType: SalesChargeType;
   createSalesOrder: SalesOrder;
   createSalesOrderPayment: SalesOrderPayment;
   createSupplier: Supplier;
@@ -321,6 +322,7 @@ export type Mutation = {
   deleteItemCategory: Scalars['Int']['output'];
   deletePaymentMethod: Scalars['DbUuid']['output'];
   deletePurchaseCategory: Scalars['DbUuid']['output'];
+  deleteSalesChargeType: Scalars['Boolean']['output'];
   deleteSupplier: Scalars['Int']['output'];
   deleteTax: Scalars['Int']['output'];
   deleteUser: Scalars['Int']['output'];
@@ -338,6 +340,7 @@ export type Mutation = {
   updateItemCategory: ItemGroup;
   updatePaymentMethod: PaymentMethod;
   updatePurchaseCategory: PurchaseCategory;
+  updateSalesChargeType: SalesChargeType;
   updateSalesOrderPayment: SalesOrderPayment;
   updateSupplier: Supplier;
   updateTax: Tax;
@@ -420,6 +423,11 @@ export type MutationCreatePurchaseCategoryArgs = {
 };
 
 
+export type MutationCreateSalesChargeTypeArgs = {
+  chargeType: SalesChargeTypeNewInput;
+};
+
+
 export type MutationCreateSalesOrderArgs = {
   salesOrder: SalesOrderNewInput;
 };
@@ -491,6 +499,11 @@ export type MutationDeletePaymentMethodArgs = {
 
 
 export type MutationDeletePurchaseCategoryArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteSalesChargeTypeArgs = {
   id: Scalars['DbUuid']['input'];
 };
 
@@ -585,6 +598,11 @@ export type MutationUpdatePurchaseCategoryArgs = {
   id: Scalars['DbUuid']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
   state?: InputMaybe<PurchaseCategoryState>;
+};
+
+
+export type MutationUpdateSalesChargeTypeArgs = {
+  chargeType: SalesChargeTypeUpdateInput;
 };
 
 
@@ -694,6 +712,9 @@ export type Query = {
   paymentMethods: Array<PaymentMethod>;
   purchaseCategories: Array<PurchaseCategory>;
   purchaseCategory: PurchaseCategory;
+  salesChargeType: SalesChargeType;
+  salesChargeTypes: Array<SalesChargeType>;
+  salesChargeTypesCount: Scalars['Int']['output'];
   salesOrder: SalesOrder;
   salesOrderPayments: Array<SalesOrderPayment>;
   salesOrders: Array<SalesOrder>;
@@ -844,6 +865,17 @@ export type QueryPurchaseCategoryArgs = {
 };
 
 
+export type QuerySalesChargeTypeArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QuerySalesChargeTypesArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type QuerySalesOrderArgs = {
   id: Scalars['DbUuid']['input'];
 };
@@ -899,27 +931,79 @@ export type QueryUsersArgs = {
   offset?: InputMaybe<Scalars['Int']['input']>;
 };
 
+export type SalesChargeType = {
+  __typename?: 'SalesChargeType';
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type SalesChargeTypeNewInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export type SalesChargeTypeUpdateInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type SalesOrder = {
   __typename?: 'SalesOrder';
-  costCenter?: Maybe<CostCenter>;
+  billingAddress?: Maybe<Scalars['String']['output']>;
+  channelId: Scalars['DbUuid']['output'];
+  charges: Array<SalesOrderCharge>;
+  costCenter: CostCenter;
   costCenterId: Scalars['DbUuid']['output'];
   createdAt: Scalars['LocalDateTime']['output'];
-  customer: Customer;
-  customerId: Scalars['DbUuid']['output'];
-  customerName: Scalars['String']['output'];
-  customerPhoneNumber: Scalars['String']['output'];
+  createdBy: Scalars['DbUuid']['output'];
+  customer?: Maybe<Customer>;
+  customerId?: Maybe<Scalars['DbUuid']['output']>;
+  customerName?: Maybe<Scalars['String']['output']>;
+  customerPhoneNumber?: Maybe<Scalars['String']['output']>;
   discAmount: Scalars['Money']['output'];
+  discountId?: Maybe<Scalars['DbUuid']['output']>;
   id: Scalars['DbUuid']['output'];
   items: Array<SalesOrderItem>;
+  locationId: Scalars['DbUuid']['output'];
   netAmount: Scalars['Money']['output'];
+  notes?: Maybe<Scalars['String']['output']>;
   orderDate: Scalars['LocalDateTime']['output'];
+  orderReadableId: Scalars['String']['output'];
+  orderState: SalesOrderState;
+  paymentState: SalesOrderPaymentState;
   payments: Array<SalesOrderPayment>;
-  state: SalesOrderState;
+  shippingAddress?: Maybe<Scalars['String']['output']>;
   taxAmount: Scalars['Money']['output'];
   taxableAmount: Scalars['Money']['output'];
   totalAmount: Scalars['Money']['output'];
   totalPaidAmount: Scalars['Money']['output'];
   updatedAt: Scalars['LocalDateTime']['output'];
+  updatedBy: Scalars['DbUuid']['output'];
+};
+
+export type SalesOrderCharge = {
+  __typename?: 'SalesOrderCharge';
+  amount: Scalars['Money']['output'];
+  chargeTypeId: Scalars['DbUuid']['output'];
+  chargeTypeName: Scalars['String']['output'];
+  createdAt: Scalars['LocalDateTime']['output'];
+  id: Scalars['DbUuid']['output'];
+  orderId: Scalars['DbUuid']['output'];
+  taxAmount: Scalars['Money']['output'];
+  taxGroupId?: Maybe<Scalars['DbUuid']['output']>;
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type SalesOrderChargeNewInput = {
+  amount: Scalars['Money']['input'];
+  chargeTypeId: Scalars['DbUuid']['input'];
+  chargeTypeName: Scalars['String']['input'];
+  taxAmount: Scalars['Money']['input'];
+  taxGroupId?: InputMaybe<Scalars['DbUuid']['input']>;
 };
 
 export type SalesOrderItem = {
@@ -937,24 +1021,33 @@ export type SalesOrderItem = {
 };
 
 export type SalesOrderItemInput = {
+  discAmount: Scalars['Money']['input'];
   itemId?: InputMaybe<Scalars['DbUuid']['input']>;
   itemName: Scalars['String']['input'];
   priceAmount: Scalars['Money']['input'];
   quantity: Scalars['Int']['input'];
+  sku?: InputMaybe<Scalars['String']['input']>;
   taxAmount: Scalars['Money']['input'];
+  taxableAmount: Scalars['Money']['input'];
   totalAmount: Scalars['Money']['input'];
 };
 
 export type SalesOrderNewInput = {
+  billingAddress?: InputMaybe<Scalars['String']['input']>;
+  channelId: Scalars['DbUuid']['input'];
+  charges?: InputMaybe<Array<SalesOrderChargeNewInput>>;
   costCenterId: Scalars['DbUuid']['input'];
-  customerId: Scalars['DbUuid']['input'];
-  customerName: Scalars['String']['input'];
-  customerPhoneNumber: Scalars['String']['input'];
+  customerId?: InputMaybe<Scalars['DbUuid']['input']>;
+  customerName?: InputMaybe<Scalars['String']['input']>;
+  customerPhoneNumber?: InputMaybe<Scalars['String']['input']>;
   discAmount: Scalars['Money']['input'];
+  discountId?: InputMaybe<Scalars['DbUuid']['input']>;
   items: Array<SalesOrderItemInput>;
+  locationId: Scalars['DbUuid']['input'];
   netAmount: Scalars['Money']['input'];
+  notes?: InputMaybe<Scalars['String']['input']>;
   orderDate: Scalars['LocalDateTime']['input'];
-  state: SalesOrderState;
+  shippingAddress?: InputMaybe<Scalars['String']['input']>;
   taxAmount: Scalars['Money']['input'];
   taxableAmount: Scalars['Money']['input'];
   totalAmount: Scalars['Money']['input'];
@@ -984,7 +1077,12 @@ export type SalesOrderPaymentNewInput = {
 };
 
 export enum SalesOrderPaymentState {
-  Completed = 'COMPLETED',
+  Failed = 'FAILED',
+  Paid = 'PAID',
+  PartiallyPaid = 'PARTIALLY_PAID',
+  PartiallyRefunded = 'PARTIALLY_REFUNDED',
+  Pending = 'PENDING',
+  Refunded = 'REFUNDED',
   Voided = 'VOIDED'
 }
 
@@ -1281,7 +1379,7 @@ export type PosCreateSalesOrderMutationVariables = Exact<{
 }>;
 
 
-export type PosCreateSalesOrderMutation = { __typename?: 'Mutation', createSalesOrder: { __typename?: 'SalesOrder', id: string, customerName: string, orderDate: string, netAmount: string, taxAmount: string, totalAmount: string, state: SalesOrderState } };
+export type PosCreateSalesOrderMutation = { __typename?: 'Mutation', createSalesOrder: { __typename?: 'SalesOrder', id: string, customerName?: string | null, orderDate: string, netAmount: string, taxAmount: string, totalAmount: string, orderState: SalesOrderState } };
 
 export type GetPurchaseCategoriesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -1375,20 +1473,56 @@ export type DeleteExpenseMutationVariables = Exact<{
 
 export type DeleteExpenseMutation = { __typename?: 'Mutation', deleteExpense: number };
 
+export type GetSalesChargeTypesQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetSalesChargeTypesQuery = { __typename?: 'Query', salesChargeTypesCount: number, salesChargeTypes: Array<{ __typename?: 'SalesChargeType', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string }> };
+
+export type GetSalesChargeTypeQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetSalesChargeTypeQuery = { __typename?: 'Query', salesChargeType: { __typename?: 'SalesChargeType', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string } };
+
+export type CreateSalesChargeTypeMutationVariables = Exact<{
+  input: SalesChargeTypeNewInput;
+}>;
+
+
+export type CreateSalesChargeTypeMutation = { __typename?: 'Mutation', createSalesChargeType: { __typename?: 'SalesChargeType', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string } };
+
+export type UpdateSalesChargeTypeMutationVariables = Exact<{
+  input: SalesChargeTypeUpdateInput;
+}>;
+
+
+export type UpdateSalesChargeTypeMutation = { __typename?: 'Mutation', updateSalesChargeType: { __typename?: 'SalesChargeType', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string } };
+
+export type DeleteSalesChargeTypeMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteSalesChargeTypeMutation = { __typename?: 'Mutation', deleteSalesChargeType: boolean };
+
 export type GetSalesOrdersQueryVariables = Exact<{
   first: Scalars['Int']['input'];
   offset: Scalars['Int']['input'];
 }>;
 
 
-export type GetSalesOrdersQuery = { __typename?: 'Query', totalSalesOrders: number, salesOrders: Array<{ __typename?: 'SalesOrder', id: string, customerId: string, customerName: string, customerPhoneNumber: string, orderDate: string, netAmount: string, discAmount: string, taxableAmount: string, taxAmount: string, totalAmount: string, state: SalesOrderState, costCenterId: string, createdAt: string, updatedAt: string, totalPaidAmount: string, customer: { __typename?: 'Customer', id: string, fullName: string, phone?: string | null, createdAt: string, updatedAt: string }, items: Array<{ __typename?: 'SalesOrderItem', id: string, orderId: string, itemId?: string | null, itemName: string, quantity: number, priceAmount: string, taxAmount: string, totalAmount: string, createdAt: string, updatedAt: string }>, payments: Array<{ __typename?: 'SalesOrderPayment', id: string, orderId: string, paymentMethodId: string, paymentDate: string, amount: string, referenceNumber?: string | null, notes?: string | null, state: SalesOrderPaymentState }> }> };
+export type GetSalesOrdersQuery = { __typename?: 'Query', totalSalesOrders: number, salesOrders: Array<{ __typename?: 'SalesOrder', id: string, customerId?: string | null, customerName?: string | null, customerPhoneNumber?: string | null, orderDate: string, netAmount: string, discAmount: string, taxableAmount: string, taxAmount: string, totalAmount: string, orderState: SalesOrderState, costCenterId: string, createdAt: string, updatedAt: string, totalPaidAmount: string, customer?: { __typename?: 'Customer', id: string, fullName: string, phone?: string | null, createdAt: string, updatedAt: string } | null, items: Array<{ __typename?: 'SalesOrderItem', id: string, orderId: string, itemId?: string | null, itemName: string, quantity: number, priceAmount: string, taxAmount: string, totalAmount: string, createdAt: string, updatedAt: string }>, payments: Array<{ __typename?: 'SalesOrderPayment', id: string, orderId: string, paymentMethodId: string, paymentDate: string, amount: string, referenceNumber?: string | null, notes?: string | null, state: SalesOrderPaymentState }> }> };
 
 export type GetSalesOrderQueryVariables = Exact<{
   id: Scalars['DbUuid']['input'];
 }>;
 
 
-export type GetSalesOrderQuery = { __typename?: 'Query', salesOrder: { __typename?: 'SalesOrder', id: string, customerId: string, customerName: string, customerPhoneNumber: string, orderDate: string, netAmount: string, discAmount: string, taxableAmount: string, taxAmount: string, totalAmount: string, state: SalesOrderState, costCenterId: string, createdAt: string, updatedAt: string, totalPaidAmount: string, items: Array<{ __typename?: 'SalesOrderItem', id: string, orderId: string, itemId?: string | null, itemName: string, quantity: number, priceAmount: string, taxAmount: string, totalAmount: string, createdAt: string, updatedAt: string }>, payments: Array<{ __typename?: 'SalesOrderPayment', id: string, orderId: string, paymentMethodId: string, paymentDate: string, amount: string, referenceNumber?: string | null, notes?: string | null, state: SalesOrderPaymentState }> } };
+export type GetSalesOrderQuery = { __typename?: 'Query', salesOrder: { __typename?: 'SalesOrder', id: string, customerId?: string | null, customerName?: string | null, customerPhoneNumber?: string | null, orderDate: string, netAmount: string, discAmount: string, taxableAmount: string, taxAmount: string, totalAmount: string, orderState: SalesOrderState, costCenterId: string, createdAt: string, updatedAt: string, totalPaidAmount: string, items: Array<{ __typename?: 'SalesOrderItem', id: string, orderId: string, itemId?: string | null, itemName: string, quantity: number, priceAmount: string, taxAmount: string, totalAmount: string, createdAt: string, updatedAt: string }>, payments: Array<{ __typename?: 'SalesOrderPayment', id: string, orderId: string, paymentMethodId: string, paymentDate: string, amount: string, referenceNumber?: string | null, notes?: string | null, state: SalesOrderPaymentState }> } };
 
 export type GetSalesOrdersCustomersQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1410,7 +1544,7 @@ export type SalesOrdersCreateSalesOrderMutationVariables = Exact<{
 }>;
 
 
-export type SalesOrdersCreateSalesOrderMutation = { __typename?: 'Mutation', createSalesOrder: { __typename?: 'SalesOrder', id: string, customerName: string, totalAmount: string, state: SalesOrderState } };
+export type SalesOrdersCreateSalesOrderMutation = { __typename?: 'Mutation', createSalesOrder: { __typename?: 'SalesOrder', id: string, customerName?: string | null, totalAmount: string, orderState: SalesOrderState } };
 
 export type CreateSalesOrderPaymentMutationVariables = Exact<{
   payment: SalesOrderPaymentNewInput;
@@ -1424,7 +1558,7 @@ export type VoidSalesOrderMutationVariables = Exact<{
 }>;
 
 
-export type VoidSalesOrderMutation = { __typename?: 'Mutation', voidSalesOrder: { __typename?: 'SalesOrder', id: string, state: SalesOrderState } };
+export type VoidSalesOrderMutation = { __typename?: 'Mutation', voidSalesOrder: { __typename?: 'SalesOrder', id: string, orderState: SalesOrderState } };
 
 export type VoidSalesOrderPaymentMutationVariables = Exact<{
   id: Scalars['DbUuid']['input'];
@@ -1557,7 +1691,10 @@ export type DeleteCostCenterMutationVariables = Exact<{
 
 export type DeleteCostCenterMutation = { __typename?: 'Mutation', deleteCostCenter: string };
 
-export type GetPaymentMethodsQueryVariables = Exact<{ [key: string]: never; }>;
+export type GetPaymentMethodsQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
 
 
 export type GetPaymentMethodsQuery = { __typename?: 'Query', paymentMethods: Array<{ __typename?: 'PaymentMethod', id: string, name: string, code: string, description?: string | null, state: PaymentMethodState, createdAt: string, updatedAt: string }> };
@@ -2064,7 +2201,7 @@ export const PosCreateSalesOrderDocument = new TypedDocumentString(`
     netAmount
     taxAmount
     totalAmount
-    state
+    orderState
   }
 }
     `) as unknown as TypedDocumentString<PosCreateSalesOrderMutation, PosCreateSalesOrderMutationVariables>;
@@ -2256,6 +2393,56 @@ export const DeleteExpenseDocument = new TypedDocumentString(`
   deleteExpense(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteExpenseMutation, DeleteExpenseMutationVariables>;
+export const GetSalesChargeTypesDocument = new TypedDocumentString(`
+    query GetSalesChargeTypes($first: Int!, $offset: Int!) {
+  salesChargeTypes(first: $first, offset: $offset) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+  salesChargeTypesCount
+}
+    `) as unknown as TypedDocumentString<GetSalesChargeTypesQuery, GetSalesChargeTypesQueryVariables>;
+export const GetSalesChargeTypeDocument = new TypedDocumentString(`
+    query GetSalesChargeType($id: DbUuid!) {
+  salesChargeType(id: $id) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetSalesChargeTypeQuery, GetSalesChargeTypeQueryVariables>;
+export const CreateSalesChargeTypeDocument = new TypedDocumentString(`
+    mutation CreateSalesChargeType($input: SalesChargeTypeNewInput!) {
+  createSalesChargeType(chargeType: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateSalesChargeTypeMutation, CreateSalesChargeTypeMutationVariables>;
+export const UpdateSalesChargeTypeDocument = new TypedDocumentString(`
+    mutation UpdateSalesChargeType($input: SalesChargeTypeUpdateInput!) {
+  updateSalesChargeType(chargeType: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateSalesChargeTypeMutation, UpdateSalesChargeTypeMutationVariables>;
+export const DeleteSalesChargeTypeDocument = new TypedDocumentString(`
+    mutation DeleteSalesChargeType($id: DbUuid!) {
+  deleteSalesChargeType(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteSalesChargeTypeMutation, DeleteSalesChargeTypeMutationVariables>;
 export const GetSalesOrdersDocument = new TypedDocumentString(`
     query GetSalesOrders($first: Int!, $offset: Int!) {
   salesOrders(first: $first, offset: $offset) {
@@ -2269,7 +2456,7 @@ export const GetSalesOrdersDocument = new TypedDocumentString(`
     taxableAmount
     taxAmount
     totalAmount
-    state
+    orderState
     costCenterId
     createdAt
     updatedAt
@@ -2320,7 +2507,7 @@ export const GetSalesOrderDocument = new TypedDocumentString(`
     taxableAmount
     taxAmount
     totalAmount
-    state
+    orderState
     costCenterId
     createdAt
     updatedAt
@@ -2384,7 +2571,7 @@ export const SalesOrdersCreateSalesOrderDocument = new TypedDocumentString(`
     id
     customerName
     totalAmount
-    state
+    orderState
   }
 }
     `) as unknown as TypedDocumentString<SalesOrdersCreateSalesOrderMutation, SalesOrdersCreateSalesOrderMutationVariables>;
@@ -2406,7 +2593,7 @@ export const VoidSalesOrderDocument = new TypedDocumentString(`
     mutation VoidSalesOrder($id: DbUuid!) {
   voidSalesOrder(id: $id) {
     id
-    state
+    orderState
   }
 }
     `) as unknown as TypedDocumentString<VoidSalesOrderMutation, VoidSalesOrderMutationVariables>;
@@ -2629,8 +2816,8 @@ export const DeleteCostCenterDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<DeleteCostCenterMutation, DeleteCostCenterMutationVariables>;
 export const GetPaymentMethodsDocument = new TypedDocumentString(`
-    query GetPaymentMethods {
-  paymentMethods {
+    query GetPaymentMethods($first: Int!, $offset: Int!) {
+  paymentMethods(first: $first, offset: $offset) {
     id
     name
     code

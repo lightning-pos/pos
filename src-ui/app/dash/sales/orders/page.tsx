@@ -95,7 +95,7 @@ const SalesOrdersPage = () => {
         paidAmount: formatCurrency(parseFloat(order.totalPaidAmount?.toString() || "0")),
         customerName: order.customerName,
         createdAt: new Date(order.createdAt ?? 0).toLocaleString(),
-        status: order.state,
+        status: order.orderState,
     }))
 
     if (loading && orders.length === 0) {

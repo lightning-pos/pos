@@ -26,6 +26,7 @@
     "devDependencies": {
         "@graphql-codegen/cli": "5.0.5",
         "@graphql-codegen/client-preset": "4.6.2",
+        "@graphql-typed-document-node/core": "^3.2.0",
         "@types/node": "^20",
         "@types/react": "19.0.10",
         "@types/react-dom": "19.0.4",

@@ -27,7 +27,7 @@ const DeleteExpenseModal: React.FC<DeleteExpenseModalProps> = ({
             onRequestClose={onClose}
             danger
         >
-            <p>Are you sure you want to delete expense "{expenseTitle}"?</p>
+            <p>Are you sure you want to delete expense &quot;{expenseTitle}&quot;?</p>
             <p>This action cannot be undone.</p>
         </Modal>
     )

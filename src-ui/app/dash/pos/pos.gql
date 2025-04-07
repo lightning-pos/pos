@@ -81,6 +81,6 @@ mutation PosCreateSalesOrder($salesOrder: SalesOrderNewInput!) {
         netAmount
         taxAmount
         totalAmount
-        state
+        orderState
     }
 }

@@ -172,11 +172,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             open={open}
             onRequestClose={onRequestClose}
             modalHeading={`Order Details - ${order?.id}`}
-            primaryButtonText={order.state === SalesOrderState.Completed ? "Cancel Order" : "Close"}
+            primaryButtonText={order.orderState === SalesOrderState.Completed ? "Cancel Order" : "Close"}
             secondaryButtonText="Close"
-            primaryButtonDisabled={isVoiding || order.state !== SalesOrderState.Completed}
-            danger={order.state === SalesOrderState.Completed}
-            onRequestSubmit={order.state === SalesOrderState.Completed ? handleVoidOrder : onRequestClose}
+            primaryButtonDisabled={isVoiding || order.orderState !== SalesOrderState.Completed}
+            danger={order.orderState === SalesOrderState.Completed}
+            onRequestSubmit={order.orderState === SalesOrderState.Completed ? handleVoidOrder : onRequestClose}
             onSecondarySubmit={onRequestClose}
             size="lg"
         >
@@ -193,11 +193,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         <div>
                             <h5 className="font-bold text-sm">Order Status</h5>
                             <p><strong>Status:</strong>
-                                <span className={`ml-2 px-2 py-1 rounded text-sm ${order.state === SalesOrderState.Completed ? 'bg-green-100 text-green-800' :
-                                    order.state === SalesOrderState.Cancelled ? 'bg-red-100 text-red-800' :
+                                <span className={`ml-2 px-2 py-1 rounded text-sm ${order.orderState === SalesOrderState.Completed ? 'bg-green-100 text-green-800' :
+                                    order.orderState === SalesOrderState.Cancelled ? 'bg-red-100 text-red-800' :
                                         'bg-yellow-100 text-yellow-800'
                                     }`}>
-                                    {order.state}
+                                    {order.orderState}
                                 </span>
                             </p>
                             <p><strong>Total Amount:</strong> {formatCurrency(parseFloat(order.totalAmount))}</p>
@@ -247,7 +247,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                                     <p><strong>Total:</strong> {formatCurrency(parseFloat(order.totalAmount))}</p>
                                 </div>
 
-                                {order.state === SalesOrderState.Completed && remainingAmount > 0 && (
+                                {order.orderState === SalesOrderState.Completed && remainingAmount > 0 && (
                                     <Button
                                         kind="tertiary"
                                         size="sm"
@@ -366,7 +366,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         </AccordionItem>
                     </Accordion>
 
-                    {order.state === SalesOrderState.Cancelled && (
+                    {order.orderState === SalesOrderState.Cancelled && (
                         <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded flex items-center">
                             <Warning className="mr-2" />
                             This order has been cancelled and cannot be modified.

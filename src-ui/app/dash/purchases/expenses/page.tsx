@@ -6,24 +6,18 @@ import DeleteExpenseModal from './delete_expense_modal'
 import AddExpenseModal from './add_expense_modal'
 import EditExpenseModal from './edit_expense_modal'
 import { gql } from '@/lib/graphql/execute'
-import { GetExpensesDocument, CreateExpenseDocument, UpdateExpenseDocument, DeleteExpenseDocument, Expense } from '@/lib/graphql/graphql'
+import { GetExpensesDocument, CreateExpenseDocument, UpdateExpenseDocument, DeleteExpenseDocument } from '@/lib/graphql/graphql'
 import { formatCurrency } from '@/lib/util/number_format'
 import { formatDateForDisplay, formatToLocalDateTime, formatDateYMD } from '@/lib/util/date_format'
-
-interface TableRow extends Omit<Expense, 'amount'> {
-    amount: string;
-    formattedDate: string;
-    category: string;
-    costCenter: string;
-}
+import { TableRow } from './types'
 
 const ExpensesPage = () => {
     // State declarations
     const [expenses, setExpenses] = useState<TableRow[]>([])
     const [totalExpenses, setTotalExpenses] = useState(0)
     const [loading, setLoading] = useState(true)
-    const [newExpense, setNewExpense] = useState<Partial<Expense>>({})
-    const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
+    const [newExpense, setNewExpense] = useState<Partial<TableRow>>({})
+    const [editingExpense, setEditingExpense] = useState<TableRow | null>(null)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -31,10 +25,17 @@ const ExpensesPage = () => {
     const [pageSize, setPageSize] = useState(10)
 
     // Format expense data for table
-    const formatExpenseData = (expenses: Expense[]): TableRow[] => {
+    const formatExpenseData = (expenses: any[]): TableRow[] => {
         return expenses.map(expense => ({
-            ...expense,
+            id: expense.id,
+            title: expense.title,
             amount: formatCurrency(Number(expense.amount || 0)),
+            expenseDate: expense.expenseDate,
+            categoryId: expense.categoryId,
+            costCenterId: expense.costCenterId,
+            description: expense.description,
+            createdAt: expense.createdAt,
+            updatedAt: expense.updatedAt,
             formattedDate: formatDateForDisplay(expense.expenseDate),
             category: expense.category?.name || 'Uncategorized',
             costCenter: expense.costCenter ? `${expense.costCenter.code} - ${expense.costCenter.name}` : 'Unknown'
@@ -153,7 +154,7 @@ const ExpensesPage = () => {
                     }}
                     onEditClick={(expense: TableRow) => {
                         // Convert back to original format for editing
-                        const originalExpense: Expense = {
+                        const originalExpense = {
                             ...expense,
                             amount: expense.amount.replace(/[^0-9.]/g, '')
                         }
@@ -162,7 +163,7 @@ const ExpensesPage = () => {
                     }}
                     onDeleteClick={(expense: TableRow) => {
                         // Convert back to original format
-                        const originalExpense: Expense = {
+                        const originalExpense = {
                             ...expense,
                             amount: expense.amount.replace(/[^0-9.]/g, '')
                         }

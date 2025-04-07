@@ -116,23 +116,30 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
             const now = new Date()
             const orderDate = now.toISOString()
 
-            const orderItems: SalesOrderItemInput[] = cart.map(item => ({
-                itemId: item.id,
-                itemName: item.name,
-                quantity: item.quantity,
-                priceAmount: item.price,
-                taxAmount: item.taxIds
+            const orderItems: SalesOrderItemInput[] = cart.map(item => {
+                const taxAmount = item.taxIds
                     ? taxes
                         .filter(tax => item.taxIds?.includes(tax.id))
                         .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
                         .toString()
-                    : '0',
-                totalAmount: ((parseFloat(item.price) + (item.taxIds
-                    ? taxes
-                        .filter(tax => item.taxIds?.includes(tax.id))
-                        .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
-                    : 0)) * item.quantity).toString(),
-            }))
+                    : '0'
+
+                return {
+                    itemId: item.id,
+                    itemName: item.name,
+                    quantity: item.quantity,
+                    priceAmount: item.price,
+                    discAmount: "0", // No discount for now
+                    taxableAmount: item.price, // Same as price amount since no discount
+                    taxAmount: taxAmount,
+                    totalAmount: ((parseFloat(item.price) + (item.taxIds
+                        ? taxes
+                            .filter(tax => item.taxIds?.includes(tax.id))
+                            .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
+                        : 0)) * item.quantity).toString(),
+                    sku: undefined // Optional field
+                }
+            })
 
             const orderInput: SalesOrderNewInput = {
                 customerId: selectedCustomer.id,
@@ -144,7 +151,8 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
                 taxableAmount: subtotal.toString(),
                 taxAmount: totalTax.toString(),
                 totalAmount: totalAmount.toString(),
-                state: SalesOrderState.Completed,
+                channelId: '00000000-0000-0000-0000-000000000000', // Required field
+                locationId: '00000000-0000-0000-0000-000000000000', // Required field
                 costCenterId: '00000000-0000-0000-0000-000000000000',
                 items: orderItems
             }
@@ -188,23 +196,30 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
                 }
             }
 
-            const orderItems: SalesOrderItemInput[] = cart.map(item => ({
-                itemId: item.id,
-                itemName: item.name,
-                quantity: item.quantity,
-                priceAmount: item.price,
-                taxAmount: item.taxIds
+            const orderItems: SalesOrderItemInput[] = cart.map(item => {
+                const taxAmount = item.taxIds
                     ? taxes
                         .filter(tax => item.taxIds?.includes(tax.id))
                         .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
                         .toString()
-                    : '0',
-                totalAmount: ((parseFloat(item.price) + (item.taxIds
-                    ? taxes
-                        .filter(tax => item.taxIds?.includes(tax.id))
-                        .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
-                    : 0)) * item.quantity).toString(),
-            }))
+                    : '0'
+
+                return {
+                    itemId: item.id,
+                    itemName: item.name,
+                    quantity: item.quantity,
+                    priceAmount: item.price,
+                    discAmount: "0", // No discount for now
+                    taxableAmount: item.price, // Same as price amount since no discount
+                    taxAmount: taxAmount,
+                    totalAmount: ((parseFloat(item.price) + (item.taxIds
+                        ? taxes
+                            .filter(tax => item.taxIds?.includes(tax.id))
+                            .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
+                        : 0)) * item.quantity).toString(),
+                    sku: undefined // Optional field
+                }
+            })
 
             const orderInput: SalesOrderNewInput = {
                 customerId: customerId || '00000000-0000-0000-0000-000000000000',
@@ -216,7 +231,8 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
                 taxableAmount: subtotal.toString(),
                 taxAmount: totalTax.toString(),
                 totalAmount: totalAmount.toString(),
-                state: SalesOrderState.Completed,
+                channelId: '00000000-0000-0000-0000-000000000000', // Required field
+                locationId: '00000000-0000-0000-0000-000000000000', // Required field
                 costCenterId: '00000000-0000-0000-0000-000000000000',
                 items: orderItems
             }

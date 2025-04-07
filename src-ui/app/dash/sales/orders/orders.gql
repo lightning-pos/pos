@@ -10,7 +10,7 @@ query GetSalesOrders($first: Int!, $offset: Int!) {
         taxableAmount
         taxAmount
         totalAmount
-        state
+        orderState
         costCenterId
         createdAt
         updatedAt
@@ -60,7 +60,7 @@ query GetSalesOrder($id: DbUuid!) {
         taxableAmount
         taxAmount
         totalAmount
-        state
+        orderState
         costCenterId
         createdAt
         updatedAt
@@ -120,7 +120,7 @@ mutation SalesOrdersCreateSalesOrder($order: SalesOrderNewInput!) {
         id
         customerName
         totalAmount
-        state
+        orderState
     }
 }
 
@@ -140,7 +140,7 @@ mutation CreateSalesOrderPayment($payment: SalesOrderPaymentNewInput!) {
 mutation VoidSalesOrder($id: DbUuid!) {
     voidSalesOrder(id: $id) {
         id
-        state
+        orderState
     }
 }
 
