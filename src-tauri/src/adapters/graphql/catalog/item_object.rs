@@ -1,8 +1,6 @@
 use chrono::NaiveDateTime;
-use diesel::{
-    query_dsl::methods::{FilterDsl, FindDsl, SelectDsl},
-    ExpressionMethods, RunQueryDsl, SelectableHelper,
-};
+use diesel::prelude::*;
+use diesel::SelectableHelper;
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -11,12 +9,13 @@ use crate::{
             catalog::{
                 item_group_model::ItemGroup,
                 item_model::{Item, ItemNature, ItemState},
+                item_variant_model::ItemVariant,
             },
             common::tax_model::Tax,
         },
         types::{db_uuid::DbUuid, money::Money},
     },
-    schema::{item_categories, item_taxes, taxes},
+    schema::{item_categories, item_taxes, item_variants, taxes},
     AppState,
 };
 
@@ -73,8 +72,38 @@ impl Item {
 
         let taxes = taxes::table
             .filter(taxes::id.eq_any(tax_ids))
+            .select(Tax::as_select())
             .load::<Tax>(&mut service.conn)?;
 
         Ok(taxes)
+    }
+
+    pub fn variants(&self, context: &AppState) -> FieldResult<Vec<ItemVariant>> {
+        let mut service = context.service.lock().unwrap();
+        let variants = item_variants::table
+            .filter(item_variants::item_id.eq(self.id))
+            .select(ItemVariant::as_select())
+            .load::<ItemVariant>(&mut service.conn)?;
+        Ok(variants)
+    }
+
+    pub fn has_variants(&self, context: &AppState) -> FieldResult<bool> {
+        let mut service = context.service.lock().unwrap();
+        let count: i64 = item_variants::table
+            .filter(item_variants::item_id.eq(self.id))
+            .count()
+            .get_result(&mut service.conn)?;
+        Ok(count > 0)
+    }
+
+    pub fn default_variant(&self, context: &AppState) -> FieldResult<Option<ItemVariant>> {
+        let mut service = context.service.lock().unwrap();
+        let default_variant = item_variants::table
+            .filter(item_variants::item_id.eq(self.id))
+            .filter(item_variants::is_default.eq(true))
+            .select(ItemVariant::as_select())
+            .first::<ItemVariant>(&mut service.conn)
+            .optional()?;
+        Ok(default_variant)
     }
 }

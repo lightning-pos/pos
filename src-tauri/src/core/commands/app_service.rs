@@ -36,3 +36,12 @@ impl AppService {
         Ok(())
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    pub fn setup_service() -> AppService {
+        AppService::new(":memory:")
+    }
+}

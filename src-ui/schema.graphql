@@ -185,6 +185,22 @@ input ItemTaxNewInput {
   taxId: DbUuid!
 }
 
+input ItemVariantNewInput {
+  itemId: DbUuid!
+  sku: String
+  priceAdjustment: Money
+  isDefault: Boolean
+  variantValueIds: [DbUuid!]!
+}
+
+input ItemVariantUpdateInput {
+  id: DbUuid!
+  sku: String
+  priceAdjustment: Money
+  isDefault: Boolean
+  updatedAt: LocalDateTime
+}
+
 input NewItem {
   name: String!
   description: String
@@ -331,6 +347,31 @@ input UserUpdateInput {
   state: UserState
 }
 
+input VariantTypeNewInput {
+  name: String!
+  description: String
+}
+
+input VariantTypeUpdateInput {
+  id: DbUuid!
+  name: String
+  description: String
+  updatedAt: LocalDateTime
+}
+
+input VariantValueNewInput {
+  variantTypeId: DbUuid!
+  value: String!
+  displayOrder: Int
+}
+
+input VariantValueUpdateInput {
+  id: DbUuid!
+  value: String
+  displayOrder: Int
+  updatedAt: LocalDateTime
+}
+
 scalar DbUuid
 
 """
@@ -440,6 +481,9 @@ type Item {
   updatedAt: LocalDateTime!
   category: ItemGroup!
   taxes: [Tax!]!
+  variants: [ItemVariant!]!
+  hasVariants: Boolean!
+  defaultVariant: ItemVariant
 }
 
 type ItemGroup {
@@ -449,6 +493,18 @@ type ItemGroup {
   state: ItemGroupState!
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
+}
+
+type ItemVariant {
+  id: DbUuid!
+  sku: String
+  priceAdjustment: Money
+  isDefault: Boolean!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+  item: Item!
+  variantValues: [VariantValue!]!
+  finalPrice: Money!
 }
 
 type Mutation {
@@ -511,6 +567,17 @@ type Mutation {
   createSalesChargeType(chargeType: SalesChargeTypeNewInput!): SalesChargeType!
   updateSalesChargeType(chargeType: SalesChargeTypeUpdateInput!): SalesChargeType!
   deleteSalesChargeType(id: DbUuid!): Boolean!
+  createVariantType(input: VariantTypeNewInput!): VariantType!
+  updateVariantType(input: VariantTypeUpdateInput!): VariantType!
+  deleteVariantType(id: DbUuid!): Int!
+  createVariantValue(input: VariantValueNewInput!): VariantValue!
+  updateVariantValue(input: VariantValueUpdateInput!): VariantValue!
+  deleteVariantValue(id: DbUuid!): Int!
+  createItemVariant(input: ItemVariantNewInput!): ItemVariant!
+  updateItemVariant(input: ItemVariantUpdateInput!): ItemVariant!
+  deleteItemVariant(id: DbUuid!): Int!
+  assignVariantValueToItemVariant(itemVariantId: DbUuid!, variantValueId: DbUuid!): Int!
+  removeVariantValueFromItemVariant(itemVariantId: DbUuid!, variantValueId: DbUuid!): Int!
 }
 
 "Payment Method"
@@ -589,6 +656,13 @@ type Query {
   salesChargeTypes(first: Int, offset: Int): [SalesChargeType!]!
   salesChargeType(id: DbUuid!): SalesChargeType!
   salesChargeTypesCount: Int!
+  variantTypes(first: Int, offset: Int): [VariantType!]!
+  variantType(id: DbUuid!): VariantType!
+  totalVariantTypes: Int!
+  variantValues(variantTypeId: DbUuid, first: Int, offset: Int): [VariantValue!]!
+  variantValue(id: DbUuid!): VariantValue!
+  itemVariants(itemId: DbUuid, first: Int, offset: Int): [ItemVariant!]!
+  itemVariant(id: DbUuid!): ItemVariant!
 }
 
 type SalesChargeType {
@@ -704,4 +778,22 @@ type User {
   lastLoginAt: LocalDateTime
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
+}
+
+type VariantType {
+  id: DbUuid!
+  name: String!
+  description: String
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+  values: [VariantValue!]!
+}
+
+type VariantValue {
+  id: DbUuid!
+  value: String!
+  displayOrder: Int!
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+  variantType: VariantType!
 }

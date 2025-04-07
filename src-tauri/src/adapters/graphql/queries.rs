@@ -1,6 +1,9 @@
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
+    adapters::graphql::catalog::variants::{
+        item_variant_queries, variant_type_queries, variant_value_queries,
+    },
     adapters::graphql::Query,
     core::{
         models::{
@@ -9,6 +12,9 @@ use crate::{
                 discount_model::{Discount, DiscountState},
                 item_group_model::ItemGroup,
                 item_model::Item,
+                item_variant_model::ItemVariant,
+                variant_type_model::VariantType,
+                variant_value_model::VariantValue,
             },
             common::{
                 brand_model::Brand, channel_model::Channel, tax_group_model::TaxGroup,
@@ -363,5 +369,53 @@ impl Query {
 
     fn sales_charge_types_count(&self, context: &AppState) -> FieldResult<i32> {
         super::sales::sales_charge_type_queries::sales_charge_types_count(context)
+    }
+
+    // Variant Type Queries
+    fn variant_types(
+        &self,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<VariantType>> {
+        variant_type_queries::get_variant_types(first, offset, context)
+    }
+
+    fn variant_type(&self, id: DbUuid, context: &AppState) -> FieldResult<VariantType> {
+        variant_type_queries::get_variant_type(id, context)
+    }
+
+    fn total_variant_types(&self, context: &AppState) -> FieldResult<i32> {
+        variant_type_queries::get_total_variant_types(context)
+    }
+
+    // Variant Value Queries
+    fn variant_values(
+        &self,
+        variant_type_id: Option<DbUuid>,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<VariantValue>> {
+        variant_value_queries::get_variant_values(variant_type_id, first, offset, context)
+    }
+
+    fn variant_value(&self, id: DbUuid, context: &AppState) -> FieldResult<VariantValue> {
+        variant_value_queries::get_variant_value(id, context)
+    }
+
+    // Item Variant Queries
+    fn item_variants(
+        &self,
+        item_id: Option<DbUuid>,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<ItemVariant>> {
+        item_variant_queries::get_item_variants(item_id, first, offset, context)
+    }
+
+    fn item_variant(&self, id: DbUuid, context: &AppState) -> FieldResult<ItemVariant> {
+        item_variant_queries::get_item_variant(id, context)
     }
 }

@@ -1,6 +1,9 @@
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
+    adapters::graphql::catalog::variants::{
+        item_variant_mutations, variant_type_mutations, variant_value_mutations,
+    },
     core::{
         models::{
             auth::user_model::{User, UserNewInput, UserUpdateInput},
@@ -8,6 +11,11 @@ use crate::{
                 discount_model::{Discount, DiscountNewInput, DiscountUpdateInput},
                 item_group_model::{ItemGroup, ItemGroupNew, ItemGroupUpdate},
                 item_model::{Item, NewItem, UpdateItem},
+                item_variant_model::{ItemVariant, ItemVariantNewInput, ItemVariantUpdateInput},
+                variant_type_model::{VariantType, VariantTypeNewInput, VariantTypeUpdateInput},
+                variant_value_model::{
+                    VariantValue, VariantValueNewInput, VariantValueUpdateInput,
+                },
             },
             common::{
                 brand_model::{Brand, BrandNewInput, BrandUpdateInput},
@@ -414,5 +422,86 @@ impl Mutation {
 
     fn delete_sales_charge_type(id: DbUuid, context: &AppState) -> FieldResult<bool> {
         super::sales::sales_charge_type_mutations::delete_sales_charge_type(id, context)
+    }
+
+    // Variant Type Mutations
+    fn create_variant_type(
+        input: VariantTypeNewInput,
+        context: &AppState,
+    ) -> FieldResult<VariantType> {
+        variant_type_mutations::create_variant_type(input, context)
+    }
+
+    fn update_variant_type(
+        input: VariantTypeUpdateInput,
+        context: &AppState,
+    ) -> FieldResult<VariantType> {
+        variant_type_mutations::update_variant_type(input, context)
+    }
+
+    fn delete_variant_type(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        variant_type_mutations::delete_variant_type(id, context)
+    }
+
+    // Variant Value Mutations
+    fn create_variant_value(
+        input: VariantValueNewInput,
+        context: &AppState,
+    ) -> FieldResult<VariantValue> {
+        variant_value_mutations::create_variant_value(input, context)
+    }
+
+    fn update_variant_value(
+        input: VariantValueUpdateInput,
+        context: &AppState,
+    ) -> FieldResult<VariantValue> {
+        variant_value_mutations::update_variant_value(input, context)
+    }
+
+    fn delete_variant_value(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        variant_value_mutations::delete_variant_value(id, context)
+    }
+
+    // Item Variant Mutations
+    fn create_item_variant(
+        input: ItemVariantNewInput,
+        context: &AppState,
+    ) -> FieldResult<ItemVariant> {
+        item_variant_mutations::create_item_variant(input, context)
+    }
+
+    fn update_item_variant(
+        input: ItemVariantUpdateInput,
+        context: &AppState,
+    ) -> FieldResult<ItemVariant> {
+        item_variant_mutations::update_item_variant(input, context)
+    }
+
+    fn delete_item_variant(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        item_variant_mutations::delete_item_variant(id, context)
+    }
+
+    fn assign_variant_value_to_item_variant(
+        item_variant_id: DbUuid,
+        variant_value_id: DbUuid,
+        context: &AppState,
+    ) -> FieldResult<i32> {
+        item_variant_mutations::assign_variant_value_to_item_variant(
+            item_variant_id,
+            variant_value_id,
+            context,
+        )
+    }
+
+    fn remove_variant_value_from_item_variant(
+        item_variant_id: DbUuid,
+        variant_value_id: DbUuid,
+        context: &AppState,
+    ) -> FieldResult<i32> {
+        item_variant_mutations::remove_variant_value_from_item_variant(
+            item_variant_id,
+            variant_value_id,
+            context,
+        )
     }
 }

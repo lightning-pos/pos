@@ -1,4 +1,52 @@
-use diesel::{joinable, table};
+use diesel::{allow_tables_to_appear_in_same_query, joinable, table};
+
+table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp};
+
+    variant_types (id) {
+        id -> Text,
+        name -> Text,
+        description -> Nullable<Text>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    use diesel::sql_types::{Text, Integer, Timestamp};
+
+    variant_values (id) {
+        id -> Text,
+        variant_type_id -> Text,
+        value -> Text,
+        display_order -> Integer,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp, BigInt, Bool};
+
+    item_variants (id) {
+        id -> Text,
+        item_id -> Text,
+        sku -> Nullable<Text>,
+        price_adjustment -> Nullable<BigInt>,
+        is_default -> Bool,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    use diesel::sql_types::Text;
+
+    item_variant_values (item_variant_id, variant_value_id) {
+        item_variant_id -> Text,
+        variant_value_id -> Text,
+    }
+}
 
 table! {
     use diesel::sql_types::{Text, Nullable, Timestamp};
@@ -340,6 +388,16 @@ joinable!(items -> item_categories (category_id));
 joinable!(item_taxes -> items (item_id));
 joinable!(item_taxes -> taxes (tax_id));
 
+// ManyToOne (variant_values, variant_types)
+joinable!(variant_values -> variant_types (variant_type_id));
+
+// ManyToOne (item_variants, items)
+joinable!(item_variants -> items (item_id));
+
+// ManyToMany (item_variants, variant_values)
+joinable!(item_variant_values -> item_variants (item_variant_id));
+joinable!(item_variant_values -> variant_values (variant_value_id));
+
 // ManyToOne (orders, customers)
 joinable!(sales_orders -> customers (customer_id));
 
@@ -391,3 +449,26 @@ joinable!(tax_group_taxes -> taxes (tax_id));
 
 // ManyToOne (sales_order_charges, tax_groups)
 joinable!(sales_order_charges -> tax_groups (tax_group_id));
+
+allow_tables_to_appear_in_same_query!(
+    items,
+    item_categories,
+    item_taxes,
+    taxes,
+    variant_types,
+    variant_values,
+    item_variants,
+    item_variant_values,
+    sales_orders,
+    customers,
+    sales_order_items,
+    sales_order_charges,
+    sales_charge_types,
+    expenses,
+    purchase_categories,
+    cost_centers,
+    sales_order_payments,
+    payment_methods,
+    tax_groups,
+    tax_group_taxes
+);
