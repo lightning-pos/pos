@@ -24,6 +24,7 @@ interface VariantValuesListProps {
     pageSizes: number[]
     onPageChange: (page: number, size: number) => void
     onRefresh: () => void
+    variantTypeName?: string
 }
 
 const VariantValuesList: React.FC<VariantValuesListProps> = ({
@@ -36,6 +37,7 @@ const VariantValuesList: React.FC<VariantValuesListProps> = ({
     pageSizes,
     onPageChange,
     onRefresh,
+    variantTypeName,
 }) => {
     const [selectedVariantValue, setSelectedVariantValue] = useState<VariantValue | null>(null)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -82,8 +84,8 @@ const VariantValuesList: React.FC<VariantValuesListProps> = ({
     return (
         <>
             <DataTable<VariantValue>
-                title="Variant Values"
-                description="Manage the values for this variant type. For example, if the variant type is 'Size', values might be 'Small', 'Medium', 'Large', etc."
+                title={variantTypeName ? `${variantTypeName} Values` : 'Variant Values'}
+                description={variantTypeName ? `Manage values for the ${variantTypeName} variant type` : 'Manage the values for this variant type. For example, if the variant type is \'Size\', values might be \'Small\', \'Medium\', \'Large\', etc.'}
                 headers={headers}
                 tableRows={variantValues}
                 loading={loading}

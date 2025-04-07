@@ -39,9 +39,10 @@ import { formatCurrency } from '@/lib/util/number_format'
 
 interface ItemVariantsProps {
     itemId: string
+    itemName?: string
 }
 
-const ItemVariants: React.FC<ItemVariantsProps> = ({ itemId }) => {
+const ItemVariants: React.FC<ItemVariantsProps> = ({ itemId, itemName }) => {
     const router = useRouter()
     const [itemVariants, setItemVariants] = useState<ItemVariant[]>([])
     const [variantTypes, setVariantTypes] = useState<VariantType[]>([])
@@ -148,7 +149,7 @@ const ItemVariants: React.FC<ItemVariantsProps> = ({ itemId }) => {
             )}
 
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Item Variants</h3>
+                <h3 className="text-lg font-medium">{itemName ? `${itemName} Variants` : 'Item Variants'}</h3>
                 <Button
                     renderIcon={Add}
                     onClick={() => setIsAddModalOpen(true)}

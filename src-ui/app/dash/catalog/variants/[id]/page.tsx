@@ -1,7 +1,7 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
-import { Content, Button, Breadcrumb, BreadcrumbItem, Grid, Column, Tile, Stack } from '@carbon/react'
+import { Content, Button, Breadcrumb, BreadcrumbItem } from '@carbon/react'
 import { ArrowLeft } from '@carbon/icons-react'
 import VariantValuesList from './variant_values_list'
 import { gql } from '@/lib/graphql/execute'
@@ -13,18 +13,17 @@ import {
 } from '@/lib/graphql/graphql'
 
 interface VariantTypePageProps {
-    params: {
+    params: Promise<{
         id: string
-    }
+    }>
 }
 
 const VariantTypePage: React.FC<VariantTypePageProps> = ({ params }) => {
     const router = useRouter()
 
-    // NOTE: We're aware of the Next.js warning about accessing params directly.
-    // Since this is a client-side only project without server components,
-    // we're not using React.use() at this time. This will be addressed in a future update.
-    const variantTypeId = params.id
+    // Use React.use() to unwrap the params Promise
+    const unwrappedParams = use(params)
+    const variantTypeId = unwrappedParams.id
     const [variantType, setVariantType] = useState<VariantType | null>(null)
     const [variantValues, setVariantValues] = useState<VariantValue[]>([])
     const [loading, setLoading] = useState(false)
@@ -77,41 +76,27 @@ const VariantTypePage: React.FC<VariantTypePageProps> = ({ params }) => {
 
     return (
         <Content className="min-h-[calc(100dvh-3rem)] p-4 flex flex-col">
-            <Breadcrumb className="mb-4">
-                <BreadcrumbItem onClick={() => router.push('/dash/catalog/variants')}>
-                    Variants
-                </BreadcrumbItem>
-                <BreadcrumbItem isCurrentPage>
-                    {variantType?.name || 'Loading...'}
-                </BreadcrumbItem>
-            </Breadcrumb>
+            <div className="flex items-center mb-4">
+                <Button
+                    kind="ghost"
+                    size="sm"
+                    renderIcon={ArrowLeft}
+                    iconDescription="Back"
+                    onClick={() => router.push('/dash/catalog/variants')}
+                    hasIconOnly
+                    className="mr-2"
+                />
+                <Breadcrumb>
+                    <BreadcrumbItem onClick={() => router.push('/dash/catalog/variants')}>
+                        Variants
+                    </BreadcrumbItem>
+                    <BreadcrumbItem isCurrentPage>
+                        {variantType?.name || 'Loading...'}
+                    </BreadcrumbItem>
+                </Breadcrumb>
+            </div>
 
-            <Button
-                kind="ghost"
-                renderIcon={ArrowLeft}
-                iconDescription="Back"
-                onClick={() => router.push('/dash/catalog/variants')}
-                className="mb-4 self-start"
-            >
-                Back to Variant Types
-            </Button>
-
-            {variantType && (
-                <Grid className="mb-4">
-                    <Column lg={16} md={8} sm={4}>
-                        <Tile>
-                            <Stack gap={4}>
-                                <h2 className="text-2xl font-bold">{variantType.name}</h2>
-                                {variantType.description && (
-                                    <p className="text-gray-600">{variantType.description}</p>
-                                )}
-                            </Stack>
-                        </Tile>
-                    </Column>
-                </Grid>
-            )}
-
-            <div className="flex-grow" style={{ height: "calc(100vh - 20rem)" }}>
+            <div className="flex-grow" style={{ height: "calc(100vh - 12rem)" }}>
                 <VariantValuesList
                     variantTypeId={variantTypeId}
                     variantValues={variantValues}
@@ -126,6 +111,7 @@ const VariantTypePage: React.FC<VariantTypePageProps> = ({ params }) => {
                         fetchVariantValues(page, size)
                     }}
                     onRefresh={handleRefresh}
+                    variantTypeName={variantType?.name}
                 />
             </div>
         </Content>

@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, use } from 'react'
 import { useRouter } from 'next/navigation'
 import {
     Content,
@@ -28,18 +28,17 @@ import {
 import { formatCurrency } from '@/lib/util/number_format'
 
 interface ItemDetailPageProps {
-    params: {
+    params: Promise<{
         id: string
-    }
+    }>
 }
 
 const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
     const router = useRouter()
 
-    // NOTE: We're aware of the Next.js warning about accessing params directly.
-    // Since this is a client-side only project without server components,
-    // we're not using React.use() at this time. This will be addressed in a future update.
-    const itemId = params.id
+    // Use React.use() to unwrap the params Promise
+    const unwrappedParams = use(params)
+    const itemId = unwrappedParams.id
 
     const [item, setItem] = useState<Item | null>(null)
     const [loading, setLoading] = useState(false)
@@ -68,7 +67,7 @@ const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
         } finally {
             setLoading(false)
         }
-    }, [params.id])
+    }, [itemId])
 
     useEffect(() => {
         fetchItem()
@@ -91,14 +90,18 @@ const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
                     subtitle={error}
                     onCloseButtonClick={() => setError(null)}
                 />
-                <Button
-                    kind="ghost"
-                    renderIcon={ArrowLeft}
-                    onClick={() => router.push('/dash/catalog/items')}
-                    className="mt-4 self-start"
-                >
-                    Back to Items
-                </Button>
+                <div className="flex items-center mt-4">
+                    <Button
+                        kind="ghost"
+                        size="sm"
+                        renderIcon={ArrowLeft}
+                        iconDescription="Back"
+                        onClick={() => router.push('/dash/catalog/items')}
+                        hasIconOnly
+                        className="mr-2"
+                    />
+                    <span>Back to Items</span>
+                </div>
             </Content>
         )
     }
@@ -111,38 +114,43 @@ const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
                     title="Not Found"
                     subtitle="The requested item could not be found."
                 />
-                <Button
-                    kind="ghost"
-                    renderIcon={ArrowLeft}
-                    onClick={() => router.push('/dash/catalog/items')}
-                    className="mt-4 self-start"
-                >
-                    Back to Items
-                </Button>
+                <div className="flex items-center mt-4">
+                    <Button
+                        kind="ghost"
+                        size="sm"
+                        renderIcon={ArrowLeft}
+                        iconDescription="Back"
+                        onClick={() => router.push('/dash/catalog/items')}
+                        hasIconOnly
+                        className="mr-2"
+                    />
+                    <span>Back to Items</span>
+                </div>
             </Content>
         )
     }
 
     return (
         <Content className="min-h-[calc(100dvh-3rem)] p-4 flex flex-col">
-            <Breadcrumb className="mb-4">
-                <BreadcrumbItem onClick={() => router.push('/dash/catalog/items')}>
-                    Items
-                </BreadcrumbItem>
-                <BreadcrumbItem isCurrentPage>
-                    {item.name}
-                </BreadcrumbItem>
-            </Breadcrumb>
-
-            <Button
-                kind="ghost"
-                renderIcon={ArrowLeft}
-                iconDescription="Back"
-                onClick={() => router.push('/dash/catalog/items')}
-                className="mb-4 self-start"
-            >
-                Back to Items
-            </Button>
+            <div className="flex items-center mb-4">
+                <Button
+                    kind="ghost"
+                    size="sm"
+                    renderIcon={ArrowLeft}
+                    iconDescription="Back"
+                    onClick={() => router.push('/dash/catalog/items')}
+                    hasIconOnly
+                    className="mr-2"
+                />
+                <Breadcrumb>
+                    <BreadcrumbItem onClick={() => router.push('/dash/catalog/items')}>
+                        Items
+                    </BreadcrumbItem>
+                    <BreadcrumbItem isCurrentPage>
+                        {item.name}
+                    </BreadcrumbItem>
+                </Breadcrumb>
+            </div>
 
             <Grid className="mb-4">
                 <Column lg={16} md={8} sm={4}>
