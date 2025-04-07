@@ -294,6 +294,7 @@ export type ItemTaxNewInput = {
 export type Mutation = {
   __typename?: 'Mutation';
   addUser: User;
+  assignTaxToGroup: Scalars['Int']['output'];
   assignTaxToItem: Scalars['Int']['output'];
   createBrand: Brand;
   createCart: Cart;
@@ -311,6 +312,7 @@ export type Mutation = {
   createSalesOrderPayment: SalesOrderPayment;
   createSupplier: Supplier;
   createTax: Tax;
+  createTaxGroup: TaxGroup;
   deleteBrand: Scalars['Int']['output'];
   deleteCart: Scalars['Int']['output'];
   deleteChannel: Scalars['Int']['output'];
@@ -325,9 +327,11 @@ export type Mutation = {
   deleteSalesChargeType: Scalars['Boolean']['output'];
   deleteSupplier: Scalars['Int']['output'];
   deleteTax: Scalars['Int']['output'];
+  deleteTaxGroup: Scalars['Int']['output'];
   deleteUser: Scalars['Int']['output'];
   login: Scalars['Boolean']['output'];
   logout: Scalars['Boolean']['output'];
+  removeTaxFromGroup: Scalars['Int']['output'];
   removeTaxFromItem: Scalars['Int']['output'];
   updateBrand: Brand;
   updateCart: Cart;
@@ -344,6 +348,7 @@ export type Mutation = {
   updateSalesOrderPayment: SalesOrderPayment;
   updateSupplier: Supplier;
   updateTax: Tax;
+  updateTaxGroup: TaxGroup;
   updateUser: User;
   voidSalesOrder: SalesOrder;
   voidSalesOrderPayment: SalesOrderPayment;
@@ -352,6 +357,12 @@ export type Mutation = {
 
 export type MutationAddUserArgs = {
   user: UserNewInput;
+};
+
+
+export type MutationAssignTaxToGroupArgs = {
+  taxGroupId: Scalars['DbUuid']['input'];
+  taxId: Scalars['DbUuid']['input'];
 };
 
 
@@ -448,6 +459,11 @@ export type MutationCreateTaxArgs = {
 };
 
 
+export type MutationCreateTaxGroupArgs = {
+  input: TaxGroupNewInput;
+};
+
+
 export type MutationDeleteBrandArgs = {
   id: Scalars['DbUuid']['input'];
 };
@@ -518,6 +534,11 @@ export type MutationDeleteTaxArgs = {
 };
 
 
+export type MutationDeleteTaxGroupArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
 export type MutationDeleteUserArgs = {
   id: Scalars['DbUuid']['input'];
 };
@@ -526,6 +547,12 @@ export type MutationDeleteUserArgs = {
 export type MutationLoginArgs = {
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
+};
+
+
+export type MutationRemoveTaxFromGroupArgs = {
+  taxGroupId: Scalars['DbUuid']['input'];
+  taxId: Scalars['DbUuid']['input'];
 };
 
 
@@ -618,6 +645,11 @@ export type MutationUpdateSupplierArgs = {
 
 export type MutationUpdateTaxArgs = {
   input: TaxUpdateInput;
+};
+
+
+export type MutationUpdateTaxGroupArgs = {
+  input: TaxGroupUpdateInput;
 };
 
 
@@ -721,6 +753,8 @@ export type Query = {
   supplier: Supplier;
   suppliers: Array<Supplier>;
   tax: Tax;
+  taxGroup: TaxGroup;
+  taxGroups: Array<TaxGroup>;
   taxes: Array<Tax>;
   totalCarts: Scalars['Int']['output'];
   totalCostCenters: Scalars['Int']['output'];
@@ -729,6 +763,7 @@ export type Query = {
   totalPaymentMethods: Scalars['Int']['output'];
   totalSalesOrders: Scalars['Int']['output'];
   totalSuppliers: Scalars['Int']['output'];
+  totalTaxGroups: Scalars['Int']['output'];
   totalTaxes: Scalars['Int']['output'];
   user: User;
   users: Array<User>;
@@ -905,6 +940,17 @@ export type QuerySuppliersArgs = {
 
 export type QueryTaxArgs = {
   id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryTaxGroupArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryTaxGroupsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -1133,6 +1179,28 @@ export type Tax = {
   name: Scalars['String']['output'];
   rate: Scalars['Percentage']['output'];
   updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type TaxGroup = {
+  __typename?: 'TaxGroup';
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  taxes: Array<Tax>;
+  updatedAt: Scalars['LocalDateTime']['output'];
+};
+
+export type TaxGroupNewInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  taxIds?: InputMaybe<Array<Scalars['DbUuid']['input']>>;
+};
+
+export type TaxGroupUpdateInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type TaxNewInput = {

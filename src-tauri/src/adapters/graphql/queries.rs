@@ -10,7 +10,10 @@ use crate::{
                 item_group_model::ItemGroup,
                 item_model::Item,
             },
-            common::{brand_model::Brand, channel_model::Channel, tax_model::Tax},
+            common::{
+                brand_model::Brand, channel_model::Channel, tax_group_model::TaxGroup,
+                tax_model::Tax,
+            },
             finance::{cost_center_model::CostCenter, payment_method_model::PaymentMethod},
             purchases::{
                 expense_model::Expense, purchase_category_model::PurchaseCategory,
@@ -160,6 +163,23 @@ impl Query {
 
     fn tax(&self, id: DbUuid, context: &AppState) -> FieldResult<Tax> {
         super::common::tax_queries::tax(id, context)
+    }
+
+    fn tax_groups(
+        &self,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<TaxGroup>> {
+        super::common::tax_group_queries::tax_groups(first, offset, context)
+    }
+
+    fn total_tax_groups(&self, context: &AppState) -> FieldResult<i32> {
+        super::common::tax_group_queries::total_tax_groups(context)
+    }
+
+    fn tax_group(&self, id: DbUuid, context: &AppState) -> FieldResult<TaxGroup> {
+        super::common::tax_group_queries::tax_group(id, context)
     }
 
     fn channels(&self, context: &AppState) -> FieldResult<Vec<Channel>> {

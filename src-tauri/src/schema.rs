@@ -365,3 +365,29 @@ joinable!(sales_order_payments -> sales_orders (order_id));
 
 // ManyToOne (sales_order_payments, payment_methods)
 joinable!(sales_order_payments -> payment_methods (payment_method_id));
+
+table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp};
+
+    tax_groups (id) {
+        id -> Text,
+        name -> Text,
+        description -> Nullable<Text>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
+    tax_group_taxes (tax_group_id, tax_id) {
+        tax_group_id -> Text,
+        tax_id -> Text,
+    }
+}
+
+// ManyToMany (tax_groups, taxes)
+joinable!(tax_group_taxes -> tax_groups (tax_group_id));
+joinable!(tax_group_taxes -> taxes (tax_id));
+
+// ManyToOne (sales_order_charges, tax_groups)
+joinable!(sales_order_charges -> tax_groups (tax_group_id));

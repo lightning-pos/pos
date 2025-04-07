@@ -12,6 +12,7 @@ use crate::{
             common::{
                 brand_model::{Brand, BrandNewInput, BrandUpdateInput},
                 channel_model::{Channel, ChannelNewInput, ChannelUpdateInput},
+                tax_group_model::{TaxGroup, TaxGroupNewInput, TaxGroupUpdateInput},
                 tax_model::{ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
             },
             finance::{
@@ -190,6 +191,35 @@ impl Mutation {
         context: &AppState,
     ) -> FieldResult<i32> {
         super::common::tax_mutations::remove_tax_from_item(item_id, tax_id, context)
+    }
+
+    // Tax Group Mutations
+    fn create_tax_group(input: TaxGroupNewInput, context: &AppState) -> FieldResult<TaxGroup> {
+        super::common::tax_group_mutations::create_tax_group(input, context)
+    }
+
+    fn update_tax_group(input: TaxGroupUpdateInput, context: &AppState) -> FieldResult<TaxGroup> {
+        super::common::tax_group_mutations::update_tax_group(input, context)
+    }
+
+    fn delete_tax_group(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::common::tax_group_mutations::delete_tax_group(id, context)
+    }
+
+    fn assign_tax_to_group(
+        tax_group_id: DbUuid,
+        tax_id: DbUuid,
+        context: &AppState,
+    ) -> FieldResult<i32> {
+        super::common::tax_group_mutations::assign_tax_to_group(tax_group_id, tax_id, context)
+    }
+
+    fn remove_tax_from_group(
+        tax_group_id: DbUuid,
+        tax_id: DbUuid,
+        context: &AppState,
+    ) -> FieldResult<i32> {
+        super::common::tax_group_mutations::remove_tax_from_group(tax_group_id, tax_id, context)
     }
 
     // Supplier Mutations

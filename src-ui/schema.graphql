@@ -280,6 +280,18 @@ input SupplierUpdateInput {
   phone: String
 }
 
+input TaxGroupNewInput {
+  name: String!
+  description: String
+  taxIds: [DbUuid!]
+}
+
+input TaxGroupUpdateInput {
+  id: DbUuid!
+  name: String
+  description: String
+}
+
 input TaxNewInput {
   name: String!
   rate: Percentage!
@@ -467,6 +479,11 @@ type Mutation {
   deleteTax(id: DbUuid!): Int!
   assignTaxToItem(input: ItemTaxNewInput!): Int!
   removeTaxFromItem(itemId: DbUuid!, taxId: DbUuid!): Int!
+  createTaxGroup(input: TaxGroupNewInput!): TaxGroup!
+  updateTaxGroup(input: TaxGroupUpdateInput!): TaxGroup!
+  deleteTaxGroup(id: DbUuid!): Int!
+  assignTaxToGroup(taxGroupId: DbUuid!, taxId: DbUuid!): Int!
+  removeTaxFromGroup(taxGroupId: DbUuid!, taxId: DbUuid!): Int!
   createSupplier(supplier: SupplierNewInput!): Supplier!
   updateSupplier(supplier: SupplierUpdateInput!): Supplier!
   deleteSupplier(id: DbUuid!): Int!
@@ -541,6 +558,9 @@ type Query {
   taxes(first: Int, offset: Int): [Tax!]!
   totalTaxes: Int!
   tax(id: DbUuid!): Tax!
+  taxGroups(first: Int, offset: Int): [TaxGroup!]!
+  totalTaxGroups: Int!
+  taxGroup(id: DbUuid!): TaxGroup!
   channels: [Channel!]!
   activeChannels: [Channel!]!
   channel(id: DbUuid!): Channel!
@@ -665,6 +685,15 @@ type Tax {
   description: String
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
+}
+
+type TaxGroup {
+  id: DbUuid!
+  name: String!
+  description: String
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
+  taxes: [Tax!]!
 }
 
 type User {
