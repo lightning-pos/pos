@@ -16,7 +16,10 @@ use crate::{
                 expense_model::Expense, purchase_category_model::PurchaseCategory,
                 supplier_model::Supplier,
             },
-            sales::{cart_model::Cart, customer_model::Customer, sales_order_model::SalesOrder},
+            sales::{
+                cart_model::Cart, customer_model::Customer,
+                sales_charge_type_model::SalesChargeType, sales_order_model::SalesOrder,
+            },
         },
         types::db_uuid::DbUuid,
     },
@@ -322,5 +325,23 @@ impl Query {
 
     fn discount(&self, id: DbUuid, context: &AppState) -> FieldResult<Discount> {
         super::catalog::discount_queries::discount(id, context)
+    }
+
+    // Sales Charge Type Queries
+    fn sales_charge_types(
+        &self,
+        first: Option<i32>,
+        offset: Option<i32>,
+        context: &AppState,
+    ) -> FieldResult<Vec<SalesChargeType>> {
+        super::sales::sales_charge_type_queries::sales_charge_types(first, offset, context)
+    }
+
+    fn sales_charge_type(&self, id: DbUuid, context: &AppState) -> FieldResult<SalesChargeType> {
+        super::sales::sales_charge_type_queries::sales_charge_type(id, context)
+    }
+
+    fn sales_charge_types_count(&self, context: &AppState) -> FieldResult<i32> {
+        super::sales::sales_charge_type_queries::sales_charge_types_count(context)
     }
 }

@@ -7,12 +7,7 @@ use diesel::{
 };
 use juniper::graphql_scalar;
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{self, Display, Formatter},
-    hash::{Hash, Hasher},
-    ops::Deref,
-    str::FromStr,
-};
+use std::hash::Hash;
 use uuid::Uuid;
 
 #[derive(

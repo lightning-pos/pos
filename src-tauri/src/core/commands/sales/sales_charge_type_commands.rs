@@ -6,7 +6,6 @@ use crate::{
     core::{
         commands::{app_service::AppService, Command},
         models::sales::sales_charge_type_model::*,
-        types::db_uuid::DbUuid,
     },
     error::Result,
     schema::sales_charge_types,
@@ -19,6 +18,10 @@ pub struct CreateSalesChargeTypeCommand {
 
 pub struct UpdateSalesChargeTypeCommand {
     pub charge_type: SalesChargeTypeUpdateInput,
+}
+
+pub struct DeleteSalesChargeTypeCommand {
+    pub id: crate::core::types::db_uuid::DbUuid,
 }
 
 // Command Implementations
@@ -61,6 +64,32 @@ impl Command for UpdateSalesChargeTypeCommand {
                 .get_result(conn)?;
 
             Ok(res)
+        })
+    }
+}
+
+impl Command for DeleteSalesChargeTypeCommand {
+    type Output = bool;
+
+    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        service.conn.transaction(|conn| {
+            // Check if the charge type is used in any sales order charges
+            let is_used = diesel::dsl::select(diesel::dsl::exists(
+                crate::schema::sales_order_charges::table
+                    .filter(crate::schema::sales_order_charges::charge_type_id.eq(self.id)),
+            ))
+            .get_result::<bool>(conn)?;
+
+            if is_used {
+                return Err(crate::error::Error::HasChildrenError);
+            }
+
+            // Delete the charge type
+            let deleted_count = diesel::delete(sales_charge_types::table)
+                .filter(sales_charge_types::id.eq(self.id))
+                .execute(conn)?;
+
+            Ok(deleted_count > 0)
         })
     }
 }
@@ -143,5 +172,37 @@ mod tests {
         let result = update_cmd.exec(&mut service);
 
         assert!(matches!(result, Err(Error::DieselError(_))));
+    }
+
+    #[test]
+    fn test_delete_sales_charge_type() {
+        let mut service = AppService::new(":memory:");
+
+        // Create a charge type first
+        let input = SalesChargeTypeNewInput {
+            name: "Test Charge".to_string(),
+            description: None,
+        };
+        let cmd = CreateSalesChargeTypeCommand { charge_type: input };
+        let created = cmd.exec(&mut service).unwrap();
+
+        // Delete it
+        let delete_cmd = DeleteSalesChargeTypeCommand { id: created.id };
+        let result = delete_cmd.exec(&mut service).unwrap();
+
+        assert!(result);
+
+        // Verify it's gone by trying to update it
+        let update_input = SalesChargeTypeUpdateInput {
+            id: created.id,
+            name: Some("Updated Name".to_string()),
+            description: None,
+        };
+        let update_cmd = UpdateSalesChargeTypeCommand {
+            charge_type: update_input,
+        };
+        let update_result = update_cmd.exec(&mut service);
+
+        assert!(matches!(update_result, Err(Error::DieselError(_))));
     }
 }

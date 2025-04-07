@@ -7,8 +7,8 @@ use crate::{
     core::{
         commands::{app_service::AppService, Command},
         models::sales::{
-            sales_order_charge_model::{SalesOrderCharge, SalesOrderChargeNewInput},
-            sales_order_item_model::{SalesOrderItem, SalesOrderItemInput},
+            sales_order_charge_model::SalesOrderCharge,
+            sales_order_item_model::SalesOrderItem,
             sales_order_model::{
                 SalesOrder, SalesOrderNewInput, SalesOrderPaymentState, SalesOrderState,
             },

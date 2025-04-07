@@ -1,7 +1,6 @@
 use chrono::NaiveDateTime;
-use diesel::prelude::{AsChangeset, Identifiable, Insertable, Queryable, Selectable};
+use diesel::prelude::{Identifiable, Insertable, Queryable, Selectable};
 use juniper::GraphQLInputObject;
-use uuid::Uuid;
 
 use crate::{
     core::types::{db_uuid::DbUuid, money::Money},

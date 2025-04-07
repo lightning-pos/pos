@@ -168,7 +168,7 @@ impl Command for GetSalesOrderPaymentsCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentState as FinancePaymentState;
+    use crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentState;
     use crate::core::{
         commands::{
             finance::payment_method_commands::CreatePaymentMethodCommand,
@@ -177,9 +177,7 @@ mod tests {
         models::{
             finance::payment_method_model::{PaymentMethodNewInput, PaymentMethodState},
             sales::{
-                sales_order_charge_model::SalesOrderChargeNewInput,
-                sales_order_item_model::SalesOrderItemInput,
-                sales_order_model::{SalesOrderNewInput, SalesOrderState},
+                sales_order_item_model::SalesOrderItemInput, sales_order_model::SalesOrderNewInput,
             },
         },
     };
@@ -285,7 +283,7 @@ mod tests {
         assert_eq!(result.order_id, order.id);
         assert_eq!(result.payment_method_id, payment_method.id);
         assert_eq!(result.amount, 500.into());
-        assert_eq!(result.state, FinancePaymentState::Completed);
+        assert_eq!(result.state, SalesOrderPaymentState::Completed);
     }
 
     #[test]
@@ -410,7 +408,7 @@ mod tests {
         let voided_payment = void_cmd.exec(&mut service).unwrap();
 
         assert_eq!(voided_payment.id, payment.id);
-        assert_eq!(voided_payment.state, FinancePaymentState::Voided);
+        assert_eq!(voided_payment.state, SalesOrderPaymentState::Voided);
     }
 
     #[test]

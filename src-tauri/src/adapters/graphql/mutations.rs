@@ -26,6 +26,9 @@ use crate::{
             sales::{
                 cart_model::{Cart, CartNewInput, CartUpdateInput},
                 customer_model::{Customer, CustomerNewInput, CustomerUpdateInput},
+                sales_charge_type_model::{
+                    SalesChargeType, SalesChargeTypeNewInput, SalesChargeTypeUpdateInput,
+                },
                 sales_order_model::{SalesOrder, SalesOrderNewInput},
             },
         },
@@ -362,5 +365,24 @@ impl Mutation {
 
     fn delete_discount(id: DbUuid, context: &AppState) -> FieldResult<i32> {
         super::catalog::discount_mutations::delete_discount(id, context)
+    }
+
+    // Sales Charge Type Mutations
+    fn create_sales_charge_type(
+        charge_type: SalesChargeTypeNewInput,
+        context: &AppState,
+    ) -> FieldResult<SalesChargeType> {
+        super::sales::sales_charge_type_mutations::create_sales_charge_type(charge_type, context)
+    }
+
+    fn update_sales_charge_type(
+        charge_type: SalesChargeTypeUpdateInput,
+        context: &AppState,
+    ) -> FieldResult<SalesChargeType> {
+        super::sales::sales_charge_type_mutations::update_sales_charge_type(charge_type, context)
+    }
+
+    fn delete_sales_charge_type(id: DbUuid, context: &AppState) -> FieldResult<bool> {
+        super::sales::sales_charge_type_mutations::delete_sales_charge_type(id, context)
     }
 }

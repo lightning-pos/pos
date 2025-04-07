@@ -195,6 +195,17 @@ input NewItem {
   taxIds: [DbUuid!]
 }
 
+input SalesChargeTypeNewInput {
+  name: String!
+  description: String
+}
+
+input SalesChargeTypeUpdateInput {
+  id: DbUuid!
+  name: String
+  description: String
+}
+
 input SalesOrderChargeNewInput {
   chargeTypeId: DbUuid!
   chargeTypeName: String!
@@ -480,6 +491,9 @@ type Mutation {
   createDiscount(discount: DiscountNewInput!): Discount!
   updateDiscount(discount: DiscountUpdateInput!): Discount!
   deleteDiscount(id: DbUuid!): Int!
+  createSalesChargeType(chargeType: SalesChargeTypeNewInput!): SalesChargeType!
+  updateSalesChargeType(chargeType: SalesChargeTypeUpdateInput!): SalesChargeType!
+  deleteSalesChargeType(id: DbUuid!): Boolean!
 }
 
 "Payment Method"
@@ -552,6 +566,17 @@ type Query {
   salesOrderPayments(orderId: DbUuid!): [SalesOrderPayment!]!
   discounts(first: Int, offset: Int, state: DiscountState): [Discount!]!
   discount(id: DbUuid!): Discount!
+  salesChargeTypes(first: Int, offset: Int): [SalesChargeType!]!
+  salesChargeType(id: DbUuid!): SalesChargeType!
+  salesChargeTypesCount: Int!
+}
+
+type SalesChargeType {
+  id: DbUuid!
+  name: String!
+  description: String
+  createdAt: LocalDateTime!
+  updatedAt: LocalDateTime!
 }
 
 type SalesOrder {
