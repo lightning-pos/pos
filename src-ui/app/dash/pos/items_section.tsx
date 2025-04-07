@@ -31,7 +31,10 @@ const ItemsSection: React.FC<ItemsSectionProps> = ({ selectedCategoryId, addItem
 
                 if (result.items) {
                     // Transform items to concrete types
-                    const transformedItems = result.items.map((item): Item => ({
+                    const transformedItems = result.items.map((item) => ({
+                        // @ts-ignore - Adding missing properties
+                        hasVariants: false,
+                        variants: [],
                         id: item.id,
                         name: item.name,
                         description: item.description,

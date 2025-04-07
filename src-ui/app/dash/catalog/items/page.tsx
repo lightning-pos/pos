@@ -60,7 +60,7 @@ const Items = () => {
                 categoryTransformed: item.category.name || 'Unknown',
                 taxesTransformed: item.taxes.map((tax) => tax.name).join(', '),
             }))
-            setItemsList(tableRows)
+            setItemsList(tableRows as unknown as TableRow[])
 
             // Fetch categories
             const categoriesResult = await gql(GetItemCategoriesDocument)

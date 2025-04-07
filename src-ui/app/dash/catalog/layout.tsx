@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { Category, Catalog as CatalogIcon, PricingConsumption, ShoppingCatalog, Branch, PiggyBank, ShoppingCartPlus, ShoppingCart } from '@carbon/icons-react'
+import { Category, Catalog as CatalogIcon, PricingConsumption, ShoppingCatalog, Branch, PiggyBank, ShoppingCartPlus, ShoppingCart, TagGroup } from '@carbon/icons-react'
 import { SideNav, SideNavItems, SideNavLink } from '@carbon/react'
 import { useRouter } from 'next/navigation'
 
@@ -34,6 +34,9 @@ export default function CatalogLayout({
                     </SideNavLink>
                     <SideNavLink renderIcon={PricingConsumption} large onClick={() => { router.push('/dash/catalog/charges') }}>
                         Charges
+                    </SideNavLink>
+                    <SideNavLink renderIcon={TagGroup} large onClick={() => { router.push('/dash/catalog/variants') }}>
+                        Variants
                     </SideNavLink>
                 </SideNavItems>
             </SideNav>

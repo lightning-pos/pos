@@ -236,7 +236,9 @@ export type Item = {
   __typename?: 'Item';
   category: ItemGroup;
   createdAt: Scalars['LocalDateTime']['output'];
+  defaultVariant?: Maybe<ItemVariant>;
   description?: Maybe<Scalars['String']['output']>;
+  hasVariants: Scalars['Boolean']['output'];
   id: Scalars['DbUuid']['output'];
   name: Scalars['String']['output'];
   nature: ItemNature;
@@ -244,6 +246,7 @@ export type Item = {
   state: ItemState;
   taxes: Array<Tax>;
   updatedAt: Scalars['LocalDateTime']['output'];
+  variants: Array<ItemVariant>;
 };
 
 export type ItemGroup = {
@@ -291,11 +294,41 @@ export type ItemTaxNewInput = {
   taxId: Scalars['DbUuid']['input'];
 };
 
+export type ItemVariant = {
+  __typename?: 'ItemVariant';
+  createdAt: Scalars['LocalDateTime']['output'];
+  finalPrice: Scalars['Money']['output'];
+  id: Scalars['DbUuid']['output'];
+  isDefault: Scalars['Boolean']['output'];
+  item: Item;
+  priceAdjustment?: Maybe<Scalars['Money']['output']>;
+  sku?: Maybe<Scalars['String']['output']>;
+  updatedAt: Scalars['LocalDateTime']['output'];
+  variantValues: Array<VariantValue>;
+};
+
+export type ItemVariantNewInput = {
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  itemId: Scalars['DbUuid']['input'];
+  priceAdjustment?: InputMaybe<Scalars['Money']['input']>;
+  sku?: InputMaybe<Scalars['String']['input']>;
+  variantValueIds: Array<Scalars['DbUuid']['input']>;
+};
+
+export type ItemVariantUpdateInput = {
+  id: Scalars['DbUuid']['input'];
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  priceAdjustment?: InputMaybe<Scalars['Money']['input']>;
+  sku?: InputMaybe<Scalars['String']['input']>;
+  updatedAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   addUser: User;
   assignTaxToGroup: Scalars['Int']['output'];
   assignTaxToItem: Scalars['Int']['output'];
+  assignVariantValueToItemVariant: Scalars['Int']['output'];
   createBrand: Brand;
   createCart: Cart;
   createChannel: Channel;
@@ -305,6 +338,7 @@ export type Mutation = {
   createExpense: Expense;
   createItem: Item;
   createItemCategory: ItemGroup;
+  createItemVariant: ItemVariant;
   createPaymentMethod: PaymentMethod;
   createPurchaseCategory: PurchaseCategory;
   createSalesChargeType: SalesChargeType;
@@ -313,6 +347,8 @@ export type Mutation = {
   createSupplier: Supplier;
   createTax: Tax;
   createTaxGroup: TaxGroup;
+  createVariantType: VariantType;
+  createVariantValue: VariantValue;
   deleteBrand: Scalars['Int']['output'];
   deleteCart: Scalars['Int']['output'];
   deleteChannel: Scalars['Int']['output'];
@@ -322,6 +358,7 @@ export type Mutation = {
   deleteExpense: Scalars['Int']['output'];
   deleteItem: Scalars['Int']['output'];
   deleteItemCategory: Scalars['Int']['output'];
+  deleteItemVariant: Scalars['Int']['output'];
   deletePaymentMethod: Scalars['DbUuid']['output'];
   deletePurchaseCategory: Scalars['DbUuid']['output'];
   deleteSalesChargeType: Scalars['Boolean']['output'];
@@ -329,10 +366,13 @@ export type Mutation = {
   deleteTax: Scalars['Int']['output'];
   deleteTaxGroup: Scalars['Int']['output'];
   deleteUser: Scalars['Int']['output'];
+  deleteVariantType: Scalars['Int']['output'];
+  deleteVariantValue: Scalars['Int']['output'];
   login: Scalars['Boolean']['output'];
   logout: Scalars['Boolean']['output'];
   removeTaxFromGroup: Scalars['Int']['output'];
   removeTaxFromItem: Scalars['Int']['output'];
+  removeVariantValueFromItemVariant: Scalars['Int']['output'];
   updateBrand: Brand;
   updateCart: Cart;
   updateChannel: Channel;
@@ -342,6 +382,7 @@ export type Mutation = {
   updateExpense: Expense;
   updateItem: Item;
   updateItemCategory: ItemGroup;
+  updateItemVariant: ItemVariant;
   updatePaymentMethod: PaymentMethod;
   updatePurchaseCategory: PurchaseCategory;
   updateSalesChargeType: SalesChargeType;
@@ -350,6 +391,8 @@ export type Mutation = {
   updateTax: Tax;
   updateTaxGroup: TaxGroup;
   updateUser: User;
+  updateVariantType: VariantType;
+  updateVariantValue: VariantValue;
   voidSalesOrder: SalesOrder;
   voidSalesOrderPayment: SalesOrderPayment;
 };
@@ -368,6 +411,12 @@ export type MutationAssignTaxToGroupArgs = {
 
 export type MutationAssignTaxToItemArgs = {
   input: ItemTaxNewInput;
+};
+
+
+export type MutationAssignVariantValueToItemVariantArgs = {
+  itemVariantId: Scalars['DbUuid']['input'];
+  variantValueId: Scalars['DbUuid']['input'];
 };
 
 
@@ -419,6 +468,11 @@ export type MutationCreateItemCategoryArgs = {
 };
 
 
+export type MutationCreateItemVariantArgs = {
+  input: ItemVariantNewInput;
+};
+
+
 export type MutationCreatePaymentMethodArgs = {
   code: Scalars['String']['input'];
   description?: InputMaybe<Scalars['String']['input']>;
@@ -461,6 +515,16 @@ export type MutationCreateTaxArgs = {
 
 export type MutationCreateTaxGroupArgs = {
   input: TaxGroupNewInput;
+};
+
+
+export type MutationCreateVariantTypeArgs = {
+  input: VariantTypeNewInput;
+};
+
+
+export type MutationCreateVariantValueArgs = {
+  input: VariantValueNewInput;
 };
 
 
@@ -509,6 +573,11 @@ export type MutationDeleteItemCategoryArgs = {
 };
 
 
+export type MutationDeleteItemVariantArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
 export type MutationDeletePaymentMethodArgs = {
   id: Scalars['DbUuid']['input'];
 };
@@ -544,6 +613,16 @@ export type MutationDeleteUserArgs = {
 };
 
 
+export type MutationDeleteVariantTypeArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationDeleteVariantValueArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
 export type MutationLoginArgs = {
   password: Scalars['String']['input'];
   username: Scalars['String']['input'];
@@ -559,6 +638,12 @@ export type MutationRemoveTaxFromGroupArgs = {
 export type MutationRemoveTaxFromItemArgs = {
   itemId: Scalars['DbUuid']['input'];
   taxId: Scalars['DbUuid']['input'];
+};
+
+
+export type MutationRemoveVariantValueFromItemVariantArgs = {
+  itemVariantId: Scalars['DbUuid']['input'];
+  variantValueId: Scalars['DbUuid']['input'];
 };
 
 
@@ -611,6 +696,11 @@ export type MutationUpdateItemCategoryArgs = {
 };
 
 
+export type MutationUpdateItemVariantArgs = {
+  input: ItemVariantUpdateInput;
+};
+
+
 export type MutationUpdatePaymentMethodArgs = {
   code?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
@@ -655,6 +745,16 @@ export type MutationUpdateTaxGroupArgs = {
 
 export type MutationUpdateUserArgs = {
   user: UserUpdateInput;
+};
+
+
+export type MutationUpdateVariantTypeArgs = {
+  input: VariantTypeUpdateInput;
+};
+
+
+export type MutationUpdateVariantValueArgs = {
+  input: VariantValueUpdateInput;
 };
 
 
@@ -738,6 +838,8 @@ export type Query = {
   expensesByCategory: Array<Expense>;
   item: Item;
   itemCategories: Array<ItemGroup>;
+  itemVariant: ItemVariant;
+  itemVariants: Array<ItemVariant>;
   items: Array<Item>;
   itemsCategory: ItemGroup;
   paymentMethod: PaymentMethod;
@@ -765,8 +867,13 @@ export type Query = {
   totalSuppliers: Scalars['Int']['output'];
   totalTaxGroups: Scalars['Int']['output'];
   totalTaxes: Scalars['Int']['output'];
+  totalVariantTypes: Scalars['Int']['output'];
   user: User;
   users: Array<User>;
+  variantType: VariantType;
+  variantTypes: Array<VariantType>;
+  variantValue: VariantValue;
+  variantValues: Array<VariantValue>;
 };
 
 
@@ -863,6 +970,18 @@ export type QueryItemArgs = {
 
 export type QueryItemCategoriesArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryItemVariantArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryItemVariantsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  itemId?: InputMaybe<Scalars['DbUuid']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -975,6 +1094,29 @@ export type QueryUserArgs = {
 export type QueryUsersArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryVariantTypeArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryVariantTypesArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryVariantValueArgs = {
+  id: Scalars['DbUuid']['input'];
+};
+
+
+export type QueryVariantValuesArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  variantTypeId?: InputMaybe<Scalars['DbUuid']['input']>;
 };
 
 export type SalesChargeType = {
@@ -1259,6 +1401,51 @@ export type UserUpdateInput = {
   username?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type VariantType = {
+  __typename?: 'VariantType';
+  createdAt: Scalars['LocalDateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['DbUuid']['output'];
+  name: Scalars['String']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+  values: Array<VariantValue>;
+};
+
+export type VariantTypeNewInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export type VariantTypeUpdateInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['DbUuid']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  updatedAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
+};
+
+export type VariantValue = {
+  __typename?: 'VariantValue';
+  createdAt: Scalars['LocalDateTime']['output'];
+  displayOrder: Scalars['Int']['output'];
+  id: Scalars['DbUuid']['output'];
+  updatedAt: Scalars['LocalDateTime']['output'];
+  value: Scalars['String']['output'];
+  variantType: VariantType;
+};
+
+export type VariantValueNewInput = {
+  displayOrder?: InputMaybe<Scalars['Int']['input']>;
+  value: Scalars['String']['input'];
+  variantTypeId: Scalars['DbUuid']['input'];
+};
+
+export type VariantValueUpdateInput = {
+  displayOrder?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['DbUuid']['input'];
+  updatedAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
+  value?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type GetAnalyticsOverviewQueryVariables = Exact<{
   days: Scalars['Int']['input'];
 }>;
@@ -1345,7 +1532,7 @@ export type GetItemsQueryVariables = Exact<{
 }>;
 
 
-export type GetItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> }> };
+export type GetItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> }> };
 
 export type GetItemCategoriesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1362,14 +1549,14 @@ export type CreateItemMutationVariables = Exact<{
 }>;
 
 
-export type CreateItemMutation = { __typename?: 'Mutation', createItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> } };
+export type CreateItemMutation = { __typename?: 'Mutation', createItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> } };
 
 export type UpdateItemMutationVariables = Exact<{
   input: UpdateItem;
 }>;
 
 
-export type UpdateItemMutation = { __typename?: 'Mutation', updateItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> } };
+export type UpdateItemMutation = { __typename?: 'Mutation', updateItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> } };
 
 export type DeleteItemMutationVariables = Exact<{
   id: Scalars['DbUuid']['input'];
@@ -1377,6 +1564,137 @@ export type DeleteItemMutationVariables = Exact<{
 
 
 export type DeleteItemMutation = { __typename?: 'Mutation', deleteItem: number };
+
+export type GetVariantTypesQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetVariantTypesQuery = { __typename?: 'Query', variantTypes: Array<{ __typename?: 'VariantType', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string }> };
+
+export type GetVariantTypeQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetVariantTypeQuery = { __typename?: 'Query', variantType: { __typename?: 'VariantType', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string, values: Array<{ __typename?: 'VariantValue', id: string, value: string, displayOrder: number, createdAt: string, updatedAt: string }> } };
+
+export type GetTotalVariantTypesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetTotalVariantTypesQuery = { __typename?: 'Query', totalVariantTypes: number };
+
+export type GetVariantValuesQueryVariables = Exact<{
+  variantTypeId?: InputMaybe<Scalars['DbUuid']['input']>;
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetVariantValuesQuery = { __typename?: 'Query', variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, displayOrder: number, createdAt: string, updatedAt: string, variantType: { __typename?: 'VariantType', id: string, name: string, description?: string | null } }> };
+
+export type GetVariantValueQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetVariantValueQuery = { __typename?: 'Query', variantValue: { __typename?: 'VariantValue', id: string, value: string, displayOrder: number, createdAt: string, updatedAt: string, variantType: { __typename?: 'VariantType', id: string, name: string, description?: string | null } } };
+
+export type GetItemVariantsQueryVariables = Exact<{
+  itemId: Scalars['DbUuid']['input'];
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetItemVariantsQuery = { __typename?: 'Query', itemVariants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, createdAt: string, updatedAt: string, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, displayOrder: number, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> };
+
+export type GetItemVariantQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetItemVariantQuery = { __typename?: 'Query', itemVariant: { __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, createdAt: string, updatedAt: string, finalPrice: string, item: { __typename?: 'Item', id: string, name: string, price: string }, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, displayOrder: number, variantType: { __typename?: 'VariantType', id: string, name: string } }> } };
+
+export type CreateVariantTypeMutationVariables = Exact<{
+  input: VariantTypeNewInput;
+}>;
+
+
+export type CreateVariantTypeMutation = { __typename?: 'Mutation', createVariantType: { __typename?: 'VariantType', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string } };
+
+export type UpdateVariantTypeMutationVariables = Exact<{
+  input: VariantTypeUpdateInput;
+}>;
+
+
+export type UpdateVariantTypeMutation = { __typename?: 'Mutation', updateVariantType: { __typename?: 'VariantType', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string } };
+
+export type DeleteVariantTypeMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteVariantTypeMutation = { __typename?: 'Mutation', deleteVariantType: number };
+
+export type CreateVariantValueMutationVariables = Exact<{
+  input: VariantValueNewInput;
+}>;
+
+
+export type CreateVariantValueMutation = { __typename?: 'Mutation', createVariantValue: { __typename?: 'VariantValue', id: string, value: string, displayOrder: number, createdAt: string, updatedAt: string, variantType: { __typename?: 'VariantType', id: string, name: string } } };
+
+export type UpdateVariantValueMutationVariables = Exact<{
+  input: VariantValueUpdateInput;
+}>;
+
+
+export type UpdateVariantValueMutation = { __typename?: 'Mutation', updateVariantValue: { __typename?: 'VariantValue', id: string, value: string, displayOrder: number, createdAt: string, updatedAt: string } };
+
+export type DeleteVariantValueMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteVariantValueMutation = { __typename?: 'Mutation', deleteVariantValue: number };
+
+export type CreateItemVariantMutationVariables = Exact<{
+  input: ItemVariantNewInput;
+}>;
+
+
+export type CreateItemVariantMutation = { __typename?: 'Mutation', createItemVariant: { __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, createdAt: string, updatedAt: string, finalPrice: string } };
+
+export type UpdateItemVariantMutationVariables = Exact<{
+  input: ItemVariantUpdateInput;
+}>;
+
+
+export type UpdateItemVariantMutation = { __typename?: 'Mutation', updateItemVariant: { __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, createdAt: string, updatedAt: string, finalPrice: string } };
+
+export type DeleteItemVariantMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteItemVariantMutation = { __typename?: 'Mutation', deleteItemVariant: number };
+
+export type AssignVariantValueToItemVariantMutationVariables = Exact<{
+  itemVariantId: Scalars['DbUuid']['input'];
+  variantValueId: Scalars['DbUuid']['input'];
+}>;
+
+
+export type AssignVariantValueToItemVariantMutation = { __typename?: 'Mutation', assignVariantValueToItemVariant: number };
+
+export type RemoveVariantValueFromItemVariantMutationVariables = Exact<{
+  itemVariantId: Scalars['DbUuid']['input'];
+  variantValueId: Scalars['DbUuid']['input'];
+}>;
+
+
+export type RemoveVariantValueFromItemVariantMutation = { __typename?: 'Mutation', removeVariantValueFromItemVariant: number };
 
 export type GetCustomersQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -2100,6 +2418,22 @@ export const GetItemsDocument = new TypedDocumentString(`
       createdAt
       updatedAt
     }
+    hasVariants
+    variants {
+      id
+      sku
+      priceAdjustment
+      isDefault
+      finalPrice
+      variantValues {
+        id
+        value
+        variantType {
+          id
+          name
+        }
+      }
+    }
   }
 }
     `) as unknown as TypedDocumentString<GetItemsQuery, GetItemsQueryVariables>;
@@ -2154,6 +2488,22 @@ export const CreateItemDocument = new TypedDocumentString(`
       createdAt
       updatedAt
     }
+    hasVariants
+    variants {
+      id
+      sku
+      priceAdjustment
+      isDefault
+      finalPrice
+      variantValues {
+        id
+        value
+        variantType {
+          id
+          name
+        }
+      }
+    }
   }
 }
     `) as unknown as TypedDocumentString<CreateItemMutation, CreateItemMutationVariables>;
@@ -2184,6 +2534,22 @@ export const UpdateItemDocument = new TypedDocumentString(`
       createdAt
       updatedAt
     }
+    hasVariants
+    variants {
+      id
+      sku
+      priceAdjustment
+      isDefault
+      finalPrice
+      variantValues {
+        id
+        value
+        variantType {
+          id
+          name
+        }
+      }
+    }
   }
 }
     `) as unknown as TypedDocumentString<UpdateItemMutation, UpdateItemMutationVariables>;
@@ -2192,6 +2558,226 @@ export const DeleteItemDocument = new TypedDocumentString(`
   deleteItem(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteItemMutation, DeleteItemMutationVariables>;
+export const GetVariantTypesDocument = new TypedDocumentString(`
+    query getVariantTypes($first: Int!, $offset: Int!) {
+  variantTypes(first: $first, offset: $offset) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<GetVariantTypesQuery, GetVariantTypesQueryVariables>;
+export const GetVariantTypeDocument = new TypedDocumentString(`
+    query getVariantType($id: DbUuid!) {
+  variantType(id: $id) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+    values {
+      id
+      value
+      displayOrder
+      createdAt
+      updatedAt
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetVariantTypeQuery, GetVariantTypeQueryVariables>;
+export const GetTotalVariantTypesDocument = new TypedDocumentString(`
+    query getTotalVariantTypes {
+  totalVariantTypes
+}
+    `) as unknown as TypedDocumentString<GetTotalVariantTypesQuery, GetTotalVariantTypesQueryVariables>;
+export const GetVariantValuesDocument = new TypedDocumentString(`
+    query getVariantValues($variantTypeId: DbUuid, $first: Int!, $offset: Int!) {
+  variantValues(variantTypeId: $variantTypeId, first: $first, offset: $offset) {
+    id
+    value
+    displayOrder
+    createdAt
+    updatedAt
+    variantType {
+      id
+      name
+      description
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetVariantValuesQuery, GetVariantValuesQueryVariables>;
+export const GetVariantValueDocument = new TypedDocumentString(`
+    query getVariantValue($id: DbUuid!) {
+  variantValue(id: $id) {
+    id
+    value
+    displayOrder
+    createdAt
+    updatedAt
+    variantType {
+      id
+      name
+      description
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetVariantValueQuery, GetVariantValueQueryVariables>;
+export const GetItemVariantsDocument = new TypedDocumentString(`
+    query getItemVariants($itemId: DbUuid!, $first: Int!, $offset: Int!) {
+  itemVariants(itemId: $itemId, first: $first, offset: $offset) {
+    id
+    sku
+    priceAdjustment
+    isDefault
+    createdAt
+    updatedAt
+    finalPrice
+    variantValues {
+      id
+      value
+      displayOrder
+      variantType {
+        id
+        name
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetItemVariantsQuery, GetItemVariantsQueryVariables>;
+export const GetItemVariantDocument = new TypedDocumentString(`
+    query getItemVariant($id: DbUuid!) {
+  itemVariant(id: $id) {
+    id
+    sku
+    priceAdjustment
+    isDefault
+    createdAt
+    updatedAt
+    finalPrice
+    item {
+      id
+      name
+      price
+    }
+    variantValues {
+      id
+      value
+      displayOrder
+      variantType {
+        id
+        name
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetItemVariantQuery, GetItemVariantQueryVariables>;
+export const CreateVariantTypeDocument = new TypedDocumentString(`
+    mutation createVariantType($input: VariantTypeNewInput!) {
+  createVariantType(input: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<CreateVariantTypeMutation, CreateVariantTypeMutationVariables>;
+export const UpdateVariantTypeDocument = new TypedDocumentString(`
+    mutation updateVariantType($input: VariantTypeUpdateInput!) {
+  updateVariantType(input: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateVariantTypeMutation, UpdateVariantTypeMutationVariables>;
+export const DeleteVariantTypeDocument = new TypedDocumentString(`
+    mutation deleteVariantType($id: DbUuid!) {
+  deleteVariantType(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteVariantTypeMutation, DeleteVariantTypeMutationVariables>;
+export const CreateVariantValueDocument = new TypedDocumentString(`
+    mutation createVariantValue($input: VariantValueNewInput!) {
+  createVariantValue(input: $input) {
+    id
+    value
+    displayOrder
+    createdAt
+    updatedAt
+    variantType {
+      id
+      name
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<CreateVariantValueMutation, CreateVariantValueMutationVariables>;
+export const UpdateVariantValueDocument = new TypedDocumentString(`
+    mutation updateVariantValue($input: VariantValueUpdateInput!) {
+  updateVariantValue(input: $input) {
+    id
+    value
+    displayOrder
+    createdAt
+    updatedAt
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateVariantValueMutation, UpdateVariantValueMutationVariables>;
+export const DeleteVariantValueDocument = new TypedDocumentString(`
+    mutation deleteVariantValue($id: DbUuid!) {
+  deleteVariantValue(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteVariantValueMutation, DeleteVariantValueMutationVariables>;
+export const CreateItemVariantDocument = new TypedDocumentString(`
+    mutation createItemVariant($input: ItemVariantNewInput!) {
+  createItemVariant(input: $input) {
+    id
+    sku
+    priceAdjustment
+    isDefault
+    createdAt
+    updatedAt
+    finalPrice
+  }
+}
+    `) as unknown as TypedDocumentString<CreateItemVariantMutation, CreateItemVariantMutationVariables>;
+export const UpdateItemVariantDocument = new TypedDocumentString(`
+    mutation updateItemVariant($input: ItemVariantUpdateInput!) {
+  updateItemVariant(input: $input) {
+    id
+    sku
+    priceAdjustment
+    isDefault
+    createdAt
+    updatedAt
+    finalPrice
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateItemVariantMutation, UpdateItemVariantMutationVariables>;
+export const DeleteItemVariantDocument = new TypedDocumentString(`
+    mutation deleteItemVariant($id: DbUuid!) {
+  deleteItemVariant(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteItemVariantMutation, DeleteItemVariantMutationVariables>;
+export const AssignVariantValueToItemVariantDocument = new TypedDocumentString(`
+    mutation assignVariantValueToItemVariant($itemVariantId: DbUuid!, $variantValueId: DbUuid!) {
+  assignVariantValueToItemVariant(
+    itemVariantId: $itemVariantId
+    variantValueId: $variantValueId
+  )
+}
+    `) as unknown as TypedDocumentString<AssignVariantValueToItemVariantMutation, AssignVariantValueToItemVariantMutationVariables>;
+export const RemoveVariantValueFromItemVariantDocument = new TypedDocumentString(`
+    mutation removeVariantValueFromItemVariant($itemVariantId: DbUuid!, $variantValueId: DbUuid!) {
+  removeVariantValueFromItemVariant(
+    itemVariantId: $itemVariantId
+    variantValueId: $variantValueId
+  )
+}
+    `) as unknown as TypedDocumentString<RemoveVariantValueFromItemVariantMutation, RemoveVariantValueFromItemVariantMutationVariables>;
 export const GetCustomersDocument = new TypedDocumentString(`
     query GetCustomers($first: Int!, $offset: Int!) {
   customers(first: $first, offset: $offset) {

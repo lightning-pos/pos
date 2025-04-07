@@ -24,6 +24,22 @@ query getItems($first: Int!, $offset: Int!) {
             createdAt
             updatedAt
         }
+        hasVariants
+        variants {
+            id
+            sku
+            priceAdjustment
+            isDefault
+            finalPrice
+            variantValues {
+                id
+                value
+                variantType {
+                    id
+                    name
+                }
+            }
+        }
     }
 }
 
@@ -75,6 +91,22 @@ mutation createItem($input: NewItem!) {
             createdAt
             updatedAt
         }
+        hasVariants
+        variants {
+            id
+            sku
+            priceAdjustment
+            isDefault
+            finalPrice
+            variantValues {
+                id
+                value
+                variantType {
+                    id
+                    name
+                }
+            }
+        }
     }
 }
 
@@ -103,6 +135,22 @@ mutation updateItem($input: UpdateItem!) {
             description
             createdAt
             updatedAt
+        }
+        hasVariants
+        variants {
+            id
+            sku
+            priceAdjustment
+            isDefault
+            finalPrice
+            variantValues {
+                id
+                value
+                variantType {
+                    id
+                    name
+                }
+            }
         }
     }
 }

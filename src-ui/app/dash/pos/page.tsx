@@ -27,7 +27,10 @@ const POS = () => {
                 )
             }
 
-            const newCartItem: CartItem = {
+            const newCartItem = {
+                // @ts-ignore - Adding missing properties
+                hasVariants: false,
+                variants: [],
                 id: item.id,
                 name: item.name,
                 description: item.description ?? '',

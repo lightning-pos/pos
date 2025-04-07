@@ -16,6 +16,7 @@ interface DataTableProps<T> {
   onAddClick: () => void
   onEditClick: (item: T) => void
   onDeleteClick: (item: T) => void
+  onRowClick?: (item: T) => void
 }
 
 function DataTable<T extends { id: string }>({
@@ -31,7 +32,8 @@ function DataTable<T extends { id: string }>({
   onPageChange,
   onAddClick,
   onEditClick,
-  onDeleteClick
+  onDeleteClick,
+  onRowClick
 }: DataTableProps<T>) {
   if (loading) {
     return <DataTableSkeleton headers={headers} rowCount={pageSize} />
@@ -59,7 +61,11 @@ function DataTable<T extends { id: string }>({
             </TableHead>
             <TableBody>
               {rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  onClick={() => onRowClick && onRowClick(tableRows.find((r) => r.id === row.id) as T)}
+                  className={onRowClick ? 'cursor-pointer hover:bg-gray-100' : ''}
+                >
                   {row.cells.map((cell) => (
                     <TableCell key={cell.id}>{cell.value}</TableCell>
                   ))}

@@ -1,0 +1,201 @@
+# Variant Type Queries
+query getVariantTypes($first: Int!, $offset: Int!) {
+  variantTypes(first: $first, offset: $offset) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+
+query getVariantType($id: DbUuid!) {
+  variantType(id: $id) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+    values {
+      id
+      value
+      displayOrder
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+query getTotalVariantTypes {
+  totalVariantTypes
+}
+
+# Variant Value Queries
+query getVariantValues($variantTypeId: DbUuid, $first: Int!, $offset: Int!) {
+  variantValues(variantTypeId: $variantTypeId, first: $first, offset: $offset) {
+    id
+    value
+    displayOrder
+    createdAt
+    updatedAt
+    variantType {
+      id
+      name
+      description
+    }
+  }
+}
+
+query getVariantValue($id: DbUuid!) {
+  variantValue(id: $id) {
+    id
+    value
+    displayOrder
+    createdAt
+    updatedAt
+    variantType {
+      id
+      name
+      description
+    }
+  }
+}
+
+# Item Variant Queries
+query getItemVariants($itemId: DbUuid!, $first: Int!, $offset: Int!) {
+  itemVariants(itemId: $itemId, first: $first, offset: $offset) {
+    id
+    sku
+    priceAdjustment
+    isDefault
+    createdAt
+    updatedAt
+    finalPrice
+    variantValues {
+      id
+      value
+      displayOrder
+      variantType {
+        id
+        name
+      }
+    }
+  }
+}
+
+query getItemVariant($id: DbUuid!) {
+  itemVariant(id: $id) {
+    id
+    sku
+    priceAdjustment
+    isDefault
+    createdAt
+    updatedAt
+    finalPrice
+    item {
+      id
+      name
+      price
+    }
+    variantValues {
+      id
+      value
+      displayOrder
+      variantType {
+        id
+        name
+      }
+    }
+  }
+}
+
+# Variant Type Mutations
+mutation createVariantType($input: VariantTypeNewInput!) {
+  createVariantType(input: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+
+mutation updateVariantType($input: VariantTypeUpdateInput!) {
+  updateVariantType(input: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+  }
+}
+
+mutation deleteVariantType($id: DbUuid!) {
+  deleteVariantType(id: $id)
+}
+
+# Variant Value Mutations
+mutation createVariantValue($input: VariantValueNewInput!) {
+  createVariantValue(input: $input) {
+    id
+    value
+    displayOrder
+    createdAt
+    updatedAt
+    variantType {
+      id
+      name
+    }
+  }
+}
+
+mutation updateVariantValue($input: VariantValueUpdateInput!) {
+  updateVariantValue(input: $input) {
+    id
+    value
+    displayOrder
+    createdAt
+    updatedAt
+  }
+}
+
+mutation deleteVariantValue($id: DbUuid!) {
+  deleteVariantValue(id: $id)
+}
+
+# Item Variant Mutations
+mutation createItemVariant($input: ItemVariantNewInput!) {
+  createItemVariant(input: $input) {
+    id
+    sku
+    priceAdjustment
+    isDefault
+    createdAt
+    updatedAt
+    finalPrice
+  }
+}
+
+mutation updateItemVariant($input: ItemVariantUpdateInput!) {
+  updateItemVariant(input: $input) {
+    id
+    sku
+    priceAdjustment
+    isDefault
+    createdAt
+    updatedAt
+    finalPrice
+  }
+}
+
+mutation deleteItemVariant($id: DbUuid!) {
+  deleteItemVariant(id: $id)
+}
+
+mutation assignVariantValueToItemVariant($itemVariantId: DbUuid!, $variantValueId: DbUuid!) {
+  assignVariantValueToItemVariant(itemVariantId: $itemVariantId, variantValueId: $variantValueId)
+}
+
+mutation removeVariantValueFromItemVariant($itemVariantId: DbUuid!, $variantValueId: DbUuid!) {
+  removeVariantValueFromItemVariant(itemVariantId: $itemVariantId, variantValueId: $variantValueId)
+}
