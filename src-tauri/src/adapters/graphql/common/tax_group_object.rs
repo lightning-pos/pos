@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use diesel::{dsl, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{

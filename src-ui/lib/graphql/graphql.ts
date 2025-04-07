@@ -1807,6 +1807,63 @@ export type DeletePaymentMethodMutationVariables = Exact<{
 
 export type DeletePaymentMethodMutation = { __typename?: 'Mutation', deletePaymentMethod: string };
 
+export type GetTaxGroupsQueryVariables = Exact<{
+  first: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+}>;
+
+
+export type GetTaxGroupsQuery = { __typename?: 'Query', totalTaxGroups: number, taxGroups: Array<{ __typename?: 'TaxGroup', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string }> }> };
+
+export type GetTaxGroupQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetTaxGroupQuery = { __typename?: 'Query', taxGroup: { __typename?: 'TaxGroup', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string }> } };
+
+export type GetAllTaxesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetAllTaxesQuery = { __typename?: 'Query', taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string }> };
+
+export type CreateTaxGroupMutationVariables = Exact<{
+  input: TaxGroupNewInput;
+}>;
+
+
+export type CreateTaxGroupMutation = { __typename?: 'Mutation', createTaxGroup: { __typename?: 'TaxGroup', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string }> } };
+
+export type UpdateTaxGroupMutationVariables = Exact<{
+  input: TaxGroupUpdateInput;
+}>;
+
+
+export type UpdateTaxGroupMutation = { __typename?: 'Mutation', updateTaxGroup: { __typename?: 'TaxGroup', id: string, name: string, description?: string | null, createdAt: string, updatedAt: string, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string }> } };
+
+export type DeleteTaxGroupMutationVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type DeleteTaxGroupMutation = { __typename?: 'Mutation', deleteTaxGroup: number };
+
+export type AssignTaxToGroupMutationVariables = Exact<{
+  taxGroupId: Scalars['DbUuid']['input'];
+  taxId: Scalars['DbUuid']['input'];
+}>;
+
+
+export type AssignTaxToGroupMutation = { __typename?: 'Mutation', assignTaxToGroup: number };
+
+export type RemoveTaxFromGroupMutationVariables = Exact<{
+  taxGroupId: Scalars['DbUuid']['input'];
+  taxId: Scalars['DbUuid']['input'];
+}>;
+
+
+export type RemoveTaxFromGroupMutation = { __typename?: 'Mutation', removeTaxFromGroup: number };
+
 export type GetTaxesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
   offset: Scalars['Int']['input'];
@@ -2956,6 +3013,95 @@ export const DeletePaymentMethodDocument = new TypedDocumentString(`
   deletePaymentMethod(id: $id)
 }
     `) as unknown as TypedDocumentString<DeletePaymentMethodMutation, DeletePaymentMethodMutationVariables>;
+export const GetTaxGroupsDocument = new TypedDocumentString(`
+    query GetTaxGroups($first: Int!, $offset: Int!) {
+  taxGroups(first: $first, offset: $offset) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+    taxes {
+      id
+      name
+      rate
+    }
+  }
+  totalTaxGroups
+}
+    `) as unknown as TypedDocumentString<GetTaxGroupsQuery, GetTaxGroupsQueryVariables>;
+export const GetTaxGroupDocument = new TypedDocumentString(`
+    query GetTaxGroup($id: DbUuid!) {
+  taxGroup(id: $id) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+    taxes {
+      id
+      name
+      rate
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetTaxGroupQuery, GetTaxGroupQueryVariables>;
+export const GetAllTaxesDocument = new TypedDocumentString(`
+    query GetAllTaxes {
+  taxes(first: 100, offset: 0) {
+    id
+    name
+    rate
+  }
+}
+    `) as unknown as TypedDocumentString<GetAllTaxesQuery, GetAllTaxesQueryVariables>;
+export const CreateTaxGroupDocument = new TypedDocumentString(`
+    mutation CreateTaxGroup($input: TaxGroupNewInput!) {
+  createTaxGroup(input: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+    taxes {
+      id
+      name
+      rate
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<CreateTaxGroupMutation, CreateTaxGroupMutationVariables>;
+export const UpdateTaxGroupDocument = new TypedDocumentString(`
+    mutation UpdateTaxGroup($input: TaxGroupUpdateInput!) {
+  updateTaxGroup(input: $input) {
+    id
+    name
+    description
+    createdAt
+    updatedAt
+    taxes {
+      id
+      name
+      rate
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<UpdateTaxGroupMutation, UpdateTaxGroupMutationVariables>;
+export const DeleteTaxGroupDocument = new TypedDocumentString(`
+    mutation DeleteTaxGroup($id: DbUuid!) {
+  deleteTaxGroup(id: $id)
+}
+    `) as unknown as TypedDocumentString<DeleteTaxGroupMutation, DeleteTaxGroupMutationVariables>;
+export const AssignTaxToGroupDocument = new TypedDocumentString(`
+    mutation AssignTaxToGroup($taxGroupId: DbUuid!, $taxId: DbUuid!) {
+  assignTaxToGroup(taxGroupId: $taxGroupId, taxId: $taxId)
+}
+    `) as unknown as TypedDocumentString<AssignTaxToGroupMutation, AssignTaxToGroupMutationVariables>;
+export const RemoveTaxFromGroupDocument = new TypedDocumentString(`
+    mutation RemoveTaxFromGroup($taxGroupId: DbUuid!, $taxId: DbUuid!) {
+  removeTaxFromGroup(taxGroupId: $taxGroupId, taxId: $taxId)
+}
+    `) as unknown as TypedDocumentString<RemoveTaxFromGroupMutation, RemoveTaxFromGroupMutationVariables>;
 export const GetTaxesDocument = new TypedDocumentString(`
     query GetTaxes($first: Int!, $offset: Int!) {
   taxes(first: $first, offset: $offset) {

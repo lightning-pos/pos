@@ -1,0 +1,80 @@
+query GetTaxGroups($first: Int!, $offset: Int!) {
+    taxGroups(first: $first, offset: $offset) {
+        id
+        name
+        description
+        createdAt
+        updatedAt
+        taxes {
+            id
+            name
+            rate
+        }
+    }
+    totalTaxGroups
+}
+
+query GetTaxGroup($id: DbUuid!) {
+    taxGroup(id: $id) {
+        id
+        name
+        description
+        createdAt
+        updatedAt
+        taxes {
+            id
+            name
+            rate
+        }
+    }
+}
+
+query GetAllTaxes {
+    taxes(first: 100, offset: 0) {
+        id
+        name
+        rate
+    }
+}
+
+mutation CreateTaxGroup($input: TaxGroupNewInput!) {
+    createTaxGroup(input: $input) {
+        id
+        name
+        description
+        createdAt
+        updatedAt
+        taxes {
+            id
+            name
+            rate
+        }
+    }
+}
+
+mutation UpdateTaxGroup($input: TaxGroupUpdateInput!) {
+    updateTaxGroup(input: $input) {
+        id
+        name
+        description
+        createdAt
+        updatedAt
+        taxes {
+            id
+            name
+            rate
+        }
+    }
+}
+
+mutation DeleteTaxGroup($id: DbUuid!) {
+    deleteTaxGroup(id: $id)
+}
+
+mutation AssignTaxToGroup($taxGroupId: DbUuid!, $taxId: DbUuid!) {
+    assignTaxToGroup(taxGroupId: $taxGroupId, taxId: $taxId)
+}
+
+mutation RemoveTaxFromGroup($taxGroupId: DbUuid!, $taxId: DbUuid!) {
+    removeTaxFromGroup(taxGroupId: $taxGroupId, taxId: $taxId)
+}
