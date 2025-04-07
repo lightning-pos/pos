@@ -17,7 +17,7 @@ Lightning POS is a powerful, feature-rich Point of Sale solution designed to mee
 - [ ] Catalog
   - [x] Categories - *Organize menu items into browsable categories*
   - [x] Base menu items - *Core products and services available for sale*
-  - [ ] Item variants/modifiers - *Options and customizations for menu items (sizes, add-ons, etc.)*
+  - [x] Item variants/modifiers - *Options and customizations for menu items (sizes, add-ons, etc.)*
   - [ ] Discounts application - *Apply percentage or fixed discounts to items or orders*
 
 - [ ] Sales
