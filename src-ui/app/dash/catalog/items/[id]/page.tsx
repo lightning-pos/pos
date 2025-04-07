@@ -190,7 +190,7 @@ const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
                 </TabList>
                 <TabPanels>
                     <TabPanel>
-                        <ItemVariants itemId={itemId} />
+                        <ItemVariants itemId={itemId} itemName={item?.name} />
                     </TabPanel>
                     <TabPanel>
                         <div className="mt-4">
