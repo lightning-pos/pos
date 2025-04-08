@@ -9,8 +9,6 @@ interface SimpleItemDiscountsProps {
 }
 
 const SimpleItemDiscounts: React.FC<SimpleItemDiscountsProps> = ({ itemId, itemName }) => {
-    console.log('SimpleItemDiscounts component rendered with:', { itemId, itemName })
-
     return (
         <div className="mt-4">
             <div className="flex justify-between items-center mb-4">
@@ -24,16 +22,16 @@ const SimpleItemDiscounts: React.FC<SimpleItemDiscountsProps> = ({ itemId, itemN
                     Add Discount
                 </Button>
             </div>
-            
+
             <p>This is a simplified discount management interface.</p>
             <p>Item ID: {itemId}</p>
             <p>Item Name: {itemName || 'Unknown'}</p>
-            
-            <div className="bg-blue-50 p-4 rounded mt-4">
-                <p className="text-blue-800 font-medium">No eligible discounts available</p>
-                <p className="text-blue-600">You need to create discounts with "Specific Items" scope first.</p>
-                <Button 
-                    kind="tertiary" 
+
+            <div className="py-4 rounded mt-4">
+                <p className="font-medium">No eligible discounts available</p>
+                <p className="">You need to create discounts with "Specific Items" scope first.</p>
+                <Button
+                    kind="primary"
                     className="mt-2"
                     onClick={() => window.open('/dash/catalog/discounts', '_blank')}
                 >

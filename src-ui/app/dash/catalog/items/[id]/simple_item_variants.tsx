@@ -9,8 +9,6 @@ interface SimpleItemVariantsProps {
 }
 
 const SimpleItemVariants: React.FC<SimpleItemVariantsProps> = ({ itemId, itemName }) => {
-    console.log('SimpleItemVariants component rendered with:', { itemId, itemName })
-
     return (
         <div className="mt-4">
             <div className="flex justify-between items-center mb-4">
@@ -24,7 +22,7 @@ const SimpleItemVariants: React.FC<SimpleItemVariantsProps> = ({ itemId, itemNam
                     Add Variant
                 </Button>
             </div>
-            
+
             <p>This is a simplified variant management interface.</p>
             <p>Item ID: {itemId}</p>
             <p>Item Name: {itemName || 'Unknown'}</p>

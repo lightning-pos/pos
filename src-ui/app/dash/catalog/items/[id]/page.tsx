@@ -10,13 +10,12 @@ import {
     Column,
     Tile,
     Stack,
-    Tabs,
-    Tab,
-    TabList,
-    TabPanels,
-    TabPanel,
     Loading,
     InlineNotification,
+    ExpandableTile,
+    TileAboveTheFoldContent,
+    TileBelowTheFoldContent,
+    Heading,
 } from '@carbon/react'
 import { ArrowLeft } from '@carbon/icons-react'
 import SimpleItemVariants from './simple_item_variants'
@@ -178,6 +177,60 @@ const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
                             </div>
                         </Stack>
                     </Tile>
+
+                    <ExpandableTile className='mt-4'>
+                        <TileAboveTheFoldContent>
+                            <Heading className='text-lg font-medium'>Variants</Heading>
+                        </TileAboveTheFoldContent>
+                        <TileBelowTheFoldContent>
+                            <SimpleItemVariants itemId={itemId} itemName={item?.name} />
+                        </TileBelowTheFoldContent>
+                    </ExpandableTile>
+
+                    <ExpandableTile className='mt-4'>
+                        <TileAboveTheFoldContent>
+                            <Heading className='text-lg font-medium'>Addons</Heading>
+                        </TileAboveTheFoldContent>
+                        <TileBelowTheFoldContent>
+                            <p>Addon functionality not yet implemented.</p>
+                            <Button kind="primary" size="md" className="mt-4" disabled>
+                                Add Addon
+                            </Button>
+                        </TileBelowTheFoldContent>
+                    </ExpandableTile>
+
+                    <ExpandableTile className='mt-4'>
+                        <TileAboveTheFoldContent>
+                            <Heading className='text-lg font-medium'>Discounts</Heading>
+                        </TileAboveTheFoldContent>
+                        <TileBelowTheFoldContent>
+                            <SimpleItemDiscounts itemId={itemId} itemName={item?.name} />
+                        </TileBelowTheFoldContent>
+                    </ExpandableTile>
+
+                    <ExpandableTile className='mt-4'>
+                        <TileAboveTheFoldContent>
+                            <h3 className="text-lg font-medium mb-4">Taxes</h3>
+                        </TileAboveTheFoldContent>
+                        <TileBelowTheFoldContent>
+
+                            {item.taxes.length === 0 ? (
+                                <p>No taxes applied to this item.</p>
+                            ) : (
+                                <ul className="list-disc pl-5">
+                                    {item.taxes.map(tax => (
+                                        <li key={tax.id} className="mb-2">
+                                            <span className="font-medium">{tax.name}</span>
+                                            <span className="ml-2">({tax.rate}%)</span>
+                                            {tax.description && (
+                                                <p className="text-sm">{tax.description}</p>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </TileBelowTheFoldContent>
+                    </ExpandableTile>
                 </Column>
             </Grid>
         </Content>
