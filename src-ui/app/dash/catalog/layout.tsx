@@ -32,9 +32,6 @@ export default function CatalogLayout({
                     <SideNavLink renderIcon={PiggyBank} large onClick={() => { router.push('/dash/catalog/discounts') }}>
                         Discounts
                     </SideNavLink>
-                    <SideNavLink renderIcon={PricingConsumption} large onClick={() => { router.push('/dash/catalog/charges') }}>
-                        Charges
-                    </SideNavLink>
                     <SideNavLink renderIcon={TagGroup} large onClick={() => { router.push('/dash/catalog/variants') }}>
                         Variants
                     </SideNavLink>
