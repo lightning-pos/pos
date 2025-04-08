@@ -443,12 +443,25 @@ table! {
     }
 }
 
+table! {
+    use diesel::sql_types::Text;
+
+    item_discounts (item_id, discount_id) {
+        item_id -> Text,
+        discount_id -> Text,
+    }
+}
+
 // ManyToMany (tax_groups, taxes)
 joinable!(tax_group_taxes -> tax_groups (tax_group_id));
 joinable!(tax_group_taxes -> taxes (tax_id));
 
 // ManyToOne (sales_order_charges, tax_groups)
 joinable!(sales_order_charges -> tax_groups (tax_group_id));
+
+// ManyToMany (items, discounts)
+joinable!(item_discounts -> items (item_id));
+joinable!(item_discounts -> discounts (discount_id));
 
 allow_tables_to_appear_in_same_query!(
     items,
@@ -470,5 +483,7 @@ allow_tables_to_appear_in_same_query!(
     sales_order_payments,
     payment_methods,
     tax_groups,
-    tax_group_taxes
+    tax_group_taxes,
+    discounts,
+    item_discounts
 );

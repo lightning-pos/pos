@@ -67,23 +67,20 @@ pub struct DiscountUpdateChangeset {
 // Make sure these enum types are created in the database via migrations
 
 #[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
-#[DbValueStyle = "PascalCase"] // Keep this for mapping Rust PascalCase to DB TEXT PascalCase
 pub enum DiscountType {
     Percentage,
     FixedAmount,
 }
 
 #[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
-#[DbValueStyle = "PascalCase"]
 pub enum DiscountScope {
     AllItems,
-    // Future scopes might require relations:
-    // SpecificItems,
-    // SpecificCategories,
+    SpecificItems, // Added for item-specific discounts
+                   // Future scopes might include:
+                   // SpecificCategories,
 }
 
 #[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
-#[DbValueStyle = "PascalCase"]
 pub enum DiscountState {
     Active,
     Inactive,

@@ -147,8 +147,10 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                         ...prev,
                         scope: e.target.value as DiscountScope || undefined
                     }))}
+                    helperText={updatedDiscount.scope === DiscountScope.SpecificItems ? "You can assign specific items to this discount after saving" : ""}
                 >
                     <SelectItem value={DiscountScope.AllItems} text="All Items" />
+                    <SelectItem value={DiscountScope.SpecificItems} text="Specific Items" />
                 </Select>
 
                 <Select

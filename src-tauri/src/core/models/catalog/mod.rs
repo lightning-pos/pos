@@ -1,4 +1,5 @@
 pub mod discount_model;
+pub mod item_discount_model;
 pub mod item_group_model;
 pub mod item_model;
 pub mod item_variant_model;

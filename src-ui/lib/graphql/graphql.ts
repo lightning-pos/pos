@@ -171,7 +171,8 @@ export type DiscountNewInput = {
 };
 
 export enum DiscountScope {
-  AllItems = 'ALL_ITEMS'
+  AllItems = 'ALL_ITEMS',
+  SpecificItems = 'SPECIFIC_ITEMS'
 }
 
 export enum DiscountState {
@@ -247,6 +248,18 @@ export type Item = {
   taxes: Array<Tax>;
   updatedAt: Scalars['LocalDateTime']['output'];
   variants: Array<ItemVariant>;
+};
+
+export type ItemDiscountNewInput = {
+  discountId: Scalars['DbUuid']['input'];
+  itemId: Scalars['DbUuid']['input'];
+};
+
+/** A relationship between an item and a discount */
+export type ItemDiscountObject = {
+  __typename?: 'ItemDiscountObject';
+  discountId: Scalars['DbUuid']['output'];
+  itemId: Scalars['DbUuid']['output'];
 };
 
 export type ItemGroup = {
@@ -325,6 +338,7 @@ export type ItemVariantUpdateInput = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  addItemDiscount: ItemDiscountObject;
   addUser: User;
   assignTaxToGroup: Scalars['Int']['output'];
   assignTaxToItem: Scalars['Int']['output'];
@@ -370,6 +384,7 @@ export type Mutation = {
   deleteVariantValue: Scalars['Int']['output'];
   login: Scalars['Boolean']['output'];
   logout: Scalars['Boolean']['output'];
+  removeItemDiscount: Scalars['Boolean']['output'];
   removeTaxFromGroup: Scalars['Int']['output'];
   removeTaxFromItem: Scalars['Int']['output'];
   removeVariantValueFromItemVariant: Scalars['Int']['output'];
@@ -395,6 +410,11 @@ export type Mutation = {
   updateVariantValue: VariantValue;
   voidSalesOrder: SalesOrder;
   voidSalesOrderPayment: SalesOrderPayment;
+};
+
+
+export type MutationAddItemDiscountArgs = {
+  itemDiscount: ItemDiscountNewInput;
 };
 
 
@@ -629,6 +649,12 @@ export type MutationLoginArgs = {
 };
 
 
+export type MutationRemoveItemDiscountArgs = {
+  discountId: Scalars['DbUuid']['input'];
+  itemId: Scalars['DbUuid']['input'];
+};
+
+
 export type MutationRemoveTaxFromGroupArgs = {
   taxGroupId: Scalars['DbUuid']['input'];
   taxId: Scalars['DbUuid']['input'];
@@ -832,12 +858,14 @@ export type Query = {
   customerByPhone: Customer;
   customers: Array<Customer>;
   discount: Discount;
+  discountItems: Array<ItemDiscountObject>;
   discounts: Array<Discount>;
   expense: Expense;
   expenses: Array<Expense>;
   expensesByCategory: Array<Expense>;
   item: Item;
   itemCategories: Array<ItemGroup>;
+  itemDiscounts: Array<ItemDiscountObject>;
   itemVariant: ItemVariant;
   itemVariants: Array<ItemVariant>;
   items: Array<Item>;
@@ -935,6 +963,11 @@ export type QueryDiscountArgs = {
 };
 
 
+export type QueryDiscountItemsArgs = {
+  discountId: Scalars['DbUuid']['input'];
+};
+
+
 export type QueryDiscountsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
@@ -971,6 +1004,11 @@ export type QueryItemArgs = {
 export type QueryItemCategoriesArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryItemDiscountsArgs = {
+  itemId: Scalars['DbUuid']['input'];
 };
 
 
@@ -1564,6 +1602,35 @@ export type DeleteItemMutationVariables = Exact<{
 
 
 export type DeleteItemMutation = { __typename?: 'Mutation', deleteItem: number };
+
+export type GetItemDiscountsQueryVariables = Exact<{
+  itemId: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetItemDiscountsQuery = { __typename?: 'Query', itemDiscounts: Array<{ __typename?: 'ItemDiscountObject', itemId: string, discountId: string }> };
+
+export type GetDiscountItemsQueryVariables = Exact<{
+  discountId: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetDiscountItemsQuery = { __typename?: 'Query', discountItems: Array<{ __typename?: 'ItemDiscountObject', itemId: string, discountId: string }> };
+
+export type AddItemDiscountMutationVariables = Exact<{
+  itemDiscount: ItemDiscountNewInput;
+}>;
+
+
+export type AddItemDiscountMutation = { __typename?: 'Mutation', addItemDiscount: { __typename?: 'ItemDiscountObject', itemId: string, discountId: string } };
+
+export type RemoveItemDiscountMutationVariables = Exact<{
+  itemId: Scalars['DbUuid']['input'];
+  discountId: Scalars['DbUuid']['input'];
+}>;
+
+
+export type RemoveItemDiscountMutation = { __typename?: 'Mutation', removeItemDiscount: boolean };
 
 export type GetVariantTypesQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -2558,6 +2625,35 @@ export const DeleteItemDocument = new TypedDocumentString(`
   deleteItem(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteItemMutation, DeleteItemMutationVariables>;
+export const GetItemDiscountsDocument = new TypedDocumentString(`
+    query getItemDiscounts($itemId: DbUuid!) {
+  itemDiscounts(itemId: $itemId) {
+    itemId
+    discountId
+  }
+}
+    `) as unknown as TypedDocumentString<GetItemDiscountsQuery, GetItemDiscountsQueryVariables>;
+export const GetDiscountItemsDocument = new TypedDocumentString(`
+    query getDiscountItems($discountId: DbUuid!) {
+  discountItems(discountId: $discountId) {
+    itemId
+    discountId
+  }
+}
+    `) as unknown as TypedDocumentString<GetDiscountItemsQuery, GetDiscountItemsQueryVariables>;
+export const AddItemDiscountDocument = new TypedDocumentString(`
+    mutation addItemDiscount($itemDiscount: ItemDiscountNewInput!) {
+  addItemDiscount(itemDiscount: $itemDiscount) {
+    itemId
+    discountId
+  }
+}
+    `) as unknown as TypedDocumentString<AddItemDiscountMutation, AddItemDiscountMutationVariables>;
+export const RemoveItemDiscountDocument = new TypedDocumentString(`
+    mutation removeItemDiscount($itemId: DbUuid!, $discountId: DbUuid!) {
+  removeItemDiscount(itemId: $itemId, discountId: $discountId)
+}
+    `) as unknown as TypedDocumentString<RemoveItemDiscountMutation, RemoveItemDiscountMutationVariables>;
 export const GetVariantTypesDocument = new TypedDocumentString(`
     query getVariantTypes($first: Int!, $offset: Int!) {
   variantTypes(first: $first, offset: $offset) {

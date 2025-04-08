@@ -1,0 +1,24 @@
+query getItemDiscounts($itemId: DbUuid!) {
+  itemDiscounts(itemId: $itemId) {
+    itemId
+    discountId
+  }
+}
+
+query getDiscountItems($discountId: DbUuid!) {
+  discountItems(discountId: $discountId) {
+    itemId
+    discountId
+  }
+}
+
+mutation addItemDiscount($itemDiscount: ItemDiscountNewInput!) {
+  addItemDiscount(itemDiscount: $itemDiscount) {
+    itemId
+    discountId
+  }
+}
+
+mutation removeItemDiscount($itemId: DbUuid!, $discountId: DbUuid!) {
+  removeItemDiscount(itemId: $itemId, discountId: $discountId)
+}

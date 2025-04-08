@@ -167,7 +167,6 @@ pub struct SalesOrderUpdateChangeset {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, DbEnum, GraphQLEnum, AsExpression)]
-#[DbValueStyle = "PascalCase"]
 #[diesel(sql_type = Text)]
 pub enum SalesOrderState {
     Draft,
@@ -176,7 +175,6 @@ pub enum SalesOrderState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, DbEnum, GraphQLEnum, AsExpression)]
-#[DbValueStyle = "PascalCase"]
 #[diesel(sql_type = Text)]
 pub enum SalesOrderPaymentState {
     Pending,

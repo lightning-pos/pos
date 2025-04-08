@@ -126,8 +126,10 @@ const AddDiscountModal: React.FC<AddDiscountModalProps> = ({
                         scope: e.target.value as DiscountScope
                     }))}
                     required
+                    helperText={newDiscount.scope === DiscountScope.SpecificItems ? "You can assign specific items to this discount after creation" : ""}
                 >
                     <SelectItem value={DiscountScope.AllItems} text="All Items" />
+                    <SelectItem value={DiscountScope.SpecificItems} text="Specific Items" />
                 </Select>
 
                 <Select

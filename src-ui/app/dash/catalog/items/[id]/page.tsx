@@ -20,6 +20,7 @@ import {
 } from '@carbon/react'
 import { ArrowLeft } from '@carbon/icons-react'
 import ItemVariants from './item_variants'
+import ItemDiscounts from './item_discounts'
 import { gql } from '@/lib/graphql/execute'
 import {
     GetItemsDocument,
@@ -186,11 +187,15 @@ const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
             <Tabs>
                 <TabList aria-label="Item Details">
                     <Tab>Variants</Tab>
+                    <Tab>Discounts</Tab>
                     <Tab>Taxes</Tab>
                 </TabList>
                 <TabPanels>
                     <TabPanel>
                         <ItemVariants itemId={itemId} itemName={item?.name} />
+                    </TabPanel>
+                    <TabPanel>
+                        <ItemDiscounts itemId={itemId} itemName={item?.name} />
                     </TabPanel>
                     <TabPanel>
                         <div className="mt-4">

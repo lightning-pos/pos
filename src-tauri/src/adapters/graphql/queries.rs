@@ -1,8 +1,9 @@
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
-    adapters::graphql::catalog::variants::{
-        item_variant_queries, variant_type_queries, variant_value_queries,
+    adapters::graphql::catalog::{
+        item_discount::ItemDiscountObject,
+        variants::{item_variant_queries, variant_type_queries, variant_value_queries},
     },
     adapters::graphql::Query,
     core::{
@@ -417,5 +418,22 @@ impl Query {
 
     fn item_variant(&self, id: DbUuid, context: &AppState) -> FieldResult<ItemVariant> {
         item_variant_queries::get_item_variant(id, context)
+    }
+
+    // Item Discount Queries
+    fn item_discounts(
+        &self,
+        item_id: DbUuid,
+        context: &AppState,
+    ) -> FieldResult<Vec<ItemDiscountObject>> {
+        super::catalog::item_discount::ItemDiscountQuery::item_discounts(context, item_id)
+    }
+
+    fn discount_items(
+        &self,
+        discount_id: DbUuid,
+        context: &AppState,
+    ) -> FieldResult<Vec<ItemDiscountObject>> {
+        super::catalog::item_discount::ItemDiscountQuery::discount_items(context, discount_id)
     }
 }

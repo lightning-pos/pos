@@ -10,6 +10,7 @@ enum CostCenterState {
 
 enum DiscountScope {
   ALL_ITEMS
+  SPECIFIC_ITEMS
 }
 
 enum DiscountState {
@@ -165,6 +166,11 @@ input ExpenseUpdateInput {
   categoryId: DbUuid
   costCenterId: DbUuid
   description: String
+}
+
+input ItemDiscountNewInput {
+  itemId: DbUuid!
+  discountId: DbUuid!
 }
 
 input ItemGroupNew {
@@ -486,6 +492,12 @@ type Item {
   defaultVariant: ItemVariant
 }
 
+"A relationship between an item and a discount"
+type ItemDiscountObject {
+  itemId: DbUuid!
+  discountId: DbUuid!
+}
+
 type ItemGroup {
   id: DbUuid!
   name: String!
@@ -578,6 +590,8 @@ type Mutation {
   deleteItemVariant(id: DbUuid!): Int!
   assignVariantValueToItemVariant(itemVariantId: DbUuid!, variantValueId: DbUuid!): Int!
   removeVariantValueFromItemVariant(itemVariantId: DbUuid!, variantValueId: DbUuid!): Int!
+  addItemDiscount(itemDiscount: ItemDiscountNewInput!): ItemDiscountObject!
+  removeItemDiscount(itemId: DbUuid!, discountId: DbUuid!): Boolean!
 }
 
 "Payment Method"
@@ -663,6 +677,8 @@ type Query {
   variantValue(id: DbUuid!): VariantValue!
   itemVariants(itemId: DbUuid, first: Int, offset: Int): [ItemVariant!]!
   itemVariant(id: DbUuid!): ItemVariant!
+  itemDiscounts(itemId: DbUuid!): [ItemDiscountObject!]!
+  discountItems(discountId: DbUuid!): [ItemDiscountObject!]!
 }
 
 type SalesChargeType {
@@ -796,4 +812,15 @@ type VariantValue {
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
   variantType: VariantType!
+}
+
+"A relationship between an item and a discount"
+type ItemDiscountObject {
+  itemId: DbUuid!
+  discountId: DbUuid!
+}
+
+input ItemDiscountNewInput {
+  itemId: DbUuid!
+  discountId: DbUuid!
 }
