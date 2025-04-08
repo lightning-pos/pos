@@ -45,7 +45,7 @@ const ItemDiscounts: React.FC<ItemDiscountsProps> = ({ itemId, itemName }) => {
 
             if (result.itemDiscounts) {
                 // Fetch all discounts to get full discount details
-                const discountsResult = await gql(GetDiscountsDocument, {})
+                const discountsResult = await gql(GetDiscountsDocument, { first: 100, offset: 0 })
                 const discountsMap = new Map<string, Discount>()
 
                 discountsResult.discounts.forEach((discount: Discount) => {
@@ -157,7 +157,7 @@ const ItemDiscounts: React.FC<ItemDiscountsProps> = ({ itemId, itemName }) => {
                 <h3 className="text-lg font-medium">Applied Discounts</h3>
                 <Button
                     kind="primary"
-                    size="sm"
+                    size="lg"
                     renderIcon={Add}
                     onClick={() => setIsAddModalOpen(true)}
                     disabled={availableDiscounts.length === 0}
@@ -165,6 +165,20 @@ const ItemDiscounts: React.FC<ItemDiscountsProps> = ({ itemId, itemName }) => {
                     Add Discount
                 </Button>
             </div>
+
+            {availableDiscounts.length === 0 && (
+                <div className="bg-blue-50 p-4 rounded mb-4">
+                    <p className="text-blue-800 font-medium">No eligible discounts available</p>
+                    <p className="text-blue-600">You need to create discounts with "Specific Items" scope first.</p>
+                    <Button
+                        kind="tertiary"
+                        className="mt-2"
+                        onClick={() => window.open('/dash/catalog/discounts', '_blank')}
+                    >
+                        Go to Discounts Page
+                    </Button>
+                </div>
+            )}
 
             {error && (
                 <InlineNotification

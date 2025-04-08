@@ -1572,6 +1572,13 @@ export type GetItemsQueryVariables = Exact<{
 
 export type GetItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> }> };
 
+export type GetItemQueryVariables = Exact<{
+  id: Scalars['DbUuid']['input'];
+}>;
+
+
+export type GetItemQuery = { __typename?: 'Query', item: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> } };
+
 export type GetItemCategoriesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -2504,6 +2511,52 @@ export const GetItemsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<GetItemsQuery, GetItemsQueryVariables>;
+export const GetItemDocument = new TypedDocumentString(`
+    query getItem($id: DbUuid!) {
+  item(id: $id) {
+    id
+    name
+    description
+    nature
+    state
+    price
+    createdAt
+    updatedAt
+    category {
+      id
+      name
+      description
+      state
+      createdAt
+      updatedAt
+    }
+    taxes {
+      id
+      name
+      rate
+      description
+      createdAt
+      updatedAt
+    }
+    hasVariants
+    variants {
+      id
+      sku
+      priceAdjustment
+      isDefault
+      finalPrice
+      variantValues {
+        id
+        value
+        variantType {
+          id
+          name
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<GetItemQuery, GetItemQueryVariables>;
 export const GetItemCategoriesDocument = new TypedDocumentString(`
     query getItemCategories {
   itemCategories {

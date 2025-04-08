@@ -43,6 +43,51 @@ query getItems($first: Int!, $offset: Int!) {
     }
 }
 
+query getItem($id: DbUuid!) {
+    item(id: $id) {
+        id
+        name
+        description
+        nature
+        state
+        price
+        createdAt
+        updatedAt
+        category {
+            id
+            name
+            description
+            state
+            createdAt
+            updatedAt
+        }
+        taxes {
+            id
+            name
+            rate
+            description
+            createdAt
+            updatedAt
+        }
+        hasVariants
+        variants {
+            id
+            sku
+            priceAdjustment
+            isDefault
+            finalPrice
+            variantValues {
+                id
+                value
+                variantType {
+                    id
+                    name
+                }
+            }
+        }
+    }
+}
+
 query getItemCategories {
     itemCategories {
         id

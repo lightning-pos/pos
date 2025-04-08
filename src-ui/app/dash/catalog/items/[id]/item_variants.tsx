@@ -154,6 +154,8 @@ const ItemVariants: React.FC<ItemVariantsProps> = ({ itemId, itemName }) => {
                     renderIcon={Add}
                     onClick={() => setIsAddModalOpen(true)}
                     disabled={variantTypes.length === 0}
+                    size="lg"
+                    kind="primary"
                 >
                     Add Variant
                 </Button>

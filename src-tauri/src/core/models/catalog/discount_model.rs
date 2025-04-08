@@ -67,12 +67,14 @@ pub struct DiscountUpdateChangeset {
 // Make sure these enum types are created in the database via migrations
 
 #[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+#[DbValueStyle = "snake_case"]
 pub enum DiscountType {
     Percentage,
     FixedAmount,
 }
 
 #[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+#[DbValueStyle = "snake_case"]
 pub enum DiscountScope {
     AllItems,
     SpecificItems, // Added for item-specific discounts
@@ -81,6 +83,7 @@ pub enum DiscountScope {
 }
 
 #[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+#[DbValueStyle = "snake_case"]
 pub enum DiscountState {
     Active,
     Inactive,

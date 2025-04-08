@@ -19,11 +19,11 @@ import {
     InlineNotification,
 } from '@carbon/react'
 import { ArrowLeft } from '@carbon/icons-react'
-import ItemVariants from './item_variants'
-import ItemDiscounts from './item_discounts'
+import SimpleItemVariants from './simple_item_variants'
+import SimpleItemDiscounts from './simple_item_discounts'
 import { gql } from '@/lib/graphql/execute'
 import {
-    GetItemsDocument,
+    GetItemDocument,
     Item,
 } from '@/lib/graphql/graphql'
 import { formatCurrency } from '@/lib/util/number_format'
@@ -49,16 +49,13 @@ const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
         setLoading(true)
         setError(null)
         try {
-            // Using the existing getItems query with a large limit and filtering client-side
-            // In a real app, you'd want a dedicated getItem query
-            const result = await gql(GetItemsDocument, {
-                first: 1000,
-                offset: 0
+            // Using the dedicated getItem query
+            const result = await gql(GetItemDocument, {
+                id: itemId
             })
 
-            const foundItem = result.items.find(item => item.id === itemId)
-            if (foundItem) {
-                setItem(foundItem as unknown as Item)
+            if (result.item) {
+                setItem(result.item as Item)
             } else {
                 setError('Item not found')
             }
@@ -153,8 +150,8 @@ const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
                 </Breadcrumb>
             </div>
 
-            <Grid className="mb-4">
-                <Column lg={16} md={8} sm={4}>
+            <Grid className="mb-4 p-0">
+                <Column lg={16} md={8} sm={4} className='m-0 p-0'>
                     <Tile>
                         <Stack gap={4}>
                             <h2 className="text-2xl font-bold">{item.name}</h2>
@@ -183,42 +180,6 @@ const ItemDetailPage: React.FC<ItemDetailPageProps> = ({ params }) => {
                     </Tile>
                 </Column>
             </Grid>
-
-            <Tabs>
-                <TabList aria-label="Item Details">
-                    <Tab>Variants</Tab>
-                    <Tab>Discounts</Tab>
-                    <Tab>Taxes</Tab>
-                </TabList>
-                <TabPanels>
-                    <TabPanel>
-                        <ItemVariants itemId={itemId} itemName={item?.name} />
-                    </TabPanel>
-                    <TabPanel>
-                        <ItemDiscounts itemId={itemId} itemName={item?.name} />
-                    </TabPanel>
-                    <TabPanel>
-                        <div className="mt-4">
-                            <h3 className="text-lg font-medium mb-4">Applied Taxes</h3>
-                            {item.taxes.length === 0 ? (
-                                <p className="text-gray-500">No taxes applied to this item.</p>
-                            ) : (
-                                <ul className="list-disc pl-5">
-                                    {item.taxes.map(tax => (
-                                        <li key={tax.id} className="mb-2">
-                                            <span className="font-medium">{tax.name}</span>
-                                            <span className="ml-2 text-gray-600">({tax.rate}%)</span>
-                                            {tax.description && (
-                                                <p className="text-sm text-gray-500">{tax.description}</p>
-                                            )}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    </TabPanel>
-                </TabPanels>
-            </Tabs>
         </Content>
     )
 }

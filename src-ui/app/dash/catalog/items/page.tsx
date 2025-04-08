@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Content } from '@carbon/react'
 import DataTable from '@/components/ui/DataTable'
 import AddItemModal from './add_item_modal'
@@ -28,6 +29,7 @@ interface TableRow extends Item {
 }
 
 const Items = () => {
+    const router = useRouter()
     // Model States
     const [itemsList, setItemsList] = useState<TableRow[]>([])
     const [selectedItem, setSelectedItem] = useState<Item | null>(null)
@@ -146,6 +148,9 @@ const Items = () => {
                     onDeleteClick={(row) => {
                         setSelectedItem(row)
                         setIsDeleteModalOpen(true)
+                    }}
+                    onRowClick={(row) => {
+                        router.push(`/dash/catalog/items/${row.id}`)
                     }}
                 />
             </div>
