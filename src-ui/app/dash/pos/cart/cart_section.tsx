@@ -13,7 +13,9 @@ import {
     SalesOrderState,
     SalesOrderNewInput,
     SalesOrderItemInput,
-    PosCreateSalesOrderDocument
+    PosCreateSalesOrderDocument,
+    ItemNature,
+    ItemState
 } from '@/lib/graphql/graphql'
 import CheckoutModal from './checkout_modal'
 import CustomerSelect from './customer_select'

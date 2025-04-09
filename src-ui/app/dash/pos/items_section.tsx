@@ -57,7 +57,7 @@ const ItemsSection: React.FC<ItemsSectionProps> = ({ selectedCategoryId, addItem
                                 createdAt: item.category.createdAt,
                                 updatedAt: item.category.updatedAt
                             } as unknown as ItemGroup,
-                            taxes: item.taxes.map((tax): Tax => ({
+                            taxes: item.taxes.map((tax: any): Tax => ({
                                 id: tax.id,
                                 name: tax.name,
                                 rate: tax.rate,

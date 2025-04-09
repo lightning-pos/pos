@@ -70,7 +70,7 @@ function DataTable<T extends { id: string }>({
                     <TableCell key={cell.id}>{cell.value}</TableCell>
                   ))}
                   <TableCell>
-                    <OverflowMenu label="Actions">
+                    <OverflowMenu aria-label="Actions">
                       <OverflowMenuItem
                         itemText="Edit"
                         onClick={() => {
