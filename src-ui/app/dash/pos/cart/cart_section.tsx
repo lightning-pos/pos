@@ -20,9 +20,19 @@ import CustomerSelect from './customer_select'
 import CartItem from './cart_item'
 import { formatCurrency } from '@/lib/util/number_format'
 
-export interface CartItem extends Omit<Item, 'category' | 'taxes'> {
+export interface CartItem {
+    cartItemId: string
+    id: string
+    variantId?: string
+    name: string
+    description: string
+    price: string
     quantity: number
     taxIds?: string[]
+    nature: ItemNature
+    state: ItemState
+    createdAt: string
+    updatedAt: string
 }
 
 interface CartSectionProps {
@@ -65,10 +75,10 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
         fetchTaxes()
     }, [])
 
-    const updateQuantity = (itemId: string, change: number) => {
+    const updateQuantity = (cartItemId: string, change: number) => {
         setCart(prevCart => {
             return prevCart.map(item => {
-                if (item.id === itemId) {
+                if (item.cartItemId === cartItemId) {
                     const newQuantity = Math.max(0, item.quantity + change)
                     return newQuantity === 0 ? null : { ...item, quantity: newQuantity }
                 }
@@ -114,7 +124,8 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
             setIsSubmitting(true)
 
             const now = new Date()
-            const orderDate = now.toISOString()
+            // Format date as yyyy-MM-dd HH:mm:ss for LocalDateTime
+            const orderDate = now.toISOString().replace('T', ' ').substring(0, 19)
 
             const orderItems: SalesOrderItemInput[] = cart.map(item => {
                 const taxAmount = item.taxIds
@@ -137,7 +148,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
                             .filter(tax => item.taxIds?.includes(tax.id))
                             .reduce((sum, tax) => sum + (parseFloat(item.price) * parseFloat(tax.rate) / 100), 0)
                         : 0)) * item.quantity).toString(),
-                    sku: undefined // Optional field
+                    sku: item.variantId ? `variant-${item.variantId}` : undefined // Store variant ID in SKU field
                 }
             })
 

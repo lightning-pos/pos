@@ -1812,7 +1812,7 @@ export type GetPosItemsQueryVariables = Exact<{
 }>;
 
 
-export type GetPosItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }> }> };
+export type GetPosItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> }> };
 
 export type GetPosTaxesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -3010,6 +3010,22 @@ export const GetPosItemsDocument = new TypedDocumentString(`
       description
       createdAt
       updatedAt
+    }
+    hasVariants
+    variants {
+      id
+      sku
+      priceAdjustment
+      isDefault
+      finalPrice
+      variantValues {
+        id
+        value
+        variantType {
+          id
+          name
+        }
+      }
     }
   }
 }

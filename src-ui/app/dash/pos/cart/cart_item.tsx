@@ -6,7 +6,7 @@ import { formatCurrency } from '@/lib/util/number_format'
 
 interface CartItemProps {
     item: CartItemType
-    updateQuantity: (itemId: string, change: number) => void
+    updateQuantity: (cartItemId: string, change: number) => void
 }
 
 const CartItem: React.FC<CartItemProps> = ({ item, updateQuantity }) => {
@@ -17,11 +17,11 @@ const CartItem: React.FC<CartItemProps> = ({ item, updateQuantity }) => {
             <div className='flex justify-between items-center'>
                 <span>{item.name}</span>
                 <div className='flex items-center'>
-                    <IconButton size='sm' label="Decrease" onClick={() => updateQuantity(item.id, -1)}>
+                    <IconButton size='sm' label="Decrease" onClick={() => updateQuantity(item.cartItemId, -1)}>
                         <Subtract size={16} />
                     </IconButton>
                     <span className='mx-2'>{item.quantity}</span>
-                    <IconButton size='sm' label="Increase" onClick={() => updateQuantity(item.id, 1)}>
+                    <IconButton size='sm' label="Increase" onClick={() => updateQuantity(item.cartItemId, 1)}>
                         <Add size={16} />
                     </IconButton>
                     <span className='ml-4'>{formatCurrency(itemTotal)}</span>

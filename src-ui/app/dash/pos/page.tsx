@@ -4,20 +4,27 @@ import { useState } from 'react'
 import CartSection, { CartItem } from './cart/cart_section'
 import CategoriesSection from './categories_section'
 import ItemsSection from './items_section'
-import { Item, Tax, ItemNature, ItemState } from '@/lib/graphql/graphql'
+import { Item, ItemVariant, ItemNature, ItemState } from '@/lib/graphql/graphql'
 
 const POS = () => {
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
     const [cart, setCart] = useState<CartItem[]>([])
 
-    const addToCart = (item: Item) => {
+    const addToCart = (item: Item, variant?: ItemVariant) => {
         setCart(prevCart => {
-            const existingItem = prevCart.find(cartItem => cartItem.id === item.id)
             const taxIds = item.taxes?.map(tax => tax.id) ?? []
 
+            // Create a unique ID for the cart item
+            // If it's a variant, use item ID + variant ID to make it unique
+            const cartItemId = variant ? `${item.id}-${variant.id}` : item.id
+
+            // Check if this exact item/variant is already in the cart
+            const existingItem = prevCart.find(cartItem => cartItem.cartItemId === cartItemId)
+
             if (existingItem) {
+                // Update quantity if already in cart
                 return prevCart.map(cartItem =>
-                    cartItem.id === item.id
+                    cartItem.cartItemId === cartItemId
                         ? {
                             ...cartItem,
                             quantity: cartItem.quantity + 1,
@@ -27,14 +34,26 @@ const POS = () => {
                 )
             }
 
+            // Determine the price to use (variant price or item price)
+            const price = variant ? variant.finalPrice : item.price
+
+            // Create a name that includes variant information if applicable
+            let displayName = item.name
+            if (variant && variant.variantValues && variant.variantValues.length > 0) {
+                const variantInfo = variant.variantValues
+                    .map(v => `${v.variantType.name}: ${v.value}`)
+                    .join(', ')
+                displayName = `${item.name} (${variantInfo})`
+            }
+
+            // Create new cart item
             const newCartItem = {
-                // @ts-ignore - Adding missing properties
-                hasVariants: false,
-                variants: [],
+                cartItemId,
                 id: item.id,
-                name: item.name,
+                variantId: variant?.id,
+                name: displayName,
                 description: item.description ?? '',
-                price: item.price,
+                price,
                 quantity: 1,
                 taxIds,
                 nature: item.nature ?? ItemNature.Goods,
