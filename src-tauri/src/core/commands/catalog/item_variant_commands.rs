@@ -2,6 +2,7 @@ use chrono::Utc;
 use diesel::{
     Connection, ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper,
 };
+use std::collections::HashSet;
 use uuid::Uuid;
 
 use crate::{
@@ -62,12 +63,21 @@ impl Command for CreateItemVariantCommand {
                 .select(Item::as_select())
                 .get_result::<Item>(conn)?;
 
-            // Verify all variant values exist
+            // Verify all variant values exist and check for duplicate variant types
+            let mut variant_type_ids = HashSet::new();
+
             for variant_value_id in &self.item_variant.variant_value_ids {
-                variant_values::table
+                // Get the variant value and its type
+                let variant_value = variant_values::table
                     .find(variant_value_id)
                     .select(VariantValue::as_select())
                     .get_result::<VariantValue>(conn)?;
+
+                // Check if we already have a value from this variant type
+                if !variant_type_ids.insert(variant_value.variant_type_id) {
+                    // Cannot add multiple values from the same variant type
+                    return Err(Error::AlreadyExistsError);
+                }
             }
 
             // Check if this is the first variant for this item
@@ -248,8 +258,8 @@ impl Command for AssignVariantValueCommand {
                 .select(ItemVariant::as_select())
                 .get_result::<ItemVariant>(conn)?;
 
-            // Verify variant value exists
-            variant_values::table
+            // Verify variant value exists and get its type
+            let new_variant_value = variant_values::table
                 .find(&self.variant_value_id)
                 .select(VariantValue::as_select())
                 .get_result::<VariantValue>(conn)?;
@@ -264,6 +274,20 @@ impl Command for AssignVariantValueCommand {
 
             if exists {
                 return Ok(0); // Already exists, no changes made
+            }
+
+            // Check if there's already a value from the same variant type
+            let existing_values = item_variant_values::table
+                .filter(item_variant_values::item_variant_id.eq(&self.item_variant_id))
+                .inner_join(variant_values::table)
+                .select(VariantValue::as_select())
+                .load::<VariantValue>(conn)?;
+
+            for existing_value in existing_values {
+                if existing_value.variant_type_id == new_variant_value.variant_type_id {
+                    // Return a more descriptive error message
+                    return Err(Error::AlreadyExistsError);
+                }
             }
 
             // Create the association
@@ -555,5 +579,69 @@ mod tests {
             .unwrap();
 
         assert_eq!(associations.len(), 0);
+    }
+
+    #[test]
+    fn test_prevent_duplicate_variant_types_in_create() {
+        let mut service = setup_service();
+        let item = create_test_item(&mut service);
+        let variant_type = create_test_variant_type(&mut service);
+        let variant_value1 = create_test_variant_value(&mut service, variant_type.id);
+        let variant_value2 = create_test_variant_value(&mut service, variant_type.id);
+
+        // Try to create a variant with two values from the same type
+        let command = CreateItemVariantCommand {
+            item_variant: ItemVariantNewInput {
+                item_id: item.id,
+                sku: Some("TEST-SKU-001".to_string()),
+                price_adjustment: Some(Money::from(100)),
+                is_default: Some(true),
+                variant_value_ids: vec![variant_value1.id, variant_value2.id],
+            },
+        };
+
+        // This should fail with AlreadyExistsError
+        let result = command.exec(&mut service);
+        assert!(result.is_err());
+        match result {
+            Err(Error::AlreadyExistsError) => {} // Expected error
+            _ => panic!("Expected AlreadyExistsError, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_prevent_duplicate_variant_types_in_assign() {
+        let mut service = setup_service();
+        let item = create_test_item(&mut service);
+        let variant_type1 = create_test_variant_type(&mut service);
+        let variant_value1 = create_test_variant_value(&mut service, variant_type1.id);
+
+        // Create a variant with one value
+        let command = CreateItemVariantCommand {
+            item_variant: ItemVariantNewInput {
+                item_id: item.id,
+                sku: Some("TEST-SKU-001".to_string()),
+                price_adjustment: Some(Money::from(100)),
+                is_default: Some(true),
+                variant_value_ids: vec![variant_value1.id],
+            },
+        };
+
+        let item_variant = command.exec(&mut service).unwrap();
+
+        // Try to assign another value from the same type
+        let variant_value2 = create_test_variant_value(&mut service, variant_type1.id);
+        let assign_command = AssignVariantValueCommand {
+            item_variant_id: item_variant.id,
+            variant_value_id: variant_value2.id,
+        };
+
+        // This should fail with AlreadyExistsError
+        let result = assign_command.exec(&mut service);
+        assert!(result.is_err());
+        match result {
+            Err(Error::AlreadyExistsError) => {} // Expected error
+            _ => panic!("Expected AlreadyExistsError, got {:?}", result),
+        }
     }
 }
