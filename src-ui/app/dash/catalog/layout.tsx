@@ -18,10 +18,7 @@ export default function CatalogLayout({
                         Categories
                     </SideNavLink>
                     <SideNavLink renderIcon={CatalogIcon} large onClick={() => { router.push('/dash/catalog/items') }}>
-                        Base Menu
-                    </SideNavLink>
-                    <SideNavLink renderIcon={ShoppingCart} large onClick={() => { router.push('/dash/catalog/display-menu') }}>
-                        Display Menu
+                        Items
                     </SideNavLink>
                     <SideNavLink renderIcon={TagGroup} large onClick={() => { router.push('/dash/catalog/variants') }}>
                         Variants
