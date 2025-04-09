@@ -23,17 +23,14 @@ export default function CatalogLayout({
                     <SideNavLink renderIcon={ShoppingCart} large onClick={() => { router.push('/dash/catalog/display-menu') }}>
                         Display Menu
                     </SideNavLink>
+                    <SideNavLink renderIcon={TagGroup} large onClick={() => { router.push('/dash/catalog/variants') }}>
+                        Variants
+                    </SideNavLink>
                     <SideNavLink renderIcon={ShoppingCartPlus} large onClick={() => { router.push('/dash/catalog/addons') }}>
                         Addons
                     </SideNavLink>
-                    <SideNavLink renderIcon={Branch} large onClick={() => { router.push('/dash/catalog/brands') }}>
-                        Brands
-                    </SideNavLink>
                     <SideNavLink renderIcon={PiggyBank} large onClick={() => { router.push('/dash/catalog/discounts') }}>
                         Discounts
-                    </SideNavLink>
-                    <SideNavLink renderIcon={TagGroup} large onClick={() => { router.push('/dash/catalog/variants') }}>
-                        Variants
                     </SideNavLink>
                 </SideNavItems>
             </SideNav>
