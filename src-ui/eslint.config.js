@@ -15,6 +15,13 @@ const styleRules = {
     'eol-last': ['error', 'always']
 }
 
+// TypeScript-specific rules
+const tsRules = {
+    ...styleRules,
+    'no-undef': 'off', // TypeScript already checks this
+    '@typescript-eslint/no-unused-vars': ['warn']
+}
+
 export default [
     js.configs.recommended,
     {
@@ -87,9 +94,8 @@ export default [
         },
         rules: {
             ...tseslint.configs.recommended.rules,
-            ...styleRules,
+            ...tsRules,
             // Add any specific rules here
-            'no-undef': 'off', // TypeScript already checks this
         },
     },
     {
