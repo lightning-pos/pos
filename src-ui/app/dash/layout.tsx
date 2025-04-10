@@ -39,8 +39,8 @@ export default function DashboardLayout({
                         <SwitcherIcon />
                     </HeaderGlobalAction>
                 </HeaderGlobalBar>
-                <HeaderPanel expanded={isSideNavExpanded ? isSideNavExpanded : undefined}>
-                    <Switcher aria-label="Switcher Container" expanded={isSideNavExpanded ? isSideNavExpanded : undefined} >
+                <HeaderPanel expanded={isSideNavExpanded}>
+                    <Switcher aria-label="Switcher Container" expanded={isSideNavExpanded}>
                         <SwitcherItem aria-label="POS" onClick={() => { router.push('/dash/pos') }}>Point of Sale</SwitcherItem>
                         <SwitcherItem aria-label="Sales" onClick={() => { router.push('/dash/sales') }}>Sales</SwitcherItem>
                         <SwitcherItem aria-label="Purchases" onClick={() => { router.push('/dash/purchases') }}>Purchases</SwitcherItem>
