@@ -124,7 +124,7 @@ const Items = () => {
 
     return (
         <Content className="min-h-[calc(100dvh-3rem)] p-0 flex flex-col">
-            <div className="p-4 flex-grow flex flex-col" style={{ height: "calc(100vh - 12rem)" }}>
+            <div className="p-4 flex-grow flex flex-col" style={{ height: 'calc(100vh - 12rem)' }}>
                 <DataTable<TableRow>
                     title="Menu Items"
                     description="Manage your menu items here. You can add, edit, or delete items as needed."

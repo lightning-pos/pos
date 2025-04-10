@@ -49,7 +49,7 @@ const VariantsPage = () => {
 
     return (
         <Content className="min-h-[calc(100dvh-3rem)] p-0 flex flex-col">
-            <div className="p-4 flex-grow flex flex-col" style={{ height: "calc(100vh - 12rem)" }}>
+            <div className="p-4 flex-grow flex flex-col" style={{ height: 'calc(100vh - 12rem)' }}>
                 <VariantTypesList
                     variantTypes={variantTypes}
                     loading={loading}

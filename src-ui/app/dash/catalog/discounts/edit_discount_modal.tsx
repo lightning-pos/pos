@@ -66,7 +66,7 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
         }
 
         // Debug log to see what we're sending
-        console.log('Updating discount:', formattedDiscount);
+        console.log('Updating discount:', formattedDiscount)
 
         await onSave(formattedDiscount)
     }
@@ -129,12 +129,12 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                         min={0}
                         max={updatedDiscount.discountType === DiscountType.Percentage ? 100 : undefined}
                         step={0.01}
-                        value={updatedDiscount.value !== undefined ? String(updatedDiscount.value) : "0"}
+                        value={updatedDiscount.value !== undefined ? String(updatedDiscount.value) : '0'}
                         onChange={(e, { value }) => setUpdatedDiscount(prev => ({
                             ...prev,
                             value: parseFloat(String(value))
                         }))}
-                        helperText={updatedDiscount.discountType === DiscountType.Percentage ? "Enter percentage (0-100)" : "Enter amount"}
+                        helperText={updatedDiscount.discountType === DiscountType.Percentage ? 'Enter percentage (0-100)' : 'Enter amount'}
                         invalidText="Value must be greater than or equal to 0"
                     />
                 </div>
@@ -147,7 +147,7 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                         ...prev,
                         scope: e.target.value as DiscountScope || undefined
                     }))}
-                    helperText={updatedDiscount.scope === DiscountScope.SpecificItems ? "You can assign specific items to this discount after saving" : ""}
+                    helperText={updatedDiscount.scope === DiscountScope.SpecificItems ? 'You can assign specific items to this discount after saving' : ''}
                 >
                     <SelectItem value={DiscountScope.AllItems} text="All Items" />
                     <SelectItem value={DiscountScope.SpecificItems} text="Specific Items" />
@@ -175,7 +175,7 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                         value={formatDateForPicker(updatedDiscount.startDate as string)}
                         onChange={([date]) => {
                             if (date) {
-                                console.log('Selected start date:', date);
+                                console.log('Selected start date:', date)
                                 setUpdatedDiscount(prev => ({
                                     ...prev,
                                     startDate: date.toISOString()
@@ -201,7 +201,7 @@ const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                         value={formatDateForPicker(updatedDiscount.endDate as string)}
                         onChange={([date]) => {
                             if (date) {
-                                console.log('Selected end date:', date);
+                                console.log('Selected end date:', date)
                                 setUpdatedDiscount(prev => ({
                                     ...prev,
                                     endDate: date.toISOString()

@@ -113,7 +113,7 @@ const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
             // For each variant type, check if this variant has the selected value
             return variantTypeIds.every(typeId => {
                 const selectedValue = selectedValues[typeId]
-                return variant.variantValues.some(value => 
+                return variant.variantValues.some(value =>
                     value.variantType.id === typeId && value.value === selectedValue
                 )
             })

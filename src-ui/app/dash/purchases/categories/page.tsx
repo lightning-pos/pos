@@ -116,14 +116,14 @@ const PurchaseCategories = () => {
     // Helper function to format state value for display
     const formatState = (state: PurchaseCategoryState): string => {
         switch (state) {
-            case PurchaseCategoryState.Active:
-                return 'Active'
-            case PurchaseCategoryState.Inactive:
-                return 'Inactive'
-            case PurchaseCategoryState.Deleted:
-                return 'Deleted'
-            default:
-                return String(state)
+        case PurchaseCategoryState.Active:
+            return 'Active'
+        case PurchaseCategoryState.Inactive:
+            return 'Inactive'
+        case PurchaseCategoryState.Deleted:
+            return 'Deleted'
+        default:
+            return String(state)
         }
     }
 
@@ -158,18 +158,18 @@ const PurchaseCategories = () => {
                     onAddClick={() => setIsAddModalOpen(true)}
                     onEditClick={(item) => {
                         // Find the original category with the PurchaseCategoryState enum
-                        const originalCategory = categories.find(cat => cat.id === item.id);
+                        const originalCategory = categories.find(cat => cat.id === item.id)
                         if (originalCategory) {
-                            setSelectedCategory(originalCategory);
-                            setIsEditModalOpen(true);
+                            setSelectedCategory(originalCategory)
+                            setIsEditModalOpen(true)
                         }
                     }}
                     onDeleteClick={(item) => {
                         // Find the original category with the PurchaseCategoryState enum
-                        const originalCategory = categories.find(cat => cat.id === item.id);
+                        const originalCategory = categories.find(cat => cat.id === item.id)
                         if (originalCategory) {
-                            setSelectedCategory(originalCategory);
-                            setIsDeleteModalOpen(true);
+                            setSelectedCategory(originalCategory)
+                            setIsDeleteModalOpen(true)
                         }
                     }}
                 />

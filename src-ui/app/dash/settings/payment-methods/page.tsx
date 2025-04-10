@@ -1,14 +1,14 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Content } from '@carbon/react';
-import DataTable from '@/components/ui/DataTable';
-import { formatDateYMD } from '@/lib/util/date_format';
-import { gql } from '@/lib/graphql/execute';
-import { GetPaymentMethodsDocument, GetTotalPaymentMethodsDocument, PaymentMethodState, PaymentMethod } from '@/lib/graphql/graphql';
-import AddPaymentMethodModal from '@/app/dash/settings/payment-methods/add_payment_method_modal';
-import EditPaymentMethodModal from '@/app/dash/settings/payment-methods/edit_payment_method_modal';
-import DeletePaymentMethodModal from '@/app/dash/settings/payment-methods/delete_payment_method_modal';
+import React, { useState, useEffect, useCallback } from 'react'
+import { Content } from '@carbon/react'
+import DataTable from '@/components/ui/DataTable'
+import { formatDateYMD } from '@/lib/util/date_format'
+import { gql } from '@/lib/graphql/execute'
+import { GetPaymentMethodsDocument, GetTotalPaymentMethodsDocument, PaymentMethodState, PaymentMethod } from '@/lib/graphql/graphql'
+import AddPaymentMethodModal from '@/app/dash/settings/payment-methods/add_payment_method_modal'
+import EditPaymentMethodModal from '@/app/dash/settings/payment-methods/edit_payment_method_modal'
+import DeletePaymentMethodModal from '@/app/dash/settings/payment-methods/delete_payment_method_modal'
 
 // Define the table row structure
 interface TableRow extends PaymentMethod {
@@ -20,22 +20,22 @@ interface TableRow extends PaymentMethod {
 const stateTagColors = {
     [PaymentMethodState.Active]: 'green',
     [PaymentMethodState.Inactive]: 'gray',
-};
+}
 
 export default function PaymentMethodsPage() {
     // State variables
-    const [paymentMethods, setPaymentMethods] = useState<TableRow[]>([]);
-    const [totalPaymentMethods, setTotalPaymentMethods] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [paymentMethods, setPaymentMethods] = useState<TableRow[]>([])
+    const [totalPaymentMethods, setTotalPaymentMethods] = useState(0)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
 
     // Modal states
-    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
 
     // Format payment method data for table
     const formatPaymentMethodData = (data: PaymentMethod[]): TableRow[] => {
@@ -43,56 +43,56 @@ export default function PaymentMethodsPage() {
             ...item,
             status: item.state,
             formattedCreatedAt: formatDateYMD(item.createdAt)
-        }));
-    };
+        }))
+    }
 
     // Data fetching function
     const fetchPaymentMethods = useCallback(async () => {
         try {
-            setLoading(true);
-            setError(null);
+            setLoading(true)
+            setError(null)
 
-            const offset = (currentPage - 1) * pageSize;
-            const result = await gql(GetPaymentMethodsDocument, { first: pageSize, offset });
-            const totalResult = await gql(GetTotalPaymentMethodsDocument);
+            const offset = (currentPage - 1) * pageSize
+            const result = await gql(GetPaymentMethodsDocument, { first: pageSize, offset })
+            const totalResult = await gql(GetTotalPaymentMethodsDocument)
 
             if (result.paymentMethods) {
                 setPaymentMethods(formatPaymentMethodData(result.paymentMethods.map((item) => ({
                     ...item,
                     description: item.description || null,
-                }))));
-                setTotalPaymentMethods(totalResult.totalPaymentMethods);
+                }))))
+                setTotalPaymentMethods(totalResult.totalPaymentMethods)
             }
         } catch (err) {
-            setError('Failed to load payment methods. Please try again.');
-            console.error('Error fetching payment methods:', err);
+            setError('Failed to load payment methods. Please try again.')
+            console.error('Error fetching payment methods:', err)
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    }, [currentPage, pageSize]);
+    }, [currentPage, pageSize])
 
     // Load payment methods on page init and when pagination changes
     useEffect(() => {
-        fetchPaymentMethods();
-    }, [fetchPaymentMethods]);
+        fetchPaymentMethods()
+    }, [fetchPaymentMethods])
 
     // Event handlers
     const handlePaymentMethodAdded = () => {
-        fetchPaymentMethods();
-        setIsAddModalOpen(false);
-    };
+        fetchPaymentMethods()
+        setIsAddModalOpen(false)
+    }
 
     const handlePaymentMethodUpdated = () => {
-        fetchPaymentMethods();
-        setIsEditModalOpen(false);
-        setSelectedPaymentMethod(null);
-    };
+        fetchPaymentMethods()
+        setIsEditModalOpen(false)
+        setSelectedPaymentMethod(null)
+    }
 
     const handlePaymentMethodDeleted = () => {
-        fetchPaymentMethods();
-        setIsDeleteModalOpen(false);
-        setSelectedPaymentMethod(null);
-    };
+        fetchPaymentMethods()
+        setIsDeleteModalOpen(false)
+        setSelectedPaymentMethod(null)
+    }
 
     const headers = [
         { key: 'code', header: 'Code' },
@@ -100,7 +100,7 @@ export default function PaymentMethodsPage() {
         { key: 'description', header: 'Description' },
         { key: 'status', header: 'Status' },
         { key: 'formattedCreatedAt', header: 'Created' }
-    ];
+    ]
 
     return (
         <Content className='min-h-[calc(100dvh-3rem)] p-0 flex flex-col'>
@@ -116,19 +116,19 @@ export default function PaymentMethodsPage() {
                     pageSize={pageSize}
                     pageSizes={[10, 20, 30, 40, 50]}
                     onPageChange={(page, size) => {
-                        setCurrentPage(page);
-                        setPageSize(size);
+                        setCurrentPage(page)
+                        setPageSize(size)
                     }}
                     onAddClick={() => {
-                        setIsAddModalOpen(true);
+                        setIsAddModalOpen(true)
                     }}
                     onEditClick={(paymentMethod: TableRow) => {
-                        setSelectedPaymentMethod(paymentMethod);
-                        setIsEditModalOpen(true);
+                        setSelectedPaymentMethod(paymentMethod)
+                        setIsEditModalOpen(true)
                     }}
                     onDeleteClick={(paymentMethod: TableRow) => {
-                        setSelectedPaymentMethod(paymentMethod);
-                        setIsDeleteModalOpen(true);
+                        setSelectedPaymentMethod(paymentMethod)
+                        setIsDeleteModalOpen(true)
                     }}
                 />
             </div>
@@ -145,8 +145,8 @@ export default function PaymentMethodsPage() {
                         isOpen={isEditModalOpen}
                         paymentMethod={selectedPaymentMethod}
                         onClose={() => {
-                            setIsEditModalOpen(false);
-                            setSelectedPaymentMethod(null);
+                            setIsEditModalOpen(false)
+                            setSelectedPaymentMethod(null)
                         }}
                         onSave={handlePaymentMethodUpdated}
                     />
@@ -155,13 +155,13 @@ export default function PaymentMethodsPage() {
                         isOpen={isDeleteModalOpen}
                         paymentMethod={selectedPaymentMethod}
                         onClose={() => {
-                            setIsDeleteModalOpen(false);
-                            setSelectedPaymentMethod(null);
+                            setIsDeleteModalOpen(false)
+                            setSelectedPaymentMethod(null)
                         }}
                         onDelete={handlePaymentMethodDeleted}
                     />
                 </>
             )}
         </Content>
-    );
+    )
 }

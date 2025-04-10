@@ -1,9 +1,9 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Modal, InlineLoading } from '@carbon/react';
-import { gql } from '@/lib/graphql/execute';
-import { DeleteCostCenterDocument, CostCenterState, CostCenter } from '@/lib/graphql/graphql';
+import { useState } from 'react'
+import { Modal, InlineLoading } from '@carbon/react'
+import { gql } from '@/lib/graphql/execute'
+import { DeleteCostCenterDocument, CostCenterState, CostCenter } from '@/lib/graphql/graphql'
 
 interface DeleteCostCenterModalProps {
     isOpen: boolean;
@@ -18,26 +18,26 @@ export default function DeleteCostCenterModal({
     onClose,
     onDelete,
 }: DeleteCostCenterModalProps) {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const handleDelete = async () => {
         try {
-            setLoading(true);
-            setError(null);
+            setLoading(true)
+            setError(null)
 
             await gql(DeleteCostCenterDocument, {
                 id: costCenter.id,
-            });
+            })
 
             // Notify parent component
-            onDelete();
+            onDelete()
         } catch (err) {
-            console.error('Error deleting cost center:', err);
-            setError('Failed to delete cost center. Please try again.');
-            setLoading(false);
+            console.error('Error deleting cost center:', err)
+            setError('Failed to delete cost center. Please try again.')
+            setLoading(false)
         }
-    };
+    }
 
     return (
         <Modal
@@ -70,5 +70,5 @@ export default function DeleteCostCenterModal({
                 </div>
             )}
         </Modal>
-    );
+    )
 }

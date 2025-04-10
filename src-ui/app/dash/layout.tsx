@@ -4,9 +4,9 @@ import {
     Switcher, SwitcherDivider, SwitcherItem, Theme
 } from '@carbon/react'
 import { Switcher as SwitcherIcon } from '@carbon/icons-react'
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useHotkeys } from 'react-hotkeys-hook';
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useHotkeys } from 'react-hotkeys-hook'
 
 export default function DashboardLayout({
     children,
@@ -59,5 +59,5 @@ export default function DashboardLayout({
             </Header>
             {children}
         </Theme >
-    );
+    )
 }

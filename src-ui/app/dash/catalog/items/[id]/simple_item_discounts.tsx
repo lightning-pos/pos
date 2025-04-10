@@ -164,21 +164,21 @@ const SimpleItemDiscounts: React.FC<SimpleItemDiscountsProps> = ({ itemId, itemN
         if (!discount) return '-'
 
         // Map state to Carbon tag types
-        let tagType: "green" | "gray" | "blue" | "red" = "gray";
+        let tagType: 'green' | 'gray' | 'blue' | 'red' = 'gray'
 
         switch (discount.state) {
-            case DiscountState.Active:
-                tagType = "green";
-                break;
-            case DiscountState.Inactive:
-                tagType = "gray";
-                break;
-            case DiscountState.Scheduled:
-                tagType = "blue";
-                break;
-            case DiscountState.Expired:
-                tagType = "red";
-                break;
+        case DiscountState.Active:
+            tagType = 'green'
+            break
+        case DiscountState.Inactive:
+            tagType = 'gray'
+            break
+        case DiscountState.Scheduled:
+            tagType = 'blue'
+            break
+        case DiscountState.Expired:
+            tagType = 'red'
+            break
         }
 
         return (

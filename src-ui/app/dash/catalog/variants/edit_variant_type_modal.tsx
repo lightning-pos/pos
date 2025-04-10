@@ -44,8 +44,8 @@ const EditVariantTypeModal: React.FC<EditVariantTypeModalProps> = ({
         const input: VariantTypeUpdateInput = {
             id: variantType.id,
             name: name.trim() !== variantType.name ? name.trim() : undefined,
-            description: description.trim() !== (variantType.description || '') 
-                ? (description.trim() || null) 
+            description: description.trim() !== (variantType.description || '')
+                ? (description.trim() || null)
                 : undefined,
         }
 

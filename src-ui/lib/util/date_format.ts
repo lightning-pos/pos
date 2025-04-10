@@ -11,13 +11,13 @@
  * @returns Formatted date string in 'YYYY-MM-DD' format
  */
 export const formatDateYMD = (date: Date | string | null | undefined): string => {
-    if (!date) return '';
+    if (!date) return ''
 
-    const dateObj = date instanceof Date ? date : new Date(date);
-    if (isNaN(dateObj.getTime())) return '';
+    const dateObj = date instanceof Date ? date : new Date(date)
+    if (isNaN(dateObj.getTime())) return ''
 
-    return dateObj.toISOString().split('T')[0];
-};
+    return dateObj.toISOString().split('T')[0]
+}
 
 /**
  * Formats a date to LocalDateTime format (YYYY-MM-DD HH:MM:SS) expected by the GraphQL API
@@ -30,12 +30,12 @@ export const formatDateYMD = (date: Date | string | null | undefined): string =>
  */
 export const formatToLocalDateTime = (date: Date | string | null | undefined): string => {
     if (!date) {
-        date = new Date();
+        date = new Date()
     }
 
-    const dateObj = date instanceof Date ? date : new Date(date);
+    const dateObj = date instanceof Date ? date : new Date(date)
     if (isNaN(dateObj.getTime())) {
-        throw new Error('Invalid date provided');
+        throw new Error('Invalid date provided')
     }
 
     // Format: YYYY-MM-DD HH:MM:SS
@@ -46,8 +46,8 @@ export const formatToLocalDateTime = (date: Date | string | null | undefined): s
         String(dateObj.getUTCHours()).padStart(2, '0') + ':' +
         String(dateObj.getUTCMinutes()).padStart(2, '0') + ':' +
         String(dateObj.getUTCSeconds()).padStart(2, '0')
-    );
-};
+    )
+}
 
 /**
  * Formats a date to display format (localized)
@@ -55,10 +55,10 @@ export const formatToLocalDateTime = (date: Date | string | null | undefined): s
  * @returns Formatted date string in locale-specific format
  */
 export const formatDateForDisplay = (date: Date | string | null | undefined): string => {
-    if (!date) return '';
+    if (!date) return ''
 
-    const dateObj = date instanceof Date ? date : new Date(date);
-    if (isNaN(dateObj.getTime())) return '';
+    const dateObj = date instanceof Date ? date : new Date(date)
+    if (isNaN(dateObj.getTime())) return ''
 
-    return dateObj.toLocaleDateString();
-};
+    return dateObj.toLocaleDateString()
+}

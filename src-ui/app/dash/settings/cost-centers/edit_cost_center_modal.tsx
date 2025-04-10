@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
 import {
     Modal,
     TextInput,
@@ -10,9 +10,9 @@ import {
     SelectItem,
     TextArea,
     InlineLoading
-} from '@carbon/react';
-import { gql } from '@/lib/graphql/execute';
-import { UpdateCostCenterDocument, CostCenterState, CostCenter } from '@/lib/graphql/graphql';
+} from '@carbon/react'
+import { gql } from '@/lib/graphql/execute'
+import { UpdateCostCenterDocument, CostCenterState, CostCenter } from '@/lib/graphql/graphql'
 
 interface EditCostCenterModalProps {
     isOpen: boolean;
@@ -28,58 +28,58 @@ export default function EditCostCenterModal({
     onSave
 }: EditCostCenterModalProps) {
     // Form state
-    const [name, setName] = useState('');
-    const [code, setCode] = useState('');
-    const [description, setDescription] = useState('');
-    const [state, setState] = useState<CostCenterState>(CostCenterState.Active);
+    const [name, setName] = useState('')
+    const [code, setCode] = useState('')
+    const [description, setDescription] = useState('')
+    const [state, setState] = useState<CostCenterState>(CostCenterState.Active)
 
     // UI states
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const [formErrors, setFormErrors] = useState<{
         name?: string;
         code?: string;
-    }>({});
+    }>({})
 
     // Initialize form values when cost center changes
     useEffect(() => {
         if (costCenter) {
-            setName(costCenter.name || '');
-            setCode(costCenter.code || '');
-            setDescription(costCenter.description || '');
-            setState(costCenter.state);
+            setName(costCenter.name || '')
+            setCode(costCenter.code || '')
+            setDescription(costCenter.description || '')
+            setState(costCenter.state)
         }
-    }, [costCenter]);
+    }, [costCenter])
 
     // Validation function
     const validateForm = (): boolean => {
-        const errors: { name?: string; code?: string } = {};
+        const errors: { name?: string; code?: string } = {}
 
         if (!name.trim()) {
-            errors.name = 'Name is required';
+            errors.name = 'Name is required'
         }
 
         if (!code.trim()) {
-            errors.code = 'Code is required';
+            errors.code = 'Code is required'
         } else if (code.length > 10) {
-            errors.code = 'Code must be 10 characters or less';
+            errors.code = 'Code must be 10 characters or less'
         }
 
-        setFormErrors(errors);
-        return Object.keys(errors).length === 0;
-    };
+        setFormErrors(errors)
+        return Object.keys(errors).length === 0
+    }
 
     // Handle the form submission
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+        e.preventDefault()
 
         if (!validateForm()) {
-            return;
+            return
         }
 
         try {
-            setLoading(true);
-            setError(null);
+            setLoading(true)
+            setError(null)
 
             await gql(UpdateCostCenterDocument, {
                 id: costCenter.id,
@@ -87,29 +87,29 @@ export default function EditCostCenterModal({
                 code,
                 description: description.trim() || null,
                 state,
-            });
+            })
 
             // Reset form errors
-            setFormErrors({});
+            setFormErrors({})
 
             // Notify parent component
-            onSave();
+            onSave()
         } catch (err) {
-            console.error('Error updating cost center:', err);
-            setError('Failed to update cost center. Please try again.');
+            console.error('Error updating cost center:', err)
+            setError('Failed to update cost center. Please try again.')
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     const handleCancel = () => {
         // Reset form errors and error message
-        setFormErrors({});
-        setError(null);
+        setFormErrors({})
+        setError(null)
 
         // Close modal
-        onClose();
-    };
+        onClose()
+    }
 
     return (
         <Modal
@@ -178,5 +178,5 @@ export default function EditCostCenterModal({
                 )}
             </Form>
         </Modal>
-    );
+    )
 }

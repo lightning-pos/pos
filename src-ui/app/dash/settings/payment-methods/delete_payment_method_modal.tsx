@@ -1,9 +1,9 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Modal, InlineLoading } from '@carbon/react';
-import { gql } from '@/lib/graphql/execute';
-import { DeletePaymentMethodDocument, PaymentMethod } from '@/lib/graphql/graphql';
+import { useState } from 'react'
+import { Modal, InlineLoading } from '@carbon/react'
+import { gql } from '@/lib/graphql/execute'
+import { DeletePaymentMethodDocument, PaymentMethod } from '@/lib/graphql/graphql'
 
 interface DeletePaymentMethodModalProps {
     isOpen: boolean;
@@ -13,23 +13,23 @@ interface DeletePaymentMethodModalProps {
 }
 
 export default function DeletePaymentMethodModal({ isOpen, paymentMethod, onClose, onDelete }: DeletePaymentMethodModalProps) {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const handleDelete = async () => {
         try {
-            setLoading(true);
-            setError(null);
+            setLoading(true)
+            setError(null)
 
-            await gql(DeletePaymentMethodDocument, { id: paymentMethod.id });
+            await gql(DeletePaymentMethodDocument, { id: paymentMethod.id })
 
-            onDelete();
+            onDelete()
         } catch (err) {
-            console.error('Error deleting payment method:', err);
-            setError('Failed to delete payment method. It may be in use in sales or purchase transactions.');
-            setLoading(false);
+            console.error('Error deleting payment method:', err)
+            setError('Failed to delete payment method. It may be in use in sales or purchase transactions.')
+            setLoading(false)
         }
-    };
+    }
 
     return (
         <Modal
@@ -62,5 +62,5 @@ export default function DeletePaymentMethodModal({ isOpen, paymentMethod, onClos
                 </div>
             )}
         </Modal>
-    );
+    )
 }

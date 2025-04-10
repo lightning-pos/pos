@@ -32,8 +32,8 @@ const ChannelsPage = () => {
         return channels.map(channel => ({
             ...channel,
             status: channel.isActive ? 'Active' : 'Inactive'
-        }));
-    };
+        }))
+    }
 
     // Fetch channels
     const fetchChannels = useCallback(async () => {

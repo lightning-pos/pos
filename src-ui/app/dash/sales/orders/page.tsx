@@ -92,7 +92,7 @@ const SalesOrdersPage = () => {
     const rows = orders.map(order => ({
         id: order.id,
         totalAmount: formatCurrency(parseFloat(order.totalAmount)),
-        paidAmount: formatCurrency(parseFloat(order.totalPaidAmount?.toString() || "0")),
+        paidAmount: formatCurrency(parseFloat(order.totalPaidAmount?.toString() || '0')),
         customerName: order.customerName,
         createdAt: new Date(order.createdAt ?? 0).toLocaleString(),
         status: order.orderState,

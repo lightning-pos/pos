@@ -12,30 +12,30 @@ interface DeleteChargeTypeModalProps {
 }
 
 const DeleteChargeTypeModal: React.FC<DeleteChargeTypeModalProps> = ({
-  isOpen,
-  chargeTypeId,
-  chargeTypeName,
-  onClose,
-  onDelete
+    isOpen,
+    chargeTypeId,
+    chargeTypeName,
+    onClose,
+    onDelete
 }) => {
-  return (
-    <Modal
-      open={isOpen}
-      modalHeading="Delete Charge Type"
-      primaryButtonText="Delete"
-      secondaryButtonText="Cancel"
-      onRequestSubmit={onDelete}
-      onRequestClose={onClose}
-      danger
-    >
-      <p className="mb-2">
+    return (
+        <Modal
+            open={isOpen}
+            modalHeading="Delete Charge Type"
+            primaryButtonText="Delete"
+            secondaryButtonText="Cancel"
+            onRequestSubmit={onDelete}
+            onRequestClose={onClose}
+            danger
+        >
+            <p className="mb-2">
         Are you sure you want to delete the charge type <strong>{chargeTypeName}</strong>?
-      </p>
-      <p>
+            </p>
+            <p>
         This action cannot be undone. If this charge type is used in any sales orders, the deletion will fail.
-      </p>
-    </Modal>
-  )
+            </p>
+        </Modal>
+    )
 }
 
 export default DeleteChargeTypeModal

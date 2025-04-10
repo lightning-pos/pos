@@ -54,8 +54,8 @@ const TaxGroups = () => {
             key: 'taxes', header: 'Taxes', render: (item: TaxGroup) => {
                 return item.taxes?.map(tax => {
                     // Handle the Percentage scalar type
-                    const rateStr = String(tax.rate);
-                    return `${tax.name} (${rateStr}%)`;
+                    const rateStr = String(tax.rate)
+                    return `${tax.name} (${rateStr}%)`
                 }).join(', ') || 'None'
             }
         }
@@ -98,8 +98,8 @@ const TaxGroups = () => {
                     tableRows={taxGroups.map(group => ({
                         ...group,
                         taxes: group.taxes?.map(tax => {
-                            const rateStr = String(tax.rate);
-                            return `${tax.name} (${rateStr}%)`;
+                            const rateStr = String(tax.rate)
+                            return `${tax.name} (${rateStr}%)`
                         }).join(', ') || 'None'
                     })) as ProcessedTaxGroup[]}
                     loading={loading}

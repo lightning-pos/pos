@@ -39,7 +39,7 @@ const Discounts = () => {
             })
 
             // Log received discount data to debug start/end dates
-            console.log('Received discounts:', result.discounts);
+            console.log('Received discounts:', result.discounts)
 
             setDiscounts(result.discounts)
             setTotalItems(result.discounts.length) // In a real scenario, you would get a count from the API
@@ -50,9 +50,9 @@ const Discounts = () => {
 
     const handleAddDiscount = async (discount: DiscountNewInput) => {
         try {
-            console.log('Adding discount with data:', discount);
+            console.log('Adding discount with data:', discount)
             const result = await gql(CreateDiscountDocument, { discount })
-            console.log('Create discount result:', result);
+            console.log('Create discount result:', result)
             await fetchDiscounts(currentPage, pageSize)
             setIsAddModalOpen(false)
         } catch (error) {
@@ -62,9 +62,9 @@ const Discounts = () => {
 
     const handleEditDiscount = async (discount: DiscountUpdateInput) => {
         try {
-            console.log('Updating discount with data:', discount);
+            console.log('Updating discount with data:', discount)
             const result = await gql(UpdateDiscountDocument, { discount })
-            console.log('Update discount result:', result);
+            console.log('Update discount result:', result)
             await fetchDiscounts(currentPage, pageSize)
             setIsEditModalOpen(false)
             setSelectedDiscount(null)
@@ -97,33 +97,33 @@ const Discounts = () => {
     }
 
     const renderDate = (date: string | null) => {
-        if (!date) return '-';
+        if (!date) return '-'
         try {
             // Format the date in a user-friendly way
-            return new Date(date).toLocaleDateString();
+            return new Date(date).toLocaleDateString()
         } catch (e) {
-            console.error('Error formatting date:', date, e);
-            return date || '-';
+            console.error('Error formatting date:', date, e)
+            return date || '-'
         }
     }
 
     const renderState = (state: DiscountState) => {
         let tagType = ''
         switch (state) {
-            case DiscountState.Active:
-                tagType = 'green'
-                break
-            case DiscountState.Inactive:
-                tagType = 'gray'
-                break
-            case DiscountState.Scheduled:
-                tagType = 'blue'
-                break
-            case DiscountState.Expired:
-                tagType = 'red'
-                break
-            default:
-                tagType = 'gray'
+        case DiscountState.Active:
+            tagType = 'green'
+            break
+        case DiscountState.Inactive:
+            tagType = 'gray'
+            break
+        case DiscountState.Scheduled:
+            tagType = 'blue'
+            break
+        case DiscountState.Expired:
+            tagType = 'red'
+            break
+        default:
+            tagType = 'gray'
         }
         return <Tag type={tagType as any}>{state}</Tag>
     }

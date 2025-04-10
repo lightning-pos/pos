@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
 import {
     Modal,
     TextInput,
@@ -10,9 +10,9 @@ import {
     SelectItem,
     TextArea,
     InlineLoading
-} from '@carbon/react';
-import { gql } from '@/lib/graphql/execute';
-import { UpdatePaymentMethodDocument, PaymentMethod, PaymentMethodState } from '@/lib/graphql/graphql';
+} from '@carbon/react'
+import { gql } from '@/lib/graphql/execute'
+import { UpdatePaymentMethodDocument, PaymentMethod, PaymentMethodState } from '@/lib/graphql/graphql'
 
 interface EditPaymentMethodModalProps {
     isOpen: boolean;
@@ -23,99 +23,99 @@ interface EditPaymentMethodModalProps {
 
 export default function EditPaymentMethodModal({ isOpen, paymentMethod, onClose, onSave }: EditPaymentMethodModalProps) {
     // Form state
-    const [name, setName] = useState(paymentMethod.name);
-    const [code, setCode] = useState(paymentMethod.code);
-    const [description, setDescription] = useState(paymentMethod.description || '');
-    const [state, setState] = useState<PaymentMethodState>(paymentMethod.state as PaymentMethodState);
+    const [name, setName] = useState(paymentMethod.name)
+    const [code, setCode] = useState(paymentMethod.code)
+    const [description, setDescription] = useState(paymentMethod.description || '')
+    const [state, setState] = useState<PaymentMethodState>(paymentMethod.state as PaymentMethodState)
 
     // UI states
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const [formErrors, setFormErrors] = useState<{
         name?: string;
         code?: string;
-    }>({});
+    }>({})
 
     // Reset form when payment method changes
     useEffect(() => {
         if (isOpen) {
-            setName(paymentMethod.name);
-            setCode(paymentMethod.code);
-            setDescription(paymentMethod.description || '');
-            setState(paymentMethod.state as PaymentMethodState);
-            setFormErrors({});
-            setError(null);
+            setName(paymentMethod.name)
+            setCode(paymentMethod.code)
+            setDescription(paymentMethod.description || '')
+            setState(paymentMethod.state as PaymentMethodState)
+            setFormErrors({})
+            setError(null)
         }
-    }, [isOpen, paymentMethod]);
+    }, [isOpen, paymentMethod])
 
     // Validation function
     const validateForm = (): boolean => {
-        const errors: { name?: string; code?: string } = {};
+        const errors: { name?: string; code?: string } = {}
 
         if (!name.trim()) {
-            errors.name = 'Name is required';
+            errors.name = 'Name is required'
         }
 
         if (!code.trim()) {
-            errors.code = 'Code is required';
+            errors.code = 'Code is required'
         } else if (code.length > 10) {
-            errors.code = 'Code must be 10 characters or less';
+            errors.code = 'Code must be 10 characters or less'
         }
 
-        setFormErrors(errors);
-        return Object.keys(errors).length === 0;
-    };
+        setFormErrors(errors)
+        return Object.keys(errors).length === 0
+    }
 
     // Determine which fields have changed
     const getChangedFields = () => {
-        const changes: any = { id: paymentMethod.id };
+        const changes: any = { id: paymentMethod.id }
 
         if (name !== paymentMethod.name) {
-            changes.name = name;
+            changes.name = name
         }
 
         if (code !== paymentMethod.code) {
-            changes.code = code;
+            changes.code = code
         }
 
         if ((description || '') !== (paymentMethod.description || '')) {
-            changes.description = description.trim() || null;
+            changes.description = description.trim() || null
         }
 
         if (state !== paymentMethod.state) {
-            changes.state = state;
+            changes.state = state
         }
 
-        return changes;
-    };
+        return changes
+    }
 
     // Handle the form submission
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+        e.preventDefault()
 
         if (!validateForm()) {
-            return;
+            return
         }
 
         try {
-            setLoading(true);
-            setError(null);
+            setLoading(true)
+            setError(null)
 
-            const changes = getChangedFields();
+            const changes = getChangedFields()
 
             if (Object.keys(changes).length > 1) { // More than just the ID
-                await gql(UpdatePaymentMethodDocument, changes);
+                await gql(UpdatePaymentMethodDocument, changes)
             }
 
             // Notify parent component
-            onSave();
+            onSave()
         } catch (err) {
-            console.error('Error updating payment method:', err);
-            setError('Failed to update payment method. Please try again.');
+            console.error('Error updating payment method:', err)
+            setError('Failed to update payment method. Please try again.')
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     return (
         <Modal
@@ -184,5 +184,5 @@ export default function EditPaymentMethodModal({ isOpen, paymentMethod, onClose,
                 )}
             </Form>
         </Modal>
-    );
+    )
 }

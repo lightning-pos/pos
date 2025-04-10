@@ -148,18 +148,18 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
     const createNewCustomer = async (name: string, phone: string): Promise<string | null> => {
         try {
             // Check if a customer with this phone already exists
-            const existingCustomer = customers.find(c => c.phone === phone);
+            const existingCustomer = customers.find(c => c.phone === phone)
             if (existingCustomer) {
-                return existingCustomer.id;
+                return existingCustomer.id
             }
 
             // Create a new customer
             const customerInput: CustomerNewInput = {
                 fullName: name,
                 phone: phone,
-            };
+            }
 
-            const result = await gql(CreateCustomerDocument, { input: customerInput });
+            const result = await gql(CreateCustomerDocument, { input: customerInput })
             if (result.createCustomer) {
                 // Add to local customers state
                 setCustomers(prev => [...prev, {
@@ -167,16 +167,16 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                     fullName: result.createCustomer.fullName,
                     phone: result.createCustomer.phone,
                     email: result.createCustomer.email
-                }]);
-                return result.createCustomer.id;
+                }])
+                return result.createCustomer.id
             }
-            return null;
+            return null
         } catch (error) {
-            console.error('Error creating customer:', error);
-            showNotification('error', 'Error', 'Failed to create customer');
-            return null;
+            console.error('Error creating customer:', error)
+            showNotification('error', 'Error', 'Failed to create customer')
+            return null
         }
-    };
+    }
 
     const handleAddItem = () => {
         if (!newItemName || newItemQuantity <= 0 || newItemPrice <= 0) return
@@ -185,7 +185,7 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
             itemName: newItemName,
             quantity: newItemQuantity,
             priceAmount: newItemPrice.toString(),
-            discAmount: "0", // No discount for now
+            discAmount: '0', // No discount for now
             taxableAmount: newItemPrice.toString(),
             taxAmount: newItemTax.toString(),
             totalAmount: ((newItemPrice + newItemTax) * newItemQuantity).toString(),
@@ -243,20 +243,20 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
             setLoading(true)
 
             // If no customerId but we have name and phone, create a new customer
-            let effectiveCustomerId = customerId;
+            let effectiveCustomerId = customerId
             if (!effectiveCustomerId && customerName && customerPhone) {
-                const newCustomerId = await createNewCustomer(customerName, customerPhone);
+                const newCustomerId = await createNewCustomer(customerName, customerPhone)
                 if (newCustomerId) {
-                    effectiveCustomerId = newCustomerId;
+                    effectiveCustomerId = newCustomerId
                 } else {
-                    showNotification('error', 'Error', 'Failed to create customer');
-                    setLoading(false);
-                    return;
+                    showNotification('error', 'Error', 'Failed to create customer')
+                    setLoading(false)
+                    return
                 }
             }
 
             // Format the orderDate correctly for the GraphQL API
-            const formattedOrderDate = formatToLocalDateTime(orderDate);
+            const formattedOrderDate = formatToLocalDateTime(orderDate)
 
             // Create the sales order
             const orderInput: SalesOrderNewInput = {
@@ -265,7 +265,7 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                 customerPhoneNumber: customerPhone,
                 orderDate: formattedOrderDate,
                 netAmount: totalNetAmount.toString(),
-                discAmount: "0", // No discount for now
+                discAmount: '0', // No discount for now
                 taxableAmount: totalNetAmount.toString(),
                 taxAmount: totalTaxAmount.toString(),
                 totalAmount: totalAmount.toString(),
@@ -532,7 +532,7 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                                             <TableHead>
                                                 <TableRow>
                                                     {headers.map((header, i) => {
-                                                        const { key, ...rest } = getHeaderProps({ header });
+                                                        const { key, ...rest } = getHeaderProps({ header })
                                                         return (
                                                             <TableHeader
                                                                 key={`header-${i}`}
@@ -540,13 +540,13 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                                                             >
                                                                 {header.header}
                                                             </TableHeader>
-                                                        );
+                                                        )
                                                     })}
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
                                                 {rows.map((row, i) => {
-                                                    const { key, ...rest } = getRowProps({ row });
+                                                    const { key, ...rest } = getRowProps({ row })
                                                     return (
                                                         <TableRow
                                                             key={`row-${i}`}
@@ -558,7 +558,7 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                                                                 </TableCell>
                                                             ))}
                                                         </TableRow>
-                                                    );
+                                                    )
                                                 })}
                                             </TableBody>
                                         </Table>
@@ -645,7 +645,7 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                                                     <TableHead>
                                                         <TableRow>
                                                             {headers.map((header, i) => {
-                                                                const { key, ...rest } = getHeaderProps({ header });
+                                                                const { key, ...rest } = getHeaderProps({ header })
                                                                 return (
                                                                     <TableHeader
                                                                         key={`payment-header-${i}`}
@@ -653,13 +653,13 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                                                                     >
                                                                         {header.header}
                                                                     </TableHeader>
-                                                                );
+                                                                )
                                                             })}
                                                         </TableRow>
                                                     </TableHead>
                                                     <TableBody>
                                                         {rows.map((row, i) => {
-                                                            const { key, ...rest } = getRowProps({ row });
+                                                            const { key, ...rest } = getRowProps({ row })
                                                             return (
                                                                 <TableRow
                                                                     key={`payment-row-${i}`}
@@ -671,7 +671,7 @@ const AddSalesOrderModal: React.FC<SalesOrderModalProps> = ({ isOpen, onClose, o
                                                                         </TableCell>
                                                                     ))}
                                                                 </TableRow>
-                                                            );
+                                                            )
                                                         })}
                                                     </TableBody>
                                                 </Table>

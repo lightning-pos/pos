@@ -3,5 +3,5 @@ export default function Home() {
         <div>
             <p className="text-xl">Hello, World!</p>
         </div>
-    );
+    )
 }

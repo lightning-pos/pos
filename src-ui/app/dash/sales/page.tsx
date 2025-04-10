@@ -41,9 +41,9 @@ import Link from 'next/link'
 
 // A helper function to parse date strings from the API
 const parseISODate = (dateString: string): Date | null => {
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? null : date;
-};
+    const date = new Date(dateString)
+    return isNaN(date.getTime()) ? null : date
+}
 
 // Type definitions for chart data
 interface LineChartDataItem {
@@ -91,88 +91,88 @@ interface Customer {
 
 // A helper function to get the start of the month
 const getStartOfMonth = (date: Date): Date => {
-    return new Date(date.getFullYear(), date.getMonth(), 1);
-};
+    return new Date(date.getFullYear(), date.getMonth(), 1)
+}
 
 // A helper function to get the end of the month
 const getEndOfMonth = (date: Date): Date => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-};
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0)
+}
 
 // Helper function to get start of week (Monday)
 const getStartOfWeek = (date: Date): Date => {
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-    return new Date(date.setDate(diff));
-};
+    const day = date.getDay()
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Adjust when day is Sunday
+    return new Date(date.setDate(diff))
+}
 
 // Format date for chart display based on grouping
 const formatDateForChart = (date: Date, grouping: string): string => {
     if (grouping === 'daily') {
-        return `${date.getDate()}/${date.getMonth() + 1}`;
+        return `${date.getDate()}/${date.getMonth() + 1}`
     } else if (grouping === 'weekly') {
-        const startOfWeek = getStartOfWeek(new Date(date));
-        return `W${Math.ceil(startOfWeek.getDate() / 7)}-${startOfWeek.getMonth() + 1}`;
+        const startOfWeek = getStartOfWeek(new Date(date))
+        return `W${Math.ceil(startOfWeek.getDate() / 7)}-${startOfWeek.getMonth() + 1}`
     } else {
         // Monthly
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return months[date.getMonth()];
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        return months[date.getMonth()]
     }
-};
+}
 
 // Get all days between two dates
 const getDaysInRange = (startDate: Date, endDate: Date): Date[] => {
-    const days: Date[] = [];
-    const currentDate = new Date(startDate);
+    const days: Date[] = []
+    const currentDate = new Date(startDate)
     while (currentDate <= endDate) {
-        days.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
+        days.push(new Date(currentDate))
+        currentDate.setDate(currentDate.getDate() + 1)
     }
-    return days;
-};
+    return days
+}
 
 // Get all weeks between two dates
 const getWeeksInRange = (startDate: Date, endDate: Date): Date[] => {
-    const weeks: Date[] = [];
-    const currentDate = getStartOfWeek(new Date(startDate));
+    const weeks: Date[] = []
+    const currentDate = getStartOfWeek(new Date(startDate))
 
     while (currentDate <= endDate) {
-        weeks.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 7);
+        weeks.push(new Date(currentDate))
+        currentDate.setDate(currentDate.getDate() + 7)
     }
-    return weeks;
-};
+    return weeks
+}
 
 // Get all months between two dates
 const getMonthsInRange = (startDate: Date, endDate: Date): Date[] => {
-    const months: Date[] = [];
-    const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    const months: Date[] = []
+    const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
 
     while (currentDate <= endDate) {
-        months.push(new Date(currentDate));
-        currentDate.setMonth(currentDate.getMonth() + 1);
+        months.push(new Date(currentDate))
+        currentDate.setMonth(currentDate.getMonth() + 1)
     }
-    return months;
-};
+    return months
+}
 
 // Mock data generator functions
 const generateMockSalesOrders = (count: number): SalesOrder[] => {
-    const states = ['Completed', 'Pending', 'Cancelled'];
-    const paymentMethods = ['Cash', 'Card', 'UPI', 'Bank Transfer'];
+    const states = ['Completed', 'Pending', 'Cancelled']
+    const paymentMethods = ['Cash', 'Card', 'UPI', 'Bank Transfer']
     const customers = [
         { name: 'John Doe', phone: '+91 9876543210' },
         { name: 'Jane Smith', phone: '+91 9876543211' },
         { name: 'Alice Johnson', phone: '+91 9876543212' },
         { name: 'Bob Williams', phone: '+91 9876543213' },
         { name: 'Charlie Brown', phone: '+91 9876543214' }
-    ];
+    ]
 
     return Array.from({ length: count }).map((_, index) => {
-        const orderDate = new Date();
-        orderDate.setDate(orderDate.getDate() - Math.floor(Math.random() * 90)); // Random date within last 90 days
+        const orderDate = new Date()
+        orderDate.setDate(orderDate.getDate() - Math.floor(Math.random() * 90)) // Random date within last 90 days
 
-        const customer = customers[Math.floor(Math.random() * customers.length)];
-        const amount = (Math.random() * 5000 + 500).toFixed(2);
+        const customer = customers[Math.floor(Math.random() * customers.length)]
+        const amount = (Math.random() * 5000 + 500).toFixed(2)
 
         return {
             id: `ORD${1000 + index}`,
@@ -182,32 +182,32 @@ const generateMockSalesOrders = (count: number): SalesOrder[] => {
             orderDate: orderDate.toISOString(),
             state: states[Math.floor(Math.random() * states.length)],
             paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)]
-        };
-    });
-};
+        }
+    })
+}
 
 const generateMockProductCategories = (): ProductCategory[] => {
     const categories = [
         'Electronics', 'Clothing', 'Groceries', 'Home Appliances',
         'Beauty Products', 'Toys', 'Books', 'Sports Equipment'
-    ];
+    ]
 
     return categories.map((name, index) => ({
         id: `CAT${100 + index}`,
         name
-    }));
-};
+    }))
+}
 
 const generateMockCustomers = (count: number): Customer[] => {
     const names = [
         'John Doe', 'Jane Smith', 'Alice Johnson', 'Bob Williams',
         'Charlie Brown', 'David Lee', 'Emily Davis', 'Frank Miller',
         'Grace Wilson', 'Henry Taylor', 'Isabella Moore', 'Jack Anderson'
-    ];
+    ]
 
     return Array.from({ length: count }).map((_, index) => {
-        const totalOrders = Math.floor(Math.random() * 15) + 1;
-        const totalSpent = (Math.random() * 20000 + 1000).toFixed(2);
+        const totalOrders = Math.floor(Math.random() * 15) + 1
+        const totalSpent = (Math.random() * 20000 + 1000).toFixed(2)
 
         return {
             id: `CUST${100 + index}`,
@@ -215,102 +215,102 @@ const generateMockCustomers = (count: number): Customer[] => {
             phoneNumber: `+91 98765432${index < 10 ? '0' + index : index}`,
             totalOrders,
             totalSpent: parseFloat(totalSpent)
-        };
-    });
-};
+        }
+    })
+}
 
 const SalesDashboard = () => {
     // State for mock sales data
-    const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
-    const [categories, setCategories] = useState<ProductCategory[]>([]);
-    const [customers, setCustomers] = useState<Customer[]>([]);
-    const [totalSales, setTotalSales] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([])
+    const [categories, setCategories] = useState<ProductCategory[]>([])
+    const [customers, setCustomers] = useState<Customer[]>([])
+    const [totalSales, setTotalSales] = useState(0)
+    const [loading, setLoading] = useState(true)
 
     // State for filters
-    const [timeFilter, setTimeFilter] = useState('this-month');
-    const [groupBy, setGroupBy] = useState('monthly');
-    const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+    const [timeFilter, setTimeFilter] = useState('this-month')
+    const [groupBy, setGroupBy] = useState('monthly')
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState('all')
     const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>({
         startDate: null,
         endDate: null
-    });
+    })
     const [customDateRange, setCustomDateRange] = useState<{ start: Date | null; end: Date | null }>({
         start: null,
         end: null
-    });
-    const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+    })
+    const [showCustomDatePicker, setShowCustomDatePicker] = useState(false)
 
     // Load mock data
     useEffect(() => {
-        setLoading(true);
+        setLoading(true)
 
         // Generate mock data
-        const mockOrders = generateMockSalesOrders(100);
-        const mockCategories = generateMockProductCategories();
-        const mockCustomers = generateMockCustomers(10);
+        const mockOrders = generateMockSalesOrders(100)
+        const mockCategories = generateMockProductCategories()
+        const mockCustomers = generateMockCustomers(10)
 
         // Calculate total sales
-        const total = mockOrders.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0);
+        const total = mockOrders.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0)
 
-        setSalesOrders(mockOrders);
-        setCategories(mockCategories);
-        setCustomers(mockCustomers);
-        setTotalSales(total);
-        setLoading(false);
-    }, []);
+        setSalesOrders(mockOrders)
+        setCategories(mockCategories)
+        setCustomers(mockCustomers)
+        setTotalSales(total)
+        setLoading(false)
+    }, [])
 
     // Calculate date range based on time filter
     useEffect(() => {
-        const now = new Date();
-        let startDate: Date;
-        let endDate: Date;
+        const now = new Date()
+        let startDate: Date
+        let endDate: Date
 
         switch (timeFilter) {
-            case 'this-month':
-                startDate = getStartOfMonth(now);
-                endDate = now;
-                break;
-            case 'last-month':
-                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                startDate = getStartOfMonth(lastMonth);
-                endDate = getEndOfMonth(lastMonth);
-                break;
-            case 'last-3-months':
-                const threeMonthsAgo = new Date(now);
-                threeMonthsAgo.setMonth(now.getMonth() - 2);
-                startDate = getStartOfMonth(threeMonthsAgo);
-                endDate = now;
-                break;
-            case 'last-12-months':
-                const twelveMonthsAgo = new Date(now);
-                twelveMonthsAgo.setMonth(now.getMonth() - 11);
-                startDate = getStartOfMonth(twelveMonthsAgo);
-                endDate = now;
-                break;
-            case 'custom':
-                setShowCustomDatePicker(true);
-                if (customDateRange.start && customDateRange.end) {
-                    startDate = customDateRange.start;
-                    endDate = customDateRange.end;
-                } else {
-                    startDate = getStartOfMonth(now);
-                    endDate = now;
-                }
-                break;
-            default:
-                startDate = getStartOfMonth(now);
-                endDate = now;
+        case 'this-month':
+            startDate = getStartOfMonth(now)
+            endDate = now
+            break
+        case 'last-month':
+            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+            startDate = getStartOfMonth(lastMonth)
+            endDate = getEndOfMonth(lastMonth)
+            break
+        case 'last-3-months':
+            const threeMonthsAgo = new Date(now)
+            threeMonthsAgo.setMonth(now.getMonth() - 2)
+            startDate = getStartOfMonth(threeMonthsAgo)
+            endDate = now
+            break
+        case 'last-12-months':
+            const twelveMonthsAgo = new Date(now)
+            twelveMonthsAgo.setMonth(now.getMonth() - 11)
+            startDate = getStartOfMonth(twelveMonthsAgo)
+            endDate = now
+            break
+        case 'custom':
+            setShowCustomDatePicker(true)
+            if (customDateRange.start && customDateRange.end) {
+                startDate = customDateRange.start
+                endDate = customDateRange.end
+            } else {
+                startDate = getStartOfMonth(now)
+                endDate = now
+            }
+            break
+        default:
+            startDate = getStartOfMonth(now)
+            endDate = now
         }
 
         if (timeFilter !== 'custom' || (customDateRange.start && customDateRange.end)) {
             setDateRange({
                 startDate: startDate.toISOString(),
                 endDate: endDate.toISOString()
-            });
-            setShowCustomDatePicker(timeFilter === 'custom');
+            })
+            setShowCustomDatePicker(timeFilter === 'custom')
         }
-    }, [timeFilter, customDateRange]);
+    }, [timeFilter, customDateRange])
 
     // Handle custom date range changes
     const handleCustomDateChange = (dates: Date[]) => {
@@ -318,132 +318,132 @@ const SalesDashboard = () => {
             setCustomDateRange({
                 start: dates[0],
                 end: dates[1]
-            });
+            })
         }
-    };
+    }
 
     // Filter orders based on date range and payment method
     const filteredOrders = salesOrders.filter(order => {
-        const orderDate = new Date(order.orderDate);
-        const startDate = dateRange.startDate ? new Date(dateRange.startDate) : null;
-        const endDate = dateRange.endDate ? new Date(dateRange.endDate) : null;
+        const orderDate = new Date(order.orderDate)
+        const startDate = dateRange.startDate ? new Date(dateRange.startDate) : null
+        const endDate = dateRange.endDate ? new Date(dateRange.endDate) : null
 
         const isInDateRange = (!startDate || orderDate >= startDate) &&
-            (!endDate || orderDate <= endDate);
+            (!endDate || orderDate <= endDate)
 
         const matchesPaymentMethod = paymentMethodFilter === 'all' ||
-            order.paymentMethod === paymentMethodFilter;
+            order.paymentMethod === paymentMethodFilter
 
-        return isInDateRange && matchesPaymentMethod;
-    });
+        return isInDateRange && matchesPaymentMethod
+    })
 
     // Calculate total filtered sales
     const totalFilteredSales = filteredOrders.reduce((sum, order) =>
-        sum + parseFloat(order.totalAmount), 0);
+        sum + parseFloat(order.totalAmount), 0)
 
     // Get average order value
     const avgOrderValue = filteredOrders.length > 0 ?
-        totalFilteredSales / filteredOrders.length : 0;
+        totalFilteredSales / filteredOrders.length : 0
 
     // Get sales data grouped by selected option
     const getGroupedSalesData = () => {
-        const groupedData: { [key: string]: number } = {};
+        const groupedData: { [key: string]: number } = {}
 
         if (!dateRange.startDate || !dateRange.endDate) {
-            return groupedData;
+            return groupedData
         }
 
-        const startDate = new Date(dateRange.startDate);
-        const endDate = new Date(dateRange.endDate);
+        const startDate = new Date(dateRange.startDate)
+        const endDate = new Date(dateRange.endDate)
 
         // Initialize all possible dates/weeks/months in the range with zero values
         if (groupBy === 'daily') {
             getDaysInRange(startDate, endDate).forEach(date => {
-                const key = formatDateForChart(date, groupBy);
-                groupedData[key] = 0;
-            });
+                const key = formatDateForChart(date, groupBy)
+                groupedData[key] = 0
+            })
         } else if (groupBy === 'weekly') {
             getWeeksInRange(startDate, endDate).forEach(date => {
-                const key = formatDateForChart(date, groupBy);
-                groupedData[key] = 0;
-            });
+                const key = formatDateForChart(date, groupBy)
+                groupedData[key] = 0
+            })
         } else { // monthly
             getMonthsInRange(startDate, endDate).forEach(date => {
-                const key = formatDateForChart(date, groupBy);
-                groupedData[key] = 0;
-            });
+                const key = formatDateForChart(date, groupBy)
+                groupedData[key] = 0
+            })
         }
 
         // Fill with actual data
         filteredOrders.forEach(order => {
-            const date = parseISODate(order.orderDate);
+            const date = parseISODate(order.orderDate)
             if (date) {
-                const key = formatDateForChart(date, groupBy);
+                const key = formatDateForChart(date, groupBy)
                 if (key in groupedData) {
-                    groupedData[key] += parseFloat(order.totalAmount);
+                    groupedData[key] += parseFloat(order.totalAmount)
                 }
             }
-        });
+        })
 
-        return groupedData;
-    };
+        return groupedData
+    }
 
     // Get sales by payment method for chart
     const salesByPaymentMethod = () => {
-        const paymentData: { [key: string]: number } = {};
+        const paymentData: { [key: string]: number } = {}
 
         filteredOrders.forEach(order => {
             if (!paymentData[order.paymentMethod]) {
-                paymentData[order.paymentMethod] = 0;
+                paymentData[order.paymentMethod] = 0
             }
-            paymentData[order.paymentMethod] += parseFloat(order.totalAmount);
-        });
+            paymentData[order.paymentMethod] += parseFloat(order.totalAmount)
+        })
 
-        return paymentData;
-    };
+        return paymentData
+    }
 
     // Get top customers by total spent
     const topCustomers = () => {
-        const customerSpending: { [key: string]: number } = {};
+        const customerSpending: { [key: string]: number } = {}
 
         filteredOrders.forEach(order => {
-            const customerKey = `${order.customerName} (${order.customerPhoneNumber})`;
+            const customerKey = `${order.customerName} (${order.customerPhoneNumber})`
             if (!customerSpending[customerKey]) {
-                customerSpending[customerKey] = 0;
+                customerSpending[customerKey] = 0
             }
-            customerSpending[customerKey] += parseFloat(order.totalAmount);
-        });
+            customerSpending[customerKey] += parseFloat(order.totalAmount)
+        })
 
         return Object.entries(customerSpending)
             .map(([customer, total]) => ({ customer, total }))
             .sort((a, b) => b.total - a.total)
-            .slice(0, 5);
-    };
+            .slice(0, 5)
+    }
 
     // Create chart data for Carbon Charts
-    const monthlyData = getGroupedSalesData();
+    const monthlyData = getGroupedSalesData()
     const lineChartData: LineChartDataItem[] = Object.keys(monthlyData)
         .sort((a, b) => {
             if (groupBy === 'monthly') {
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                return months.indexOf(a) - months.indexOf(b);
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                return months.indexOf(a) - months.indexOf(b)
             } else if (groupBy === 'weekly') {
                 // Extract week number and month for sorting
-                const [weekA, monthA] = a.substring(1).split('-').map(Number);
-                const [weekB, monthB] = b.substring(1).split('-').map(Number);
-                return monthA === monthB ? weekA - weekB : monthA - monthB;
+                const [weekA, monthA] = a.substring(1).split('-').map(Number)
+                const [weekB, monthB] = b.substring(1).split('-').map(Number)
+                return monthA === monthB ? weekA - weekB : monthA - monthB
             } else {
                 // For daily, convert DD/MM to sortable format
-                const [dayA, monthA] = a.split('/').map(Number);
-                const [dayB, monthB] = b.split('/').map(Number);
-                return monthA === monthB ? dayA - dayB : monthA - monthB;
+                const [dayA, monthA] = a.split('/').map(Number)
+                const [dayB, monthB] = b.split('/').map(Number)
+                return monthA === monthB ? dayA - dayB : monthA - monthB
             }
         })
         .map(period => ({
             group: 'Sales',
             date: period,
             value: monthlyData[period]
-        }));
+        }))
 
     // Line chart options
     const lineChartOptions: LineChartOptions = {
@@ -467,14 +467,14 @@ const SalesDashboard = () => {
             }
         },
         curve: 'curveMonotoneX'
-    };
+    }
 
     // Donut chart - Payment Methods
-    const paymentMethodData = salesByPaymentMethod();
+    const paymentMethodData = salesByPaymentMethod()
     const donutChartData: DonutChartDataItem[] = Object.keys(paymentMethodData).map(method => ({
         group: method,
         value: paymentMethodData[method]
-    }));
+    }))
 
     const donutChartOptions: DonutChartOptions = {
         title: 'Sales by Payment Method',
@@ -489,12 +489,12 @@ const SalesDashboard = () => {
         legend: {
             alignment: 'center'
         }
-    };
+    }
 
     // Get recent transactions for display
     const recentOrders = filteredOrders
         .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())
-        .slice(0, 5);
+        .slice(0, 5)
 
     // Calculate order status distribution
     const orderStatusDistribution = () => {
@@ -502,18 +502,18 @@ const SalesDashboard = () => {
             'Completed': 0,
             'Pending': 0,
             'Cancelled': 0
-        };
+        }
 
         filteredOrders.forEach(order => {
-            statusData[order.state]++;
-        });
+            statusData[order.state]++
+        })
 
         return Object.entries(statusData).map(([status, count]) => ({
             group: 'Orders',
             key: status,
             value: count
-        }));
-    };
+        }))
+    }
 
     const barChartOptions: BarChartOptions = {
         title: 'Order Status Distribution',
@@ -530,7 +530,7 @@ const SalesDashboard = () => {
             }
         },
         height: '300px'
-    };
+    }
 
     return (
         <Content className='min-h-[calc(100dvh-3rem)] p-4'>
@@ -547,12 +547,12 @@ const SalesDashboard = () => {
                     items={['this-month', 'last-month', 'last-3-months', 'last-12-months', 'custom']}
                     itemToString={(item: string) => {
                         switch (item) {
-                            case 'this-month': return 'This Month';
-                            case 'last-month': return 'Last Month';
-                            case 'last-3-months': return 'Last 3 Months';
-                            case 'last-12-months': return 'Last 12 Months';
-                            case 'custom': return 'Custom Range';
-                            default: return item;
+                        case 'this-month': return 'This Month'
+                        case 'last-month': return 'Last Month'
+                        case 'last-3-months': return 'Last 3 Months'
+                        case 'last-12-months': return 'Last 12 Months'
+                        case 'custom': return 'Custom Range'
+                        default: return item
                         }
                     }}
                     onChange={(e: { selectedItem: string }) => setTimeFilter(e.selectedItem)}
@@ -564,10 +564,10 @@ const SalesDashboard = () => {
                     items={['daily', 'weekly', 'monthly']}
                     itemToString={(item: string) => {
                         switch (item) {
-                            case 'daily': return 'Daily';
-                            case 'weekly': return 'Weekly';
-                            case 'monthly': return 'Monthly';
-                            default: return item;
+                        case 'daily': return 'Daily'
+                        case 'weekly': return 'Weekly'
+                        case 'monthly': return 'Monthly'
+                        default: return item
                         }
                     }}
                     onChange={(e: { selectedItem: string }) => setGroupBy(e.selectedItem)}

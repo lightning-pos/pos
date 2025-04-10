@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
     Modal,
     DataTable,
@@ -17,12 +17,12 @@ import {
     NumberInput,
     TextInput,
     FormGroup
-} from '@carbon/react';
-import { SalesOrder, SalesOrderItem, SalesOrderState } from '@/lib/graphql/graphql';
-import { formatCurrency } from '@/lib/util/number_format';
-import { gql } from '@/lib/graphql/execute';
-import { CreateSalesOrderPaymentDocument, GetSalesOrdersPaymentMethodsDocument, VoidSalesOrderDocument } from '@/lib/graphql/graphql';
-import { Add, TrashCan, Warning } from '@carbon/icons-react';
+} from '@carbon/react'
+import { SalesOrder, SalesOrderItem, SalesOrderState } from '@/lib/graphql/graphql'
+import { formatCurrency } from '@/lib/util/number_format'
+import { gql } from '@/lib/graphql/execute'
+import { CreateSalesOrderPaymentDocument, GetSalesOrdersPaymentMethodsDocument, VoidSalesOrderDocument } from '@/lib/graphql/graphql'
+import { Add, TrashCan, Warning } from '@carbon/icons-react'
 
 interface OrderDetailsModalProps extends ModalProps {
     order: SalesOrder
@@ -42,72 +42,72 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     order,
     orderItems
 }) => {
-    const [isVoiding, setIsVoiding] = useState(false);
-    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [showAddPayment, setShowAddPayment] = useState(false);
+    const [isVoiding, setIsVoiding] = useState(false)
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+    const [loading, setLoading] = useState(false)
+    const [showAddPayment, setShowAddPayment] = useState(false)
 
     // New payment form state
-    const [newPaymentMethodId, setNewPaymentMethodId] = useState('');
-    const [newPaymentAmount, setNewPaymentAmount] = useState(0);
-    const [newPaymentReference, setNewPaymentReference] = useState('');
-    const [newPaymentNotes, setNewPaymentNotes] = useState('');
+    const [newPaymentMethodId, setNewPaymentMethodId] = useState('')
+    const [newPaymentAmount, setNewPaymentAmount] = useState(0)
+    const [newPaymentReference, setNewPaymentReference] = useState('')
+    const [newPaymentNotes, setNewPaymentNotes] = useState('')
 
     // Calculate totals
-    const totalAmount = parseFloat(order.totalAmount);
-    const totalPaidAmount = parseFloat(order.totalPaidAmount?.toString() || '0');
-    const remainingAmount = totalAmount - totalPaidAmount;
+    const totalAmount = parseFloat(order.totalAmount)
+    const totalPaidAmount = parseFloat(order.totalPaidAmount?.toString() || '0')
+    const remainingAmount = totalAmount - totalPaidAmount
 
     useEffect(() => {
         if (open) {
-            fetchPaymentMethods();
+            fetchPaymentMethods()
 
             // Set default payment amount to remaining amount
-            setNewPaymentAmount(remainingAmount);
+            setNewPaymentAmount(remainingAmount)
         }
-    }, [open, remainingAmount]);
+    }, [open, remainingAmount])
 
     const fetchPaymentMethods = async () => {
         try {
-            const result = await gql(GetSalesOrdersPaymentMethodsDocument);
+            const result = await gql(GetSalesOrdersPaymentMethodsDocument)
             if (result.paymentMethods) {
-                setPaymentMethods(result.paymentMethods as PaymentMethod[]);
+                setPaymentMethods(result.paymentMethods as PaymentMethod[])
             }
         } catch (error) {
-            console.error('Error fetching payment methods:', error);
+            console.error('Error fetching payment methods:', error)
         }
-    };
+    }
 
     const handleVoidOrder = async () => {
         if (!confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
-            return;
+            return
         }
 
-        setIsVoiding(true);
+        setIsVoiding(true)
         try {
-            await gql(VoidSalesOrderDocument, { id: order.id });
-            alert('Order has been cancelled successfully.');
-            onRequestClose();
+            await gql(VoidSalesOrderDocument, { id: order.id })
+            alert('Order has been cancelled successfully.')
+            onRequestClose()
         } catch (error) {
-            console.error('Error voiding order:', error);
-            alert('Failed to cancel the order. Please try again.');
+            console.error('Error voiding order:', error)
+            alert('Failed to cancel the order. Please try again.')
         } finally {
-            setIsVoiding(false);
+            setIsVoiding(false)
         }
-    };
+    }
 
     const handleAddPayment = async () => {
         if (!newPaymentMethodId || newPaymentAmount <= 0) {
-            alert('Please select a payment method and enter a valid amount.');
-            return;
+            alert('Please select a payment method and enter a valid amount.')
+            return
         }
 
         if (newPaymentAmount > remainingAmount) {
-            alert(`Payment amount cannot exceed the remaining amount (${formatCurrency(remainingAmount)}).`);
-            return;
+            alert(`Payment amount cannot exceed the remaining amount (${formatCurrency(remainingAmount)}).`)
+            return
         }
 
-        setLoading(true);
+        setLoading(true)
         try {
             const payment = {
                 orderId: order.id,
@@ -116,28 +116,28 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 amount: newPaymentAmount.toString(),
                 referenceNumber: newPaymentReference || undefined,
                 notes: newPaymentNotes || undefined
-            };
+            }
 
-            await gql(CreateSalesOrderPaymentDocument, { payment });
+            await gql(CreateSalesOrderPaymentDocument, { payment })
 
-            alert('Payment added successfully.');
-            resetPaymentForm();
-            onRequestClose(); // Close and refresh
+            alert('Payment added successfully.')
+            resetPaymentForm()
+            onRequestClose() // Close and refresh
         } catch (error) {
-            console.error('Error adding payment:', error);
-            alert('Failed to add payment. Please try again.');
+            console.error('Error adding payment:', error)
+            alert('Failed to add payment. Please try again.')
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     const resetPaymentForm = () => {
-        setNewPaymentMethodId('');
-        setNewPaymentAmount(remainingAmount);
-        setNewPaymentReference('');
-        setNewPaymentNotes('');
-        setShowAddPayment(false);
-    };
+        setNewPaymentMethodId('')
+        setNewPaymentAmount(remainingAmount)
+        setNewPaymentReference('')
+        setNewPaymentNotes('')
+        setShowAddPayment(false)
+    }
 
     const itemsHeaders = [
         { key: 'itemName', header: 'Item' },
@@ -145,7 +145,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         { key: 'priceAmount', header: 'Price' },
         { key: 'taxAmount', header: 'Tax' },
         { key: 'totalAmount', header: 'Total' },
-    ];
+    ]
 
     const paymentsHeaders = [
         { key: 'method', header: 'Method' },
@@ -153,10 +153,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         { key: 'date', header: 'Date' },
         { key: 'reference', header: 'Reference' },
         { key: 'status', header: 'Status' },
-    ];
+    ]
 
     const paymentsRows = order.payments ? order.payments.map((payment, index) => {
-        const method = paymentMethods.find(m => m.id === payment.paymentMethodId);
+        const method = paymentMethods.find(m => m.id === payment.paymentMethodId)
         return {
             id: payment.id,
             method: method ? method.name : payment.paymentMethodId,
@@ -164,15 +164,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             date: new Date(payment.paymentDate).toLocaleString(),
             reference: payment.referenceNumber || '-',
             status: payment.state,
-        };
-    }) : [];
+        }
+    }) : []
 
     return (
         <Modal
             open={open}
             onRequestClose={onRequestClose}
             modalHeading={`Order Details - ${order?.id}`}
-            primaryButtonText={order.orderState === SalesOrderState.Completed ? "Cancel Order" : "Close"}
+            primaryButtonText={order.orderState === SalesOrderState.Completed ? 'Cancel Order' : 'Close'}
             secondaryButtonText="Close"
             primaryButtonDisabled={isVoiding || order.orderState !== SalesOrderState.Completed}
             danger={order.orderState === SalesOrderState.Completed}
@@ -196,7 +196,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                                 <span className={`ml-2 px-2 py-1 rounded text-sm ${order.orderState === SalesOrderState.Completed ? 'bg-green-100 text-green-800' :
                                     order.orderState === SalesOrderState.Cancelled ? 'bg-red-100 text-red-800' :
                                         'bg-yellow-100 text-yellow-800'
-                                    }`}>
+                                }`}>
                                     {order.orderState}
                                 </span>
                             </p>
@@ -375,7 +375,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 </>
             )}
         </Modal>
-    );
-};
+    )
+}
 
-export default OrderDetailsModal;
+export default OrderDetailsModal

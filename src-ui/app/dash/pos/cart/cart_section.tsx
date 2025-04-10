@@ -142,7 +142,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
                     itemName: item.name,
                     quantity: item.quantity,
                     priceAmount: item.price,
-                    discAmount: "0", // No discount for now
+                    discAmount: '0', // No discount for now
                     taxableAmount: item.price, // Same as price amount since no discount
                     taxAmount: taxAmount,
                     totalAmount: ((parseFloat(item.price) + (item.taxIds
@@ -222,7 +222,7 @@ const CartSection: React.FC<CartSectionProps> = ({ cart, setCart }) => {
                     itemName: item.name,
                     quantity: item.quantity,
                     priceAmount: item.price,
-                    discAmount: "0", // No discount for now
+                    discAmount: '0', // No discount for now
                     taxableAmount: item.price, // Same as price amount since no discount
                     taxAmount: taxAmount,
                     totalAmount: ((parseFloat(item.price) + (item.taxIds

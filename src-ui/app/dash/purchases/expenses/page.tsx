@@ -39,8 +39,8 @@ const ExpensesPage = () => {
             formattedDate: formatDateForDisplay(expense.expenseDate),
             category: expense.category?.name || 'Uncategorized',
             costCenter: expense.costCenter ? `${expense.costCenter.code} - ${expense.costCenter.name}` : 'Unknown'
-        }));
-    };
+        }))
+    }
 
     // Fetch expenses with server-side pagination
     const fetchExpenses = useCallback(async (page: number, size: number) => {

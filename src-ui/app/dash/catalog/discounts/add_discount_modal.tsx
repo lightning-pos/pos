@@ -37,7 +37,7 @@ const AddDiscountModal: React.FC<AddDiscountModalProps> = ({
         }
 
         // Log the formatted object for debugging
-        console.log('Submitting discount:', formattedDiscount);
+        console.log('Submitting discount:', formattedDiscount)
 
         await onSave(formattedDiscount)
         resetForm()
@@ -112,7 +112,7 @@ const AddDiscountModal: React.FC<AddDiscountModalProps> = ({
                             ...prev,
                             value: parseFloat(String(value))
                         }))}
-                        helperText={newDiscount.discountType === DiscountType.Percentage ? "Enter percentage (0-100)" : "Enter amount"}
+                        helperText={newDiscount.discountType === DiscountType.Percentage ? 'Enter percentage (0-100)' : 'Enter amount'}
                         invalidText="Value must be greater than or equal to 0"
                     />
                 </div>
@@ -126,7 +126,7 @@ const AddDiscountModal: React.FC<AddDiscountModalProps> = ({
                         scope: e.target.value as DiscountScope
                     }))}
                     required
-                    helperText={newDiscount.scope === DiscountScope.SpecificItems ? "You can assign specific items to this discount after creation" : ""}
+                    helperText={newDiscount.scope === DiscountScope.SpecificItems ? 'You can assign specific items to this discount after creation' : ''}
                 >
                     <SelectItem value={DiscountScope.AllItems} text="All Items" />
                     <SelectItem value={DiscountScope.SpecificItems} text="Specific Items" />

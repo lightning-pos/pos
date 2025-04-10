@@ -31,8 +31,8 @@ const BrandsPage = () => {
         return brands.map(brand => ({
             ...brand,
             status: brand.isActive ? 'Active' : 'Inactive'
-        }));
-    };
+        }))
+    }
 
     // Fetch brands
     const fetchBrands = useCallback(async () => {

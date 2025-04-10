@@ -21,34 +21,34 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     onSave,
     setExpense
 }) => {
-    const [categories, setCategories] = useState<Array<{ id: string, name: string }>>([]);
-    const [costCenters, setCostCenters] = useState<Array<{ id: string, name: string, code: string, state: CostCenterState }>>([]);
+    const [categories, setCategories] = useState<Array<{ id: string, name: string }>>([])
+    const [costCenters, setCostCenters] = useState<Array<{ id: string, name: string, code: string, state: CostCenterState }>>([])
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 // Fetch categories
-                const categoriesResult = await gql(GetPurchaseCategoriesForExpensesDocument);
-                setCategories(categoriesResult.allPurchaseCategories || []);
+                const categoriesResult = await gql(GetPurchaseCategoriesForExpensesDocument)
+                setCategories(categoriesResult.allPurchaseCategories || [])
 
                 // Fetch cost centers
-                const costCentersResult = await gql(GetCostCentersForExpensesDocument);
-                setCostCenters(costCentersResult.allCostCenters || []);
+                const costCentersResult = await gql(GetCostCentersForExpensesDocument)
+                setCostCenters(costCentersResult.allCostCenters || [])
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error fetching data:', error)
             }
-        };
+        }
 
-        fetchData();
-    }, []);
+        fetchData()
+    }, [])
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = sanitizeDecimalInput(e.target.value, 2);
-        setExpense(prev => ({ ...prev, amount: value }));
-    };
+        const value = sanitizeDecimalInput(e.target.value, 2)
+        setExpense(prev => ({ ...prev, amount: value }))
+    }
 
     // Filter active cost centers
-    const activeCostCenters = costCenters.filter(cc => cc.state === CostCenterState.Active);
+    const activeCostCenters = costCenters.filter(cc => cc.state === CostCenterState.Active)
 
     return (
         <Modal
@@ -83,12 +83,12 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         placeholder="yyyy-mm-dd"
                         defaultValue={expense?.expenseDate ? formatDateYMD(expense.expenseDate) : ''}
                         onChange={(e) => {
-                            const inputDate = e.target.value;
+                            const inputDate = e.target.value
                             if (inputDate) {
                                 setExpense(prev => ({
                                     ...prev,
                                     expenseDate: inputDate
-                                }));
+                                }))
                             }
                         }}
                     />

@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
+import { useState } from 'react'
 import {
     Modal,
     TextInput,
@@ -10,9 +10,9 @@ import {
     SelectItem,
     TextArea,
     InlineLoading
-} from '@carbon/react';
-import { gql } from '@/lib/graphql/execute';
-import { CreatePaymentMethodDocument, PaymentMethodState } from '@/lib/graphql/graphql';
+} from '@carbon/react'
+import { gql } from '@/lib/graphql/execute'
+import { CreatePaymentMethodDocument, PaymentMethodState } from '@/lib/graphql/graphql'
 
 interface AddPaymentMethodModalProps {
     isOpen: boolean;
@@ -22,85 +22,85 @@ interface AddPaymentMethodModalProps {
 
 export default function AddPaymentMethodModal({ isOpen, onClose, onSave }: AddPaymentMethodModalProps) {
     // Form state
-    const [name, setName] = useState('');
-    const [code, setCode] = useState('');
-    const [description, setDescription] = useState('');
-    const [state, setState] = useState<PaymentMethodState>(PaymentMethodState.Active);
+    const [name, setName] = useState('')
+    const [code, setCode] = useState('')
+    const [description, setDescription] = useState('')
+    const [state, setState] = useState<PaymentMethodState>(PaymentMethodState.Active)
 
     // UI states
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const [formErrors, setFormErrors] = useState<{
         name?: string;
         code?: string;
-    }>({});
+    }>({})
 
     // Validation function
     const validateForm = (): boolean => {
-        const errors: { name?: string; code?: string } = {};
+        const errors: { name?: string; code?: string } = {}
 
         if (!name.trim()) {
-            errors.name = 'Name is required';
+            errors.name = 'Name is required'
         }
 
         if (!code.trim()) {
-            errors.code = 'Code is required';
+            errors.code = 'Code is required'
         } else if (code.length > 10) {
-            errors.code = 'Code must be 10 characters or less';
+            errors.code = 'Code must be 10 characters or less'
         }
 
-        setFormErrors(errors);
-        return Object.keys(errors).length === 0;
-    };
+        setFormErrors(errors)
+        return Object.keys(errors).length === 0
+    }
 
     // Handle the form submission
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+        e.preventDefault()
 
         if (!validateForm()) {
-            return;
+            return
         }
 
         try {
-            setLoading(true);
-            setError(null);
+            setLoading(true)
+            setError(null)
 
             await gql(CreatePaymentMethodDocument, {
                 name,
                 code,
                 description: description.trim() || null,
                 state,
-            });
+            })
 
             // Reset form
-            setName('');
-            setCode('');
-            setDescription('');
-            setState(PaymentMethodState.Active);
-            setFormErrors({});
+            setName('')
+            setCode('')
+            setDescription('')
+            setState(PaymentMethodState.Active)
+            setFormErrors({})
 
             // Notify parent component
-            onSave();
+            onSave()
         } catch (err) {
-            console.error('Error creating payment method:', err);
-            setError('Failed to create payment method. Please try again.');
+            console.error('Error creating payment method:', err)
+            setError('Failed to create payment method. Please try again.')
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     const handleCancel = () => {
         // Reset form
-        setName('');
-        setCode('');
-        setDescription('');
-        setState(PaymentMethodState.Active);
-        setFormErrors({});
-        setError(null);
+        setName('')
+        setCode('')
+        setDescription('')
+        setState(PaymentMethodState.Active)
+        setFormErrors({})
+        setError(null)
 
         // Close modal
-        onClose();
-    };
+        onClose()
+    }
 
     return (
         <Modal
@@ -169,5 +169,5 @@ export default function AddPaymentMethodModal({ isOpen, onClose, onSave }: AddPa
                 )}
             </Form>
         </Modal>
-    );
+    )
 }

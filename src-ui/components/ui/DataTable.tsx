@@ -20,91 +20,91 @@ interface DataTableProps<T> {
 }
 
 function DataTable<T extends { id: string }>({
-  title,
-  description,
-  headers,
-  tableRows,
-  loading,
-  totalItems,
-  currentPage,
-  pageSize,
-  pageSizes,
-  onPageChange,
-  onAddClick,
-  onEditClick,
-  onDeleteClick,
-  onRowClick
+    title,
+    description,
+    headers,
+    tableRows,
+    loading,
+    totalItems,
+    currentPage,
+    pageSize,
+    pageSizes,
+    onPageChange,
+    onAddClick,
+    onEditClick,
+    onDeleteClick,
+    onRowClick
 }: DataTableProps<T>) {
-  if (loading) {
-    return <DataTableSkeleton headers={headers} rowCount={pageSize} />
-  }
+    if (loading) {
+        return <DataTableSkeleton headers={headers} rowCount={pageSize} />
+    }
 
-  return (
-    <TableContainer title={title} description={description}>
-      <TableToolbar>
-        <TableToolbarContent>
-          <Button renderIcon={Add} onClick={onAddClick}>
+    return (
+        <TableContainer title={title} description={description}>
+            <TableToolbar>
+                <TableToolbarContent>
+                    <Button renderIcon={Add} onClick={onAddClick}>
             Add {title}
-          </Button>
-        </TableToolbarContent>
-      </TableToolbar>
-      <CarbonDataTable rows={tableRows} headers={headers}>
-        {({ rows, headers, getTableProps }) => (
-          <Table {...getTableProps()}>
-            <TableHead>
-              <TableRow>
-                {headers.map((header) => (
-                  <TableHeader key={header.key}>{header.header}</TableHeader>
-                ))}
-                <TableHeader key="actions" style={{ width: '8rem' }}>Actions</TableHeader>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  onClick={() => onRowClick && onRowClick(tableRows.find((r) => r.id === row.id) as T)}
-                  className={onRowClick ? 'cursor-pointer hover:bg-gray-100' : ''}
-                >
-                  {row.cells.map((cell) => (
-                    <TableCell key={cell.id}>{cell.value}</TableCell>
-                  ))}
-                  <TableCell>
-                    <OverflowMenu aria-label="Actions">
-                      <OverflowMenuItem
-                        itemText="Edit"
-                        onClick={() => {
-                          onEditClick(tableRows.find((r) => r.id === row.id) as T);
-                        }}
-                      />
-                      <OverflowMenuItem
-                        itemText="Delete"
-                        hasDivider
-                        isDelete
-                        onClick={() => {
-                          onDeleteClick(tableRows.find((r) => r.id === row.id) as T);
-                        }}
-                      />
-                    </OverflowMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CarbonDataTable>
-      <Pagination
-        totalItems={totalItems}
-        backwardText="Previous page"
-        forwardText="Next page"
-        pageSize={pageSize}
-        pageSizes={pageSizes}
-        itemsPerPageText="Items per page:"
-        page={currentPage}
-        onChange={({ page, pageSize }) => onPageChange(page, pageSize)}
-      />
-    </TableContainer>
-  )
+                    </Button>
+                </TableToolbarContent>
+            </TableToolbar>
+            <CarbonDataTable rows={tableRows} headers={headers}>
+                {({ rows, headers, getTableProps }) => (
+                    <Table {...getTableProps()}>
+                        <TableHead>
+                            <TableRow>
+                                {headers.map((header) => (
+                                    <TableHeader key={header.key}>{header.header}</TableHeader>
+                                ))}
+                                <TableHeader key="actions" style={{ width: '8rem' }}>Actions</TableHeader>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {rows.map((row) => (
+                                <TableRow
+                                    key={row.id}
+                                    onClick={() => onRowClick && onRowClick(tableRows.find((r) => r.id === row.id) as T)}
+                                    className={onRowClick ? 'cursor-pointer hover:bg-gray-100' : ''}
+                                >
+                                    {row.cells.map((cell) => (
+                                        <TableCell key={cell.id}>{cell.value}</TableCell>
+                                    ))}
+                                    <TableCell>
+                                        <OverflowMenu aria-label="Actions">
+                                            <OverflowMenuItem
+                                                itemText="Edit"
+                                                onClick={() => {
+                                                    onEditClick(tableRows.find((r) => r.id === row.id) as T)
+                                                }}
+                                            />
+                                            <OverflowMenuItem
+                                                itemText="Delete"
+                                                hasDivider
+                                                isDelete
+                                                onClick={() => {
+                                                    onDeleteClick(tableRows.find((r) => r.id === row.id) as T)
+                                                }}
+                                            />
+                                        </OverflowMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CarbonDataTable>
+            <Pagination
+                totalItems={totalItems}
+                backwardText="Previous page"
+                forwardText="Next page"
+                pageSize={pageSize}
+                pageSizes={pageSizes}
+                itemsPerPageText="Items per page:"
+                page={currentPage}
+                onChange={({ page, pageSize }) => onPageChange(page, pageSize)}
+            />
+        </TableContainer>
+    )
 }
 
 export default DataTable

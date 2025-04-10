@@ -5,25 +5,25 @@ import { useRouter } from 'next/navigation'
 import { Dashboard, UserProfile } from '@carbon/icons-react'
 
 export default function CustomersLayout({
-  children,
+    children,
 }: {
   children: React.ReactNode
 }) {
-  const router = useRouter()
+    const router = useRouter()
 
-  return (
-    <>
-      <SideNav isFixedNav expanded={true} isChildOfHeader={false} aria-label="Customer navigation">
-        <SideNavItems>
-          <SideNavLink renderIcon={Dashboard} large onClick={() => { router.push('/dash/customers/overview') }}>
+    return (
+        <>
+            <SideNav isFixedNav expanded={true} isChildOfHeader={false} aria-label="Customer navigation">
+                <SideNavItems>
+                    <SideNavLink renderIcon={Dashboard} large onClick={() => { router.push('/dash/customers/overview') }}>
             Overview
-          </SideNavLink>
-          <SideNavLink renderIcon={UserProfile} large onClick={() => { router.push('/dash/customers/segmentation') }}>
+                    </SideNavLink>
+                    <SideNavLink renderIcon={UserProfile} large onClick={() => { router.push('/dash/customers/segmentation') }}>
             Segmentation
-          </SideNavLink>
-        </SideNavItems>
-      </SideNav>
-      {children}
-    </>
-  )
+                    </SideNavLink>
+                </SideNavItems>
+            </SideNav>
+            {children}
+        </>
+    )
 }

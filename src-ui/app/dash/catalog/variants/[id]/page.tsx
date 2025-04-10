@@ -96,7 +96,7 @@ const VariantTypePage: React.FC<VariantTypePageProps> = ({ params }) => {
                 </Breadcrumb>
             </div>
 
-            <div className="flex-grow" style={{ height: "calc(100vh - 12rem)" }}>
+            <div className="flex-grow" style={{ height: 'calc(100vh - 12rem)' }}>
                 <VariantValuesList
                     variantTypeId={variantTypeId}
                     variantValues={variantValues}

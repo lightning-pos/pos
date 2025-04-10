@@ -1,5 +1,5 @@
-import { invoke } from "@tauri-apps/api/core"
-import { TypedDocumentString } from "./graphql"
+import { invoke } from '@tauri-apps/api/core'
+import { TypedDocumentString } from './graphql'
 
 export async function gql<TResult, TVariables>(
     query: TypedDocumentString<TResult, TVariables>,
@@ -7,11 +7,11 @@ export async function gql<TResult, TVariables>(
 ): Promise<TResult> {
     var response: Array<any>
 
-    console.log("yoyo request", query.toString(), vars)
+    console.log('yoyo request', query.toString(), vars)
 
     response = await invoke('graphql', { query, vars })
 
-    console.log("yoyo response", response)
+    console.log('yoyo response', response)
 
     if (response[1]?.length > 0) {
         throw new Error(response[1][0].message)

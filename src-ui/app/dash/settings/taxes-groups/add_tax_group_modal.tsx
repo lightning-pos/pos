@@ -124,24 +124,24 @@ const AddTaxGroupModal: React.FC<AddTaxGroupModalProps> = ({
                         label="Taxes"
                         helperText="Select taxes to include in this group"
                         items={taxes.map(tax => {
-                            const rateStr = String(tax.rate);
+                            const rateStr = String(tax.rate)
                             return {
                                 id: tax.id,
                                 text: `${tax.name} (${rateStr}%)`
-                            };
+                            }
                         })}
                         initialSelectedItems={taxes
                             .filter(tax => selectedTaxIds.includes(tax.id))
                             .map(tax => {
-                                const rateStr = String(tax.rate);
+                                const rateStr = String(tax.rate)
                                 return {
                                     id: tax.id,
                                     text: `${tax.name} (${rateStr}%)`
-                                };
+                                }
                             })}
                         onChange={({ selectedItems }) => {
-                            const newSelectedIds = selectedItems?.map(item => item.id) || [];
-                            setSelectedTaxIds(newSelectedIds);
+                            const newSelectedIds = selectedItems?.map(item => item.id) || []
+                            setSelectedTaxIds(newSelectedIds)
                         }}
                         itemToString={(item) => (item ? item.text : '')}
                         className="mb-4"

@@ -48,7 +48,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({ selectedCustomer, setSe
     const createCustomer = async (phone: string) => {
         try {
             const result = await gql(CreatePosCustomerDocument, {
-                fullName: "",
+                fullName: '',
                 phone
             })
 
