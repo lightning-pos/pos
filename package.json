@@ -1,16 +1,30 @@
 {
-    "name": "lightning_pos",
-    "version": "0.1.0",
-    "private": true,
-    "scripts": {
-        "tauri": "tauri",
-        "schema:export": "cd src-tauri && cargo run export-schema"
-    },
-    "devDependencies": {
-        "@tauri-apps/cli": "^2.2.7"
-    },
-    "graphql": {
-        "schema": "src-ui/schema.graphql",
-        "documents": "src-ui/app/**/*.{graphql,js,ts,jsx,tsx}"
-    }
+  "name": "lightning_pos",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "schema:export": "cd src-tauri && cargo run export-schema",
+    "prepare": "husky",
+    "lint-staged": "lint-staged",
+    "eslint": "cd src-ui && pnpm eslint",
+    "clippy": "cd src-tauri && cargo clippy"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.2.7",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0"
+  },
+  "graphql": {
+    "schema": "src-ui/schema.graphql",
+    "documents": "src-ui/app/**/*.{graphql,js,ts,jsx,tsx}"
+  },
+  "lint-staged": {
+    "src-ui/**/*.{js,jsx,ts,tsx}": [
+      "cd src-ui && pnpm eslint --fix"
+    ],
+    "src-tauri/**/*.rs": [
+      "cd src-tauri && cargo clippy --fix"
+    ]
+  }
 }
