@@ -1,0 +1,19 @@
+# Enforce consistent code style
+cognitive-complexity-threshold = 25
+too-many-arguments-threshold = 5
+type-complexity-threshold = 250
+
+# Enforce consistent naming conventions
+enum-variant-name-threshold = 3
+
+# Enforce consistent documentation
+doc-valid-idents = ["DbUuid", "NaiveDateTime", "Money", "Percentage"]
+
+# Enforce consistent error handling
+allow-unwrap-in-tests = true
+
+# Enforce consistent imports
+allow-expect-in-tests = true
+
+# Enforce consistent style
+single-char-binding-names-threshold = 2
