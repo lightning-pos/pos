@@ -171,16 +171,23 @@ mod tests {
     use crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentState;
     use crate::core::{
         commands::{
+            auth::user_commands::AddUserCommand,
+            common::channel_commands::CreateChannelCommand,
+            common::location_commands::CreateLocationCommand,
             finance::payment_method_commands::CreatePaymentMethodCommand,
             sales::sales_order_commands::CreateSalesOrderCommand,
         },
         models::{
+            auth::user_model::UserNewInput,
+            common::channel_model::{Channel, ChannelNewInput},
+            common::location_model::{Location, LocationNewInput},
             finance::payment_method_model::{PaymentMethodNewInput, PaymentMethodState},
             sales::{
                 sales_order_item_model::SalesOrderItemInput, sales_order_model::SalesOrderNewInput,
             },
         },
     };
+    use rand::Rng;
 
     fn create_test_payment_method(
         service: &mut AppService,
@@ -207,9 +214,44 @@ mod tests {
         let command = CreateCostCenterCommand {
             cost_center: CostCenterNewInput {
                 name: "Test Cost Center".to_string(),
-                code: "TCC001".to_string(),
+                code: format!("TCC{:03}", rand::thread_rng().gen_range(1..999)),
                 description: None,
                 state: Some(CostCenterState::Active),
+            },
+        };
+        command.exec(service).unwrap()
+    }
+
+    fn create_test_user(service: &mut AppService) -> DbUuid {
+        let random_suffix = rand::thread_rng().gen_range(1000..9999).to_string();
+        let command = AddUserCommand {
+            user: UserNewInput {
+                username: format!("testuser{}", random_suffix),
+                pin: "1234".to_string(),
+                full_name: format!("Test User {}", random_suffix),
+            },
+        };
+        command.exec(service).unwrap().id
+    }
+
+    fn create_test_channel(service: &mut AppService) -> Channel {
+        let command = CreateChannelCommand {
+            channel: ChannelNewInput {
+                name: format!("Test Channel {}", rand::thread_rng().gen_range(1..999)),
+                description: None,
+                is_active: Some(true),
+            },
+        };
+        command.exec(service).unwrap()
+    }
+
+    fn create_test_location(service: &mut AppService) -> Location {
+        let command = CreateLocationCommand {
+            location: LocationNewInput {
+                name: format!("Test Location {}", rand::thread_rng().gen_range(1..999)),
+                description: None,
+                address: None,
+                is_active: Some(true),
             },
         };
         command.exec(service).unwrap()
@@ -218,12 +260,12 @@ mod tests {
     fn create_test_sales_order(service: &mut AppService) -> SalesOrder {
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(service);
-        let user_id = Uuid::new_v4().into();
-        let channel_id = Uuid::new_v4().into();
-        let location_id = Uuid::new_v4().into();
+        let user_id = create_test_user(service);
+        let channel = create_test_channel(service);
+        let location = create_test_location(service);
 
         let input = SalesOrderNewInput {
-            customer_id: Some(Uuid::now_v7().into()),
+            customer_id: None, // No customer needed for this test
             customer_name: Some("John Doe".to_string()),
             customer_phone_number: Some("+1234567890".to_string()),
             billing_address: None,
@@ -235,12 +277,12 @@ mod tests {
             tax_amount: 90.into(),
             total_amount: 990.into(),
             notes: None,
-            channel_id,
-            location_id,
+            channel_id: channel.id,
+            location_id: location.id,
             cost_center_id: cost_center.id,
             discount_id: None,
             items: vec![SalesOrderItemInput {
-                item_id: Some(Uuid::now_v7().into()),
+                item_id: None, // No item needed for this test
                 item_name: "Item 1".to_string(),
                 quantity: 2,
                 sku: None,

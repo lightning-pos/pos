@@ -135,37 +135,53 @@ mod tests {
     use uuid::Uuid;
 
     use crate::core::{
-        commands::AppService, models::purchases::expense_model::Expense, types::db_uuid::DbUuid,
+        commands::{AppService, Command, finance::cost_center_commands::CreateCostCenterCommand, purchases::purchase_category_commands::CreatePurchaseCategoryCommand},
+        models::{
+            finance::cost_center_model::{CostCenter, CostCenterNewInput, CostCenterState},
+            purchases::{expense_model::Expense, purchase_category_model::{PurchaseCategory, PurchaseCategoryNew, PurchaseCategoryState}},
+        },
+        types::db_uuid::DbUuid,
         types::money::Money,
     };
-    use crate::schema::expenses;
+    use crate::schema::{expenses, purchase_categories, cost_centers};
 
     use super::*;
 
     fn create_app_state() -> AppState {
-        // Create a mutable service for database schema creation
-        let mut service = AppService::new(":memory:");
+        // Create a service for database schema creation
+        let service = AppService::new(":memory:");
 
-        // Create test database schema if it doesn't exist
-        diesel::sql_query(
-            "CREATE TABLE IF NOT EXISTS expenses (
-                id TEXT PRIMARY KEY NOT NULL,
-                title TEXT NOT NULL,
-                amount BIGINT NOT NULL,
-                expense_date TIMESTAMP NOT NULL,
-                category_id TEXT NOT NULL,
-                cost_center_id TEXT NOT NULL,
-                description TEXT,
-                created_at TIMESTAMP NOT NULL,
-                updated_at TIMESTAMP NOT NULL
-            )",
-        )
-        .execute(&mut service.conn)
-        .unwrap();
+        // The AppService will automatically create the schema with migrations
+        // No need to manually create tables
 
         AppState {
             service: Mutex::new(service),
         }
+    }
+
+    fn create_test_purchase_category(service: &mut AppService, name: &str) -> PurchaseCategory {
+        // Create a purchase category
+        let command = CreatePurchaseCategoryCommand {
+            category: PurchaseCategoryNew {
+                name: name.to_string(),
+                description: None,
+                state: Some(PurchaseCategoryState::Active),
+            },
+        };
+        command.exec(service).unwrap()
+    }
+
+    fn create_test_cost_center(service: &mut AppService, name: &str, code: &str) -> CostCenter {
+        // Create a cost center
+        let command = CreateCostCenterCommand {
+            cost_center: CostCenterNewInput {
+                name: name.to_string(),
+                code: code.to_string(),
+                description: None,
+                state: Some(CostCenterState::Active),
+            },
+        };
+        command.exec(service).unwrap()
     }
 
     fn create_test_expense(
@@ -174,8 +190,8 @@ mod tests {
         title: &str,
         amount: f64,
         expense_date: NaiveDateTime,
-        category_id: &str,
-        cost_center_id: &str,
+        category_id: DbUuid,
+        cost_center_id: DbUuid,
         description: Option<&str>,
     ) -> Expense {
         let now = Utc::now().naive_utc();
@@ -184,8 +200,8 @@ mod tests {
             title: title.to_string(),
             amount: Money::from_float(amount),
             expense_date,
-            category_id: DbUuid::from(Uuid::parse_str(category_id).unwrap()),
-            cost_center_id: DbUuid::from(Uuid::parse_str(cost_center_id).unwrap()),
+            category_id,
+            cost_center_id,
             description: description.map(|s| s.to_string()),
             created_at: now,
             updated_at: now,
@@ -203,11 +219,11 @@ mod tests {
         let mut service = app_state.service.lock().unwrap();
         let mut result = Vec::new();
 
-        // Category and cost center IDs
-        let category_id_1 = "550e8400-e29b-41d4-a716-446655440000";
-        let category_id_2 = "550e8400-e29b-41d4-a716-446655440001";
-        let cost_center_id_1 = "550e8400-e29b-41d4-a716-446655440002";
-        let cost_center_id_2 = "550e8400-e29b-41d4-a716-446655440003";
+        // Create categories and cost centers
+        let category1 = create_test_purchase_category(&mut service, "Office Supplies");
+        let category2 = create_test_purchase_category(&mut service, "Equipment");
+        let cost_center1 = create_test_cost_center(&mut service, "Marketing", "MKT");
+        let cost_center2 = create_test_cost_center(&mut service, "Operations", "OPS");
 
         // Create expenses with different dates
         let date1 = NaiveDateTime::new(
@@ -238,8 +254,8 @@ mod tests {
             "Office Supplies",
             50.00,
             date1,
-            category_id_1,
-            cost_center_id_1,
+            category1.id,
+            cost_center1.id,
             Some("Notebooks and pens"),
         ));
 
@@ -249,8 +265,8 @@ mod tests {
             "Software License",
             150.00,
             date2,
-            category_id_1,
-            cost_center_id_2,
+            category1.id,
+            cost_center2.id,
             Some("Annual subscription"),
         ));
 
@@ -260,8 +276,8 @@ mod tests {
             "Office Furniture",
             300.00,
             date3,
-            category_id_2,
-            cost_center_id_1,
+            category2.id,
+            cost_center1.id,
             None,
         ));
 
@@ -271,8 +287,8 @@ mod tests {
             "Training Materials",
             75.00,
             date4,
-            category_id_2,
-            cost_center_id_2,
+            category2.id,
+            cost_center2.id,
             Some("Employee training books"),
         ));
 
@@ -282,8 +298,8 @@ mod tests {
             "Travel Expenses",
             250.00,
             date5,
-            category_id_1,
-            cost_center_id_1,
+            category1.id,
+            cost_center1.id,
             Some("Business trip to conference"),
         ));
 
@@ -330,16 +346,22 @@ mod tests {
         let app_state = create_app_state();
         let _expenses_data = create_test_data(&app_state);
 
+        // Get the cost center ID from the service
+        let mut service = app_state.service.lock().unwrap();
+        let cost_center = cost_centers::table
+            .filter(cost_centers::name.eq("Marketing"))
+            .first::<CostCenter>(&mut service.conn)
+            .unwrap();
+        drop(service); // Release the lock
+
         // Test filtering by cost center
-        let cost_center_id =
-            DbUuid::from(Uuid::parse_str("550e8400-e29b-41d4-a716-446655440002").unwrap());
-        let result = expenses(None, None, Some(cost_center_id), None, None, &app_state).unwrap();
+        let result = expenses(None, None, Some(cost_center.id), None, None, &app_state).unwrap();
 
         assert_eq!(result.len(), 3);
 
         // Check that all returned expenses have the correct cost center
         for expense in result {
-            assert_eq!(expense.cost_center_id, cost_center_id);
+            assert_eq!(expense.cost_center_id, cost_center.id);
         }
     }
 
@@ -429,16 +451,22 @@ mod tests {
         let app_state = create_app_state();
         let _expenses_data = create_test_data(&app_state);
 
+        // Get the cost center ID from the service
+        let mut service = app_state.service.lock().unwrap();
+        let cost_center = cost_centers::table
+            .filter(cost_centers::name.eq("Marketing"))
+            .first::<CostCenter>(&mut service.conn)
+            .unwrap();
+        drop(service); // Release the lock
+
         // Test with cost center and date range filters
-        let cost_center_id =
-            DbUuid::from(Uuid::parse_str("550e8400-e29b-41d4-a716-446655440002").unwrap());
         let start_date = "2023-01-01T00:00:00";
         let end_date = "2023-03-31T23:59:59";
 
         let result = expenses(
             None,
             None,
-            Some(cost_center_id),
+            Some(cost_center.id),
             Some(start_date.to_string()),
             Some(end_date.to_string()),
             &app_state,
@@ -449,7 +477,7 @@ mod tests {
 
         // Verify all returned expenses meet all criteria
         for expense in &result {
-            assert_eq!(expense.cost_center_id, cost_center_id);
+            assert_eq!(expense.cost_center_id, cost_center.id);
             assert!(
                 expense.expense_date
                     >= NaiveDateTime::parse_from_str("2023-01-01T00:00:00", "%Y-%m-%dT%H:%M:%S")
@@ -472,10 +500,16 @@ mod tests {
         let result = total_expenses(None, None, None, &app_state).unwrap();
         assert_eq!(result, 5);
 
+        // Get the cost center ID from the service
+        let mut service = app_state.service.lock().unwrap();
+        let cost_center = cost_centers::table
+            .filter(cost_centers::name.eq("Marketing"))
+            .first::<CostCenter>(&mut service.conn)
+            .unwrap();
+        drop(service); // Release the lock
+
         // Test with cost center filter
-        let cost_center_id =
-            DbUuid::from(Uuid::parse_str("550e8400-e29b-41d4-a716-446655440002").unwrap());
-        let result = total_expenses(Some(cost_center_id), None, None, &app_state).unwrap();
+        let result = total_expenses(Some(cost_center.id), None, None, &app_state).unwrap();
         assert_eq!(result, 3);
 
         // Test with date range
@@ -492,7 +526,7 @@ mod tests {
 
         // Test with combined filters
         let result = total_expenses(
-            Some(cost_center_id),
+            Some(cost_center.id),
             Some(start_date.to_string()),
             Some(end_date.to_string()),
             &app_state,
@@ -504,11 +538,10 @@ mod tests {
     #[test]
     fn test_expense_by_id() {
         let app_state = create_app_state();
-        let _expenses_data = create_test_data(&app_state);
+        let expenses_data = create_test_data(&app_state);
 
-        // Test fetching by ID
-        let expense_id =
-            DbUuid::from(Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap());
+        // Test fetching by ID - use the first expense from the test data
+        let expense_id = expenses_data[0].id;
         let result = expense(expense_id, &app_state).unwrap();
 
         assert_eq!(result.id, expense_id);
@@ -521,24 +554,28 @@ mod tests {
         let app_state = create_app_state();
         let _expenses_data = create_test_data(&app_state);
 
-        // Test fetching by category
-        let category_id =
-            DbUuid::from(Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap());
+        // Get the category ID from the service
+        let mut service = app_state.service.lock().unwrap();
+        let category = purchase_categories::table
+            .filter(purchase_categories::name.eq("Office Supplies"))
+            .first::<PurchaseCategory>(&mut service.conn)
+            .unwrap();
+        drop(service); // Release the lock
 
         // No pagination
-        let result = expenses_by_category(category_id, None, None, &app_state).unwrap();
+        let result = expenses_by_category(category.id, None, None, &app_state).unwrap();
         assert_eq!(result.len(), 3); // Should have 3 expenses in this category
 
         // With pagination
-        let result = expenses_by_category(category_id, Some(1), None, &app_state).unwrap();
+        let result = expenses_by_category(category.id, Some(1), None, &app_state).unwrap();
         assert_eq!(result.len(), 1);
 
-        let result = expenses_by_category(category_id, Some(2), Some(1), &app_state).unwrap();
+        let result = expenses_by_category(category.id, Some(2), Some(1), &app_state).unwrap();
         assert_eq!(result.len(), 2);
 
         // Verify all returned expenses have the correct category
         for expense in result {
-            assert_eq!(expense.category_id, category_id);
+            assert_eq!(expense.category_id, category.id);
         }
     }
 }

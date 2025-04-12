@@ -100,11 +100,29 @@ mod tests {
     use super::*;
     use chrono::Utc;
     use uuid::Uuid;
+    use crate::core::{
+        commands::sales::customer_commands::CreateCustomerCommand,
+        models::sales::customer_model::CustomerNewInput,
+    };
+    use rand::Rng;
+
+    fn create_test_customer(service: &mut AppService) -> DbUuid {
+        let random_suffix = rand::thread_rng().gen_range(1000..9999).to_string();
+        let command = CreateCustomerCommand {
+            customer: CustomerNewInput {
+                full_name: format!("Test Customer {}", random_suffix),
+                email: Some(format!("test{}@example.com", random_suffix)),
+                phone: Some(format!("+1234567{}", random_suffix)),
+                address: None,
+            },
+        };
+        command.exec(service).unwrap().id
+    }
 
     #[test]
     fn test_create_cart_with_customer() {
         let mut app_service = AppService::new(":memory:");
-        let customer_id = Some(Uuid::now_v7().into());
+        let customer_id = Some(create_test_customer(&mut app_service));
         let cart_data = r#"{"items": []}"#.to_string();
 
         let command = CreateCartCommand {
