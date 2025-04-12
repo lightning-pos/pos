@@ -331,6 +331,20 @@ table! {
 }
 
 table! {
+    use diesel::sql_types::{Text, Nullable, Timestamp, Bool};
+
+    locations (id) {
+        id -> Text,
+        name -> Text,
+        description -> Nullable<Text>,
+        address -> Nullable<Text>,
+        is_active -> Bool,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+table! {
     use diesel::sql_types::{Text, Nullable, Timestamp};
     use crate::core::models::finance::cost_center_model::CostCenterStateMapping;
 
@@ -418,6 +432,9 @@ joinable!(expenses -> cost_centers (cost_center_id));
 // ManyToOne (orders, cost_centers)
 joinable!(sales_orders -> cost_centers (cost_center_id));
 
+// ManyToOne (orders, locations)
+joinable!(sales_orders -> locations (location_id));
+
 // ManyToOne (sales_order_payments, sales_orders)
 joinable!(sales_order_payments -> sales_orders (order_id));
 
@@ -485,5 +502,6 @@ allow_tables_to_appear_in_same_query!(
     tax_groups,
     tax_group_taxes,
     discounts,
-    item_discounts
+    item_discounts,
+    locations
 );
