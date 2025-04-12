@@ -4,7 +4,7 @@
 # misc
 .DS_Store
 *.pem
-*.db
+*.db*
 
 # scratch
 scratch*.*

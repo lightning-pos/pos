@@ -41,6 +41,8 @@ tauri = { version = "2.2.2", features = [] }
 tauri-plugin-fs = "2.0.1"
 uuid = { version = "1.11.1", features = ["v7"] }
 rand = "0.8"
+libsql = { version = "0.9.3", features = ["replication"] }
+tokio = { version = "1", features = ["full"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.
