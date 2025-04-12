@@ -97,13 +97,5 @@ export default [
             ...tsRules,
             // Add any specific rules here
         },
-    },
-    {
-        files: ['postcss.config.js'],
-        languageOptions: {
-            globals: {
-                module: 'writable',
-            },
-        },
-    },
+    }
 ]
