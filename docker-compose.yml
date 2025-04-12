@@ -1,4 +1,3 @@
-version: "3"
 services:
   libsql:
     image: ghcr.io/tursodatabase/libsql-server:latest
@@ -10,16 +9,3 @@ services:
       - SQLD_NODE=primary
     volumes:
       - ./data/libsql:/var/lib/sqld
-
-  # Outerbase Studio - A lightweight database GUI for viewing and managing libSQL
-  # Access at http://localhost:3000
-  # To connect to libSQL, use:
-  #   - Connection Type: LibSQL/Turso
-  #   - URL: http://libsql:8080
-  outerbase-studio:
-    build:
-      context: https://github.com/outerbase/studio.git#develop
-    ports:
-      - "3000:3000"
-    depends_on:
-      - libsql
