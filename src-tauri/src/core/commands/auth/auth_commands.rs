@@ -1,12 +1,10 @@
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
-
 use crate::{
+    adapters::outgoing::database::{DatabaseAdapter, SqlParam},
     core::{
         commands::{app_service::AppService, Command},
         models::auth::user_model::User,
     },
     error::{Error, Result},
-    schema::users,
 };
 
 pub struct LoginCommand {
@@ -20,10 +18,14 @@ impl Command for LoginCommand {
     type Output = ();
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let user = users::table
-            .filter(users::username.eq(&self.username))
-            .get_result::<User>(&mut service.conn)
-            .optional()?;
+        // Build the SQL query
+        let query = "SELECT * FROM users WHERE username = ?";
+
+        // Set up the parameters
+        let params = vec![SqlParam::String(self.username.clone())];
+
+        // Execute the query using the database adapter
+        let user = service.db_adapter.query_optional::<User>(query, params)?;
 
         match user {
             Some(user) => {

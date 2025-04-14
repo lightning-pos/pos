@@ -20,8 +20,11 @@ pub fn run() {
 
     // Initialize libsql_db synchronously using a blocking runtime
     tokio::runtime::Runtime::new().unwrap().block_on(async {
+        // Initialize libsql_db and panic if it fails
         if let Err(e) = app_service.init_libsql_db(db_path).await {
             eprintln!("Failed to initialize libsql_db: {}", e);
+            // We don't panic here because the database adapter is already initialized in AppService::new
+            // The libsql connection is optional, but the SQLx adapter is required
         }
     });
 
