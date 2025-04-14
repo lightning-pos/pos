@@ -4,6 +4,7 @@ use diesel::{
     Selectable,
 };
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::types::db_uuid::DbUuid;
 use crate::schema::channels;
@@ -41,4 +42,16 @@ pub struct ChannelUpdateChangeset {
     pub description: Option<Option<String>>,
     pub is_active: Option<bool>,
     pub updated_at: NaiveDateTime,
+}
+
+#[derive(Debug, Iden)]
+#[iden = "channels"]
+pub enum Channels {
+    Table,
+    Id,
+    Name,
+    Description,
+    IsActive,
+    CreatedAt,
+    UpdatedAt,
 }

@@ -4,6 +4,7 @@ use diesel::{
     Selectable,
 };
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::types::db_uuid::DbUuid;
 use crate::schema::variant_types;
@@ -22,6 +23,17 @@ pub struct VariantType {
 pub struct VariantTypeNewInput {
     pub name: String,
     pub description: Option<String>,
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum VariantTypes {
+    Table,
+    Id,
+    Name,
+    Description,
+    CreatedAt,
+    UpdatedAt,
 }
 
 #[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]

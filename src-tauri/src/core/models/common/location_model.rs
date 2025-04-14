@@ -4,6 +4,7 @@ use diesel::{
     Selectable,
 };
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::types::db_uuid::DbUuid;
 use crate::schema::locations;
@@ -58,4 +59,17 @@ impl LocationUpdateInput {
             updated_at: now,
         }
     }
+}
+
+#[derive(Debug, Iden)]
+#[iden = "locations"]
+pub enum Locations {
+    Table,
+    Id,
+    Name,
+    Description,
+    Address,
+    IsActive,
+    CreatedAt,
+    UpdatedAt,
 }

@@ -1,21 +1,21 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
         models::{
             catalog::{
-                item_group_model::ItemGroup,
-                item_model::{Item, NewItem, UpdateItem},
+                item_group_model::{ItemCategories, ItemGroup, ItemGroupState},
+                item_model::{Item, ItemNature, ItemState, Items, NewItem, UpdateItem},
             },
-            common::tax_model::{ItemTax, Tax},
+            common::tax_model::{ItemTax, ItemTaxes, Tax, Taxes},
         },
-        types::db_uuid::DbUuid,
+        types::{db_uuid::DbUuid, money::Money, percentage::Percentage},
     },
     error::{Error, Result},
-    schema::{item_categories, item_taxes, items, taxes},
 };
 
 // Commands
@@ -36,56 +36,100 @@ impl Command for CreateItemCommand {
     type Output = Item;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Verify category exists
-            item_categories::table
-                .filter(item_categories::id.eq(&self.item.category_id))
-                .select(ItemGroup::as_select())
-                .get_result::<ItemGroup>(conn)?;
+        // Verify category exists
+        let category_query = Query::select()
+            .from(ItemCategories::Table)
+            .column(ItemCategories::Id)
+            .and_where(Expr::col(ItemCategories::Id).eq(self.item.category_id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-            // Verify all taxes exist if tax_ids are provided
-            if let Some(tax_ids) = &self.item.tax_ids {
-                for tax_id in tax_ids {
-                    taxes::table
-                        .filter(taxes::id.eq(tax_id))
-                        .select(Tax::as_select())
-                        .get_result::<Tax>(conn)?;
+        let category = service.db_adapter.query_optional::<ItemGroup>(&category_query, vec![])?;
+        if category.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        // Verify all taxes exist if tax_ids are provided
+        if let Some(tax_ids) = &self.item.tax_ids {
+            for tax_id in tax_ids {
+                let tax_query = Query::select()
+                    .from(Taxes::Table)
+                    .column(Taxes::Id)
+                    .and_where(Expr::col(Taxes::Id).eq(tax_id.to_string()))
+                    .to_string(SqliteQueryBuilder);
+
+                let tax = service.db_adapter.query_optional::<Tax>(&tax_query, vec![])?;
+                if tax.is_none() {
+                    return Err(Error::NotFoundError);
                 }
             }
+        }
 
-            let now = Utc::now().naive_utc();
-            let new_item = Item {
-                id: Uuid::now_v7().into(),
-                name: self.item.name.clone(),
-                description: self.item.description.clone(),
-                nature: self.item.nature,
-                state: self.item.state,
-                price: self.item.price,
-                category_id: self.item.category_id.clone(),
-                created_at: now,
-                updated_at: now,
-            };
+        let now = Utc::now().naive_utc();
+        let item_id: DbUuid = Uuid::now_v7().into();
 
-            let res = diesel::insert_into(items::table)
-                .values(&new_item)
-                .returning(Item::as_returning())
-                .get_result(conn)?;
+        // Build the insert query
+        let insert_query = Query::insert()
+            .into_table(Items::Table)
+            .columns([
+                Items::Id,
+                Items::Name,
+                Items::Description,
+                Items::Nature,
+                Items::State,
+                Items::Price,
+                Items::CategoryId,
+                Items::CreatedAt,
+                Items::UpdatedAt,
+            ])
+            .values_panic([
+                item_id.to_string().into(),
+                self.item.name.clone().into(),
+                self.item.description.clone().map_or_else(|| "NULL".into(), |d| d.into()),
+                self.item.nature.to_string().into(),
+                self.item.state.to_string().into(),
+                self.item.price.to_string().into(),
+                self.item.category_id.to_string().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
 
-            // Create item-tax associations if tax_ids are provided
-            if let Some(tax_ids) = &self.item.tax_ids {
-                for tax_id in tax_ids {
-                    let item_tax = ItemTax {
-                        item_id: res.id,
-                        tax_id: *tax_id,
-                    };
-                    diesel::insert_into(item_taxes::table)
-                        .values(&item_tax)
-                        .execute(conn)?;
-                }
+        // Execute the insert query
+        service.db_adapter.execute(&insert_query, vec![])?;
+
+        // Create item-tax associations if tax_ids are provided
+        if let Some(tax_ids) = &self.item.tax_ids {
+            for tax_id in tax_ids {
+                let item_tax_query = Query::insert()
+                    .into_table(ItemTaxes::Table)
+                    .columns([
+                        ItemTaxes::ItemId,
+                        ItemTaxes::TaxId,
+                    ])
+                    .values_panic([
+                        item_id.to_string().into(),
+                        tax_id.to_string().into(),
+                    ])
+                    .to_string(SqliteQueryBuilder);
+
+                service.db_adapter.execute(&item_tax_query, vec![])?;
             }
+        }
 
-            Ok(res)
-        })
+        // Create and return the new item object
+        let new_item = Item {
+            id: item_id,
+            name: self.item.name.clone(),
+            description: self.item.description.clone(),
+            nature: self.item.nature,
+            state: self.item.state,
+            price: self.item.price,
+            category_id: self.item.category_id.clone(),
+            created_at: now,
+            updated_at: now,
+        };
+
+        Ok(new_item)
     }
 }
 
@@ -93,33 +137,107 @@ impl Command for UpdateItemCommand {
     type Output = Item;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Verify category exists
-            if let Some(cat_id) = self.item.category_id.clone() {
-                item_categories::table
-                    .filter(item_categories::id.eq(&cat_id))
-                    .select(ItemGroup::as_select())
-                    .get_result::<ItemGroup>(conn)?;
+        // Verify category exists if provided
+        if let Some(cat_id) = self.item.category_id {
+            let category_query = Query::select()
+                .from(ItemCategories::Table)
+                .column(ItemCategories::Id)
+                .and_where(Expr::col(ItemCategories::Id).eq(cat_id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let category = service.db_adapter.query_optional::<ItemGroup>(&category_query, vec![])?;
+            if category.is_none() {
+                return Err(Error::NotFoundError);
             }
+        }
 
-            // Verify item exists
-            items::table
-                .find(&self.item.id)
-                .select(Item::as_select())
-                .get_result::<Item>(conn)?;
+        // Verify item exists
+        let item_query = Query::select()
+            .from(Items::Table)
+            .columns([
+                Items::Id,
+                Items::Name,
+                Items::Description,
+                Items::Nature,
+                Items::State,
+                Items::Price,
+                Items::CategoryId,
+                Items::CreatedAt,
+                Items::UpdatedAt,
+            ])
+            .and_where(Expr::col(Items::Id).eq(self.item.id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-            let now = Utc::now().naive_utc();
+        let existing_item = service.db_adapter.query_optional::<Item>(&item_query, vec![])?;
+        if existing_item.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-            let mut item = self.item.clone();
-            item.updated_at = Some(now);
+        let _existing_item = existing_item.unwrap();
+        let now = Utc::now().naive_utc();
 
-            let res = diesel::update(items::table.find(&self.item.id))
-                .set(&item)
-                .returning(Item::as_returning())
-                .get_result(conn)?;
+        // Build update query with SeaQuery
+        let mut query = Query::update();
+        query.table(Items::Table)
+            .value(Items::UpdatedAt, now.to_string());
 
-            Ok(res)
-        })
+        // Add optional fields if they exist
+        if let Some(name) = &self.item.name {
+            query.value(Items::Name, name.clone());
+        }
+
+        if let Some(description) = &self.item.description {
+            match description {
+                Some(desc) => query.value(Items::Description, desc.clone()),
+                None => query.value(Items::Description, "NULL"),
+            };
+        }
+
+        if let Some(nature) = &self.item.nature {
+            query.value(Items::Nature, nature.to_string());
+        }
+
+        if let Some(state) = &self.item.state {
+            query.value(Items::State, state.to_string());
+        }
+
+        if let Some(price) = &self.item.price {
+            query.value(Items::Price, price.to_string());
+        }
+
+        if let Some(category_id) = &self.item.category_id {
+            query.value(Items::CategoryId, category_id.to_string());
+        }
+
+        // Add WHERE condition
+        query.and_where(Expr::col(Items::Id).eq(self.item.id.to_string()));
+
+        // Generate the SQL query
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the update
+        service.db_adapter.execute(&sql, vec![])?;
+
+        // Retrieve the updated item
+        let select_query = Query::select()
+            .from(Items::Table)
+            .columns([
+                Items::Id,
+                Items::Name,
+                Items::Description,
+                Items::Nature,
+                Items::State,
+                Items::Price,
+                Items::CategoryId,
+                Items::CreatedAt,
+                Items::UpdatedAt,
+            ])
+            .and_where(Expr::col(Items::Id).eq(self.item.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let updated_item = service.db_adapter.query_one::<Item>(&select_query, vec![])?;
+
+        Ok(updated_item)
     }
 }
 
@@ -127,44 +245,100 @@ impl Command for DeleteItemCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let result = diesel::delete(items::table.find(&self.id)).execute(conn)?;
+        // Build delete query with SeaQuery
+        let delete_query = Query::delete()
+            .from_table(Items::Table)
+            .and_where(Expr::col(Items::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-            if result == 0 {
-                return Err(Error::NotFoundError);
-            }
+        // Execute the delete query
+        let affected_rows = service.db_adapter.execute(&delete_query, vec![])?;
 
-            Ok(result as i32)
-        })
+        if affected_rows == 0 {
+            Err(Error::NotFoundError)
+        } else {
+            Ok(affected_rows as i32)
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::core::{
-        models::catalog::item_model::{ItemNature, ItemState},
-        types::percentage::Percentage,
-    };
-
     use super::*;
 
-    fn create_test_tax(service: &mut AppService) -> Tax {
+    // Helper function to create a test category
+    fn create_test_category(service: &mut AppService) -> ItemGroup {
+        let category_id: DbUuid = Uuid::now_v7().into();
         let now = Utc::now().naive_utc();
-        let tax = Tax {
-            id: Uuid::now_v7().into(),
+
+        let insert_query = Query::insert()
+            .into_table(ItemCategories::Table)
+            .columns([
+                ItemCategories::Id,
+                ItemCategories::Name,
+                ItemCategories::Description,
+                ItemCategories::State,
+                ItemCategories::CreatedAt,
+                ItemCategories::UpdatedAt,
+            ])
+            .values_panic([
+                category_id.to_string().into(),
+                "Test Category".into(),
+                "NULL".into(),
+                ItemGroupState::Active.to_string().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
+
+        service.db_adapter.execute(&insert_query, vec![]).unwrap();
+
+        ItemGroup {
+            id: category_id,
+            name: "Test Category".to_string(),
+            description: None,
+            state: ItemGroupState::Active,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    // Helper function to create a test tax
+    fn create_test_tax(service: &mut AppService) -> Tax {
+        let tax_id: DbUuid = Uuid::now_v7().into();
+        let now = Utc::now().naive_utc();
+        let rate = Percentage::from_float(10.0);
+
+        let insert_query = Query::insert()
+            .into_table(Taxes::Table)
+            .columns([
+                Taxes::Id,
+                Taxes::Name,
+                Taxes::Rate,
+                Taxes::Description,
+                Taxes::CreatedAt,
+                Taxes::UpdatedAt,
+            ])
+            .values_panic([
+                tax_id.to_string().into(),
+                "Test Tax".into(),
+                rate.to_string().into(),
+                "NULL".into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
+
+        service.db_adapter.execute(&insert_query, vec![]).unwrap();
+
+        Tax {
+            id: tax_id,
             name: "Test Tax".to_string(),
-            rate: Percentage::from_float(10.0),
+            rate,
             description: None,
             created_at: now,
             updated_at: now,
-        };
-
-        diesel::insert_into(taxes::table)
-            .values(&tax)
-            .execute(&mut service.conn)
-            .unwrap();
-
-        tax
+        }
     }
 
     #[test]
@@ -172,21 +346,7 @@ mod tests {
         let mut service = AppService::new(":memory:");
 
         // Create a test category first
-        let category_id = Uuid::now_v7().into();
-        let now = Utc::now().naive_utc();
-        let category = ItemGroup {
-            id: category_id,
-            name: "Test Category".to_string(),
-            description: None,
-            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
-            created_at: now,
-            updated_at: now,
-        };
-
-        diesel::insert_into(item_categories::table)
-            .values(&category)
-            .execute(&mut service.conn)
-            .unwrap();
+        let category = create_test_category(&mut service);
 
         let command = CreateItemCommand {
             item: NewItem {
@@ -194,15 +354,15 @@ mod tests {
                 description: None,
                 nature: ItemNature::Goods,
                 state: ItemState::Active,
-                price: 1000.into(),
-                category_id,
+                price: Money::from(1000),
+                category_id: category.id,
                 tax_ids: None,
             },
         };
 
         let item = command.exec(&mut service).unwrap();
         assert_eq!(item.name, "Test Item");
-        assert_eq!(item.category_id, category_id);
+        assert_eq!(item.category_id, category.id);
     }
 
     #[test]
@@ -210,21 +370,7 @@ mod tests {
         let mut service = AppService::new(":memory:");
 
         // Create test category
-        let category_id = Uuid::now_v7().into();
-        let now = Utc::now().naive_utc();
-        let category = ItemGroup {
-            id: category_id,
-            name: "Test Category".to_string(),
-            description: None,
-            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
-            created_at: now,
-            updated_at: now,
-        };
-
-        diesel::insert_into(item_categories::table)
-            .values(&category)
-            .execute(&mut service.conn)
-            .unwrap();
+        let category = create_test_category(&mut service);
 
         // Create test taxes
         let tax1 = create_test_tax(&mut service);
@@ -236,8 +382,8 @@ mod tests {
                 description: None,
                 nature: ItemNature::Goods,
                 state: ItemState::Active,
-                price: 1000.into(),
-                category_id,
+                price: Money::from(1000),
+                category_id: category.id,
                 tax_ids: Some(vec![tax1.id, tax2.id]),
             },
         };
@@ -246,10 +392,16 @@ mod tests {
         assert_eq!(item.name, "Test Item");
 
         // Verify tax associations were created
-        let associations = item_taxes::table
-            .filter(item_taxes::item_id.eq(item.id))
-            .load::<ItemTax>(&mut service.conn)
-            .unwrap();
+        let select_query = Query::select()
+            .from(ItemTaxes::Table)
+            .columns([
+                ItemTaxes::ItemId,
+                ItemTaxes::TaxId,
+            ])
+            .and_where(Expr::col(ItemTaxes::ItemId).eq(item.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let associations = service.db_adapter.query_many::<ItemTax>(&select_query, vec![]).unwrap();
 
         assert_eq!(associations.len(), 2);
         assert!(associations.iter().any(|a| a.tax_id == tax1.id));
@@ -261,21 +413,7 @@ mod tests {
         let mut service = AppService::new(":memory:");
 
         // Create only category
-        let category_id = Uuid::now_v7().into();
-        let now = Utc::now().naive_utc();
-        let category = ItemGroup {
-            id: category_id,
-            name: "Test Category".to_string(),
-            description: None,
-            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
-            created_at: now,
-            updated_at: now,
-        };
-
-        diesel::insert_into(item_categories::table)
-            .values(&category)
-            .execute(&mut service.conn)
-            .unwrap();
+        let category = create_test_category(&mut service);
 
         let command = CreateItemCommand {
             item: NewItem {
@@ -283,8 +421,8 @@ mod tests {
                 description: None,
                 nature: ItemNature::Goods,
                 state: ItemState::Active,
-                price: 1000.into(),
-                category_id,
+                price: Money::from(1000),
+                category_id: category.id,
                 tax_ids: Some(vec![Uuid::now_v7().into()]),
             },
         };
@@ -298,21 +436,7 @@ mod tests {
         let mut service = AppService::new(":memory:");
 
         // Create a test category first
-        let category_id = Uuid::now_v7().into();
-        let now = Utc::now().naive_utc();
-        let category = ItemGroup {
-            id: category_id,
-            name: "Test Category".to_string(),
-            description: None,
-            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
-            created_at: now,
-            updated_at: now,
-        };
-
-        diesel::insert_into(item_categories::table)
-            .values(&category)
-            .execute(&mut service.conn)
-            .unwrap();
+        let category = create_test_category(&mut service);
 
         let command = CreateItemCommand {
             item: NewItem {
@@ -320,8 +444,8 @@ mod tests {
                 description: None,
                 nature: ItemNature::Goods,
                 state: ItemState::Active,
-                price: 1000.into(),
-                category_id,
+                price: Money::from(1000),
+                category_id: category.id,
                 tax_ids: None,
             },
         };
@@ -363,7 +487,7 @@ mod tests {
         let command = UpdateItemCommand { item };
         let result = command.exec(&mut service);
 
-        assert!(matches!(result, Err(Error::DieselError(_))));
+        assert!(result.is_err());
     }
 
     #[test]
@@ -371,21 +495,7 @@ mod tests {
         let mut service = AppService::new(":memory:");
 
         // Create a test category first
-        let category_id = Uuid::now_v7().into();
-        let now = Utc::now().naive_utc();
-        let category = ItemGroup {
-            id: category_id,
-            name: "Test Category".to_string(),
-            description: None,
-            state: crate::core::models::catalog::item_group_model::ItemGroupState::Active,
-            created_at: now,
-            updated_at: now,
-        };
-
-        diesel::insert_into(item_categories::table)
-            .values(&category)
-            .execute(&mut service.conn)
-            .unwrap();
+        let category = create_test_category(&mut service);
 
         let command = CreateItemCommand {
             item: NewItem {
@@ -393,8 +503,8 @@ mod tests {
                 description: None,
                 nature: ItemNature::Goods,
                 state: ItemState::Active,
-                price: 1000.into(),
-                category_id,
+                price: Money::from(1000),
+                category_id: category.id,
                 tax_ids: None,
             },
         };

@@ -1,9 +1,11 @@
 use chrono::NaiveDateTime;
+
 use diesel::{
     prelude::{AsChangeset, Insertable, Queryable},
     Associations, Selectable,
 };
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::{
     models::catalog::item_model::Item,
@@ -60,4 +62,23 @@ pub struct ItemTax {
 pub struct ItemTaxNewInput {
     pub item_id: DbUuid,
     pub tax_id: DbUuid,
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum Taxes {
+    Table,
+    Id,
+    Name,
+    Rate,
+    Description,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+pub enum ItemTaxes {
+    Table,
+    ItemId,
+    TaxId,
 }

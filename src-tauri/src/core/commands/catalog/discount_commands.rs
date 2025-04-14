@@ -1,17 +1,17 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
         models::catalog::discount_model::{
-            Discount, DiscountNewInput, DiscountState, DiscountUpdateChangeset, DiscountUpdateInput,
+            Discount, DiscountNewInput, DiscountState, DiscountUpdateInput, Discounts,
         },
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
-    schema::discounts::dsl::*,
 };
 
 // --- Command Structs ---
@@ -40,38 +40,72 @@ impl Command for CreateDiscountCommand {
     type Output = Discount;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Optional: Check for uniqueness by name
-            let existing = discounts
-                .filter(name.eq(&self.discount.name))
-                .count()
-                .get_result::<i64>(conn)?;
-            if existing > 0 {
-                return Err(Error::UniqueConstraintError);
-            }
+        // Check for uniqueness by name using SeaQuery
+        let check_query = Query::select()
+            .from(Discounts::Table)
+            .column(Discounts::Id)
+            .and_where(Expr::col(Discounts::Name).eq(self.discount.name.clone()))
+            .to_string(SqliteQueryBuilder);
 
-            let now = Utc::now().naive_utc();
-            let new_discount = Discount {
-                id: Uuid::now_v7().into(),
-                name: self.discount.name.clone(),
-                description: self.discount.description.clone(),
-                discount_type: self.discount.discount_type,
-                value: self.discount.value,
-                scope: self.discount.scope,
-                state: self.discount.state.unwrap_or(DiscountState::Active),
-                start_date: self.discount.start_date,
-                end_date: self.discount.end_date,
-                created_at: now,
-                updated_at: now,
-            };
+        let existing = service.db_adapter.query_optional::<Discount>(&check_query, vec![])?;
+        if existing.is_some() {
+            return Err(Error::UniqueConstraintError);
+        }
 
-            let created_discount = diesel::insert_into(discounts)
-                .values(&new_discount)
-                .returning(Discount::as_returning())
-                .get_result(conn)?;
+        // Create new discount
+        let now = Utc::now().naive_utc();
+        let discount_id: DbUuid = Uuid::now_v7().into();
 
-            Ok(created_discount)
-        })
+        // Build the insert query
+        let insert_query = Query::insert()
+            .into_table(Discounts::Table)
+            .columns([
+                Discounts::Id,
+                Discounts::Name,
+                Discounts::Description,
+                Discounts::DiscountType,
+                Discounts::Value,
+                Discounts::Scope,
+                Discounts::State,
+                Discounts::StartDate,
+                Discounts::EndDate,
+                Discounts::CreatedAt,
+                Discounts::UpdatedAt,
+            ])
+            .values_panic([
+                discount_id.to_string().into(),
+                self.discount.name.clone().into(),
+                self.discount.description.clone().map_or_else(|| "NULL".into(), |d| d.into()),
+                self.discount.discount_type.to_string().into(),
+                self.discount.value.to_string().into(),
+                self.discount.scope.to_string().into(),
+                self.discount.state.unwrap_or(DiscountState::Active).to_string().into(),
+                self.discount.start_date.map_or_else(|| "NULL".into(), |d| d.to_string().into()),
+                self.discount.end_date.map_or_else(|| "NULL".into(), |d| d.to_string().into()),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
+
+        // Execute the insert query
+        service.db_adapter.execute(&insert_query, vec![])?;
+
+        // Create and return the new discount object
+        let new_discount = Discount {
+            id: discount_id,
+            name: self.discount.name.clone(),
+            description: self.discount.description.clone(),
+            discount_type: self.discount.discount_type,
+            value: self.discount.value,
+            scope: self.discount.scope,
+            state: self.discount.state.unwrap_or(DiscountState::Active),
+            start_date: self.discount.start_date,
+            end_date: self.discount.end_date,
+            created_at: now,
+            updated_at: now,
+        };
+
+        Ok(new_discount)
     }
 }
 
@@ -79,36 +113,99 @@ impl Command for UpdateDiscountCommand {
     type Output = Discount;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Ensure the discount exists before updating
-            discounts
-                .filter(id.eq(&self.discount.id))
-                .select(id)
-                .first::<DbUuid>(conn)?;
+        // Check if discount exists using SeaQuery
+        let check_query = Query::select()
+            .from(Discounts::Table)
+            .column(Discounts::Id)
+            .and_where(Expr::col(Discounts::Id).eq(self.discount.id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-            let now = Utc::now().naive_utc();
+        let existing = service.db_adapter.query_optional::<Discount>(&check_query, vec![])?;
+        if existing.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-            // Create changeset from input
-            let discount_changeset = DiscountUpdateChangeset {
-                id: self.discount.id,
-                name: self.discount.name.clone(),
-                description: self.discount.description.clone(),
-                discount_type: self.discount.discount_type,
-                value: self.discount.value,
-                scope: self.discount.scope,
-                state: self.discount.state,
-                start_date: self.discount.start_date,
-                end_date: self.discount.end_date,
-                updated_at: now,
+        // Build update query with SeaQuery
+        let now = Utc::now().naive_utc();
+
+        // Create the update query
+        let mut query = Query::update();
+        query.table(Discounts::Table)
+            .value(Discounts::UpdatedAt, now.to_string());
+
+        // Add optional fields if they exist
+        if let Some(name) = &self.discount.name {
+            query.value(Discounts::Name, name.clone());
+        }
+
+        if let Some(description) = &self.discount.description {
+            match description {
+                Some(desc) => query.value(Discounts::Description, desc.clone()),
+                None => query.value(Discounts::Description, "NULL"),
             };
+        }
 
-            let updated_discount = diesel::update(discounts.filter(id.eq(&self.discount.id)))
-                .set(&discount_changeset)
-                .returning(Discount::as_returning())
-                .get_result(conn)?;
+        if let Some(discount_type) = &self.discount.discount_type {
+            query.value(Discounts::DiscountType, discount_type.to_string());
+        }
 
-            Ok(updated_discount)
-        })
+        if let Some(value) = &self.discount.value {
+            query.value(Discounts::Value, value.to_string());
+        }
+
+        if let Some(scope) = &self.discount.scope {
+            query.value(Discounts::Scope, scope.to_string());
+        }
+
+        if let Some(state) = &self.discount.state {
+            query.value(Discounts::State, state.to_string());
+        }
+
+        if let Some(start_date) = &self.discount.start_date {
+            match start_date {
+                Some(date) => query.value(Discounts::StartDate, date.to_string()),
+                None => query.value(Discounts::StartDate, "NULL"),
+            };
+        }
+
+        if let Some(end_date) = &self.discount.end_date {
+            match end_date {
+                Some(date) => query.value(Discounts::EndDate, date.to_string()),
+                None => query.value(Discounts::EndDate, "NULL"),
+            };
+        }
+
+        // Add WHERE condition
+        query.and_where(Expr::col(Discounts::Id).eq(self.discount.id.to_string()));
+
+        // Generate the SQL query
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the update
+        service.db_adapter.execute(&sql, vec![])?;
+
+        // Retrieve the updated discount
+        let select_query = Query::select()
+            .from(Discounts::Table)
+            .columns([
+                Discounts::Id,
+                Discounts::Name,
+                Discounts::Description,
+                Discounts::DiscountType,
+                Discounts::Value,
+                Discounts::Scope,
+                Discounts::State,
+                Discounts::StartDate,
+                Discounts::EndDate,
+                Discounts::CreatedAt,
+                Discounts::UpdatedAt,
+            ])
+            .and_where(Expr::col(Discounts::Id).eq(self.discount.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let discount = service.db_adapter.query_one::<Discount>(&select_query, vec![])?;
+
+        Ok(discount)
     }
 }
 
@@ -116,17 +213,20 @@ impl Command for DeleteDiscountCommand {
     type Output = usize;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Optional: Add checks for foreign key constraints if discounts are linked elsewhere
+        // Build delete query with SeaQuery
+        let delete_query = Query::delete()
+            .from_table(Discounts::Table)
+            .and_where(Expr::col(Discounts::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-            let num_deleted = diesel::delete(discounts.filter(id.eq(&self.id))).execute(conn)?;
+        // Execute the delete query
+        let affected_rows = service.db_adapter.execute(&delete_query, vec![])?;
 
-            if num_deleted == 0 {
-                Err(Error::NotFoundError)
-            } else {
-                Ok(num_deleted)
-            }
-        })
+        if affected_rows == 0 {
+            Err(Error::NotFoundError)
+        } else {
+            Ok(affected_rows as usize)
+        }
     }
 }
 
@@ -134,14 +234,29 @@ impl Command for GetDiscountCommand {
     type Output = Discount;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let discount = discounts
-                .filter(id.eq(&self.id))
-                .select(Discount::as_select())
-                .first::<Discount>(conn)
-                .map_err(|_| Error::NotFoundError)?;
-            Ok(discount)
-        })
+        // Build select query with SeaQuery
+        let select_query = Query::select()
+            .from(Discounts::Table)
+            .columns([
+                Discounts::Id,
+                Discounts::Name,
+                Discounts::Description,
+                Discounts::DiscountType,
+                Discounts::Value,
+                Discounts::Scope,
+                Discounts::State,
+                Discounts::StartDate,
+                Discounts::EndDate,
+                Discounts::CreatedAt,
+                Discounts::UpdatedAt,
+            ])
+            .and_where(Expr::col(Discounts::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        // Execute the select query
+        let discount = service.db_adapter.query_one::<Discount>(&select_query, vec![])?;
+
+        Ok(discount)
     }
 }
 
@@ -149,12 +264,28 @@ impl Command for ListDiscountsCommand {
     type Output = Vec<Discount>;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let results = discounts
-                .select(Discount::as_select())
-                .load::<Discount>(conn)?;
-            Ok(results)
-        })
+        // Build select query with SeaQuery
+        let select_query = Query::select()
+            .from(Discounts::Table)
+            .columns([
+                Discounts::Id,
+                Discounts::Name,
+                Discounts::Description,
+                Discounts::DiscountType,
+                Discounts::Value,
+                Discounts::Scope,
+                Discounts::State,
+                Discounts::StartDate,
+                Discounts::EndDate,
+                Discounts::CreatedAt,
+                Discounts::UpdatedAt,
+            ])
+            .to_string(SqliteQueryBuilder);
+
+        // Execute the select query
+        let discounts = service.db_adapter.query_many::<Discount>(&select_query, vec![])?;
+
+        Ok(discounts)
     }
 }
 

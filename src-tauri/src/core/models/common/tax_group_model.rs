@@ -4,6 +4,7 @@ use diesel::{
     Associations, Selectable,
 };
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::types::db_uuid::DbUuid;
 use crate::schema::{tax_group_taxes, tax_groups};
@@ -65,4 +66,23 @@ pub struct TaxGroupTax {
 pub struct TaxGroupTaxNewInput {
     pub tax_group_id: DbUuid,
     pub tax_id: DbUuid,
+}
+
+#[derive(Debug, Iden)]
+#[iden = "tax_groups"]
+pub enum TaxGroups {
+    Table,
+    Id,
+    Name,
+    Description,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(Debug, Iden)]
+#[iden = "tax_group_taxes"]
+pub enum TaxGroupTaxes {
+    Table,
+    TaxGroupId,
+    TaxId,
 }

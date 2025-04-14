@@ -1,17 +1,17 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
         models::common::brand_model::{
-            Brand, BrandNewInput, BrandUpdateChangeset, BrandUpdateInput,
+            Brand, BrandNewInput, BrandUpdateInput, Brands,
         },
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
-    schema::brands,
 };
 
 // Commands
@@ -32,7 +32,7 @@ impl Command for CreateBrandCommand {
     type Output = Brand;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             let now = Utc::now().naive_utc();
             let new_brand = Brand {
                 id: Uuid::now_v7().into(),
@@ -44,9 +44,30 @@ impl Command for CreateBrandCommand {
             };
 
             // Insert the brand
-            diesel::insert_into(brands::table)
-                .values(&new_brand)
-                .execute(conn)?;
+            let query = Query::insert()
+                .into_table(Brands::Table)
+                .columns([
+                    Brands::Id,
+                    Brands::Name,
+                    Brands::Description,
+                    Brands::IsActive,
+                    Brands::CreatedAt,
+                    Brands::UpdatedAt,
+                ])
+                .values_panic([
+                    new_brand.id.to_string().into(),
+                    new_brand.name.clone().into(),
+                    match &new_brand.description {
+                        Some(desc) => desc.clone().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    new_brand.is_active.to_string().into(),
+                    new_brand.created_at.to_string().into(),
+                    new_brand.updated_at.to_string().into(),
+                ])
+                .to_string(SqliteQueryBuilder);
+
+            db.execute(&query, vec![])?;
 
             Ok(new_brand)
         })
@@ -57,28 +78,53 @@ impl Command for UpdateBrandCommand {
     type Output = Brand;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             // Get the existing brand
-            let brand = brands::table
-                .filter(brands::id.eq(&self.brand.id))
-                .select(Brand::as_select())
-                .get_result::<Brand>(conn)?;
+            let query = Query::select()
+                .from(Brands::Table)
+                .columns([
+                    Brands::Id,
+                    Brands::Name,
+                    Brands::Description,
+                    Brands::IsActive,
+                    Brands::CreatedAt,
+                    Brands::UpdatedAt,
+                ])
+                .and_where(Expr::col(Brands::Id).eq(self.brand.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let brand = db.query_optional::<Brand>(&query, vec![])?;
+            if brand.is_none() {
+                return Err(Error::NotFoundError);
+            }
+            let brand = brand.unwrap();
 
             let now = Utc::now().naive_utc();
 
-            // Create changeset
-            let changeset = BrandUpdateChangeset {
-                name: self.brand.name.clone(),
-                description: self.brand.description.clone(),
-                is_active: self.brand.is_active,
-                updated_at: now,
-            };
+            // Build update query
+            let mut update_query = Query::update();
+            let update = update_query
+                .table(Brands::Table)
+                .and_where(Expr::col(Brands::Id).eq(self.brand.id.to_string()))
+                .value(Brands::UpdatedAt, now.to_string());
 
-            // Update the brand
-            diesel::update(brands::table)
-                .filter(brands::id.eq(&self.brand.id))
-                .set(&changeset)
-                .execute(conn)?;
+            if let Some(name) = &self.brand.name {
+                update.value(Brands::Name, name.clone());
+            }
+
+            if let Some(description) = &self.brand.description {
+                match description {
+                    Some(desc) => update.value(Brands::Description, desc.clone()),
+                    None => update.value(Brands::Description, sea_query::Value::String(None)),
+                };
+            }
+
+            if let Some(is_active) = self.brand.is_active {
+                update.value(Brands::IsActive, is_active.to_string());
+            }
+
+            let sql = update.to_string(SqliteQueryBuilder);
+            db.execute(&sql, vec![])?;
 
             // Return the updated brand
             let updated_brand = Brand {
@@ -103,10 +149,13 @@ impl Command for DeleteBrandCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let result = diesel::delete(brands::table)
-                .filter(brands::id.eq(&self.id))
-                .execute(conn)?;
+        service.db_adapter.transaction(|db| {
+            let query = Query::delete()
+                .from_table(Brands::Table)
+                .and_where(Expr::col(Brands::Id).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let result = db.execute(&query, vec![])?;
 
             if result == 0 {
                 return Err(Error::NotFoundError);

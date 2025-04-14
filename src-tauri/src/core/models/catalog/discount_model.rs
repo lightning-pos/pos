@@ -3,9 +3,11 @@ use crate::{
     schema::discounts,
 };
 use chrono::NaiveDateTime;
+use derive_more::derive::Display;
 use diesel::prelude::{AsChangeset, Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use sea_query::Iden;
 
 #[derive(Debug, Queryable, Selectable, Insertable)]
 #[diesel(table_name = discounts)]
@@ -66,14 +68,14 @@ pub struct DiscountUpdateChangeset {
 // Using DbEnum derive for mapping Rust enums to database enum types
 // Make sure these enum types are created in the database via migrations
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq, Display)]
 #[DbValueStyle = "snake_case"]
 pub enum DiscountType {
     Percentage,
     FixedAmount,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq, Display)]
 #[DbValueStyle = "snake_case"]
 pub enum DiscountScope {
     AllItems,
@@ -82,11 +84,28 @@ pub enum DiscountScope {
                    // SpecificCategories,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq, Display)]
 #[DbValueStyle = "snake_case"]
 pub enum DiscountState {
     Active,
     Inactive,
     Scheduled, // If start_date is in the future
     Expired,   // If end_date is in the past
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum Discounts {
+    Table,
+    Id,
+    Name,
+    Description,
+    DiscountType,
+    Value,
+    Scope,
+    State,
+    StartDate,
+    EndDate,
+    CreatedAt,
+    UpdatedAt,
 }

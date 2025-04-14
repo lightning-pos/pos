@@ -8,8 +8,6 @@ use crate::{
 };
 
 pub struct AppService<DB: DatabaseAdapter = SqlxAdapter> {
-    pub conn: SqliteConnection,
-    pub libsql_conn: Option<libsql::Connection>,
     pub db_adapter: DB,
     pub state: SessionState,
 }
@@ -50,8 +48,6 @@ impl AppService {
         let db_adapter = SqlxAdapter::new(libsql_conn);
 
         Self {
-            conn,
-            libsql_conn: None,
             db_adapter,
             state,
         }
@@ -75,9 +71,6 @@ impl AppService {
         // Connect to the database
         let libsql_conn = libsql_db.connect()
             .map_err(|e| format!("Failed to connect to libsql database: {}", e))?;
-
-        // Store the connection
-        self.libsql_conn = Some(libsql_conn.clone());
 
         // Update the database adapter with the synced connection
         // We need to create a new adapter since we can't modify the existing one

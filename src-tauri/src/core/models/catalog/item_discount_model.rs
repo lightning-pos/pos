@@ -1,5 +1,6 @@
 use diesel::{prelude::Insertable, Associations, Queryable};
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::models::catalog::{
     discount_model::Discount,
@@ -21,4 +22,11 @@ pub struct ItemDiscount {
 pub struct ItemDiscountNewInput {
     pub item_id: DbUuid,
     pub discount_id: DbUuid,
+}
+
+#[derive(Iden)]
+pub enum ItemDiscounts {
+    Table,
+    ItemId,
+    DiscountId,
 }

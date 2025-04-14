@@ -1,7 +1,9 @@
 use chrono::NaiveDateTime;
+use derive_more::derive::Display;
 use diesel::{prelude::*, Selectable};
 use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use sea_query::Iden;
 
 use crate::{core::types::db_uuid::DbUuid, schema::users};
 
@@ -18,7 +20,21 @@ pub struct User {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone, PartialEq, DbEnum, GraphQLEnum)]
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum Users {
+    Table,
+    Id,
+    Username,
+    PinHash,
+    FullName,
+    State,
+    LastLoginAt,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(Debug, Display, Clone, PartialEq, DbEnum, GraphQLEnum)]
 pub enum UserState {
     Active,
     Inactive,

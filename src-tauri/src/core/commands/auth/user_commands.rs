@@ -1,20 +1,18 @@
 use chrono::Utc;
-use diesel::{
-    query_dsl::methods::FilterDsl, ExpressionMethods, OptionalExtension, RunQueryDsl,
-    SelectableHelper,
-};
+// Diesel imports no longer needed
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
         models::auth::user_model::{
-            User, UserNewInput, UserState, UserUpdateChangeset, UserUpdateInput,
+            User, UserNewInput, UserState, UserUpdateInput, Users,
         },
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
-    schema::users,
 };
 
 pub struct AddUserCommand {
@@ -33,33 +31,67 @@ impl Command for AddUserCommand {
     type Output = User;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        // check if username exists
+        // Check if username exists using SeaQuery
         let username = &self.user.username;
-        let user = users::table
-            .filter(users::username.eq(username))
-            .get_result::<User>(&mut service.conn)
-            .optional()?;
+
+        // Build the query to check for existing username
+        let check_query = Query::select()
+            .from(Users::Table)
+            .column(Users::Id)
+            .and_where(Expr::col(Users::Username).eq(username.clone()))
+            .to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        let user = service.db_adapter.query_optional::<User>(&check_query, vec![])?;
 
         if user.is_some() {
             return Err(Error::UniqueConstraintError);
         }
 
+        // Create new user
+        let now = Utc::now().naive_utc();
+        let user_id: DbUuid = Uuid::now_v7().into();
         let pin_hash = self.user.pin.clone();
+
+        // Build the insert query
+        let insert_query = Query::insert()
+            .into_table(Users::Table)
+            .columns([
+                Users::Id,
+                Users::Username,
+                Users::PinHash,
+                Users::FullName,
+                Users::State,
+                Users::CreatedAt,
+                Users::UpdatedAt,
+            ])
+            .values_panic([
+                user_id.to_string().into(),
+                self.user.username.clone().into(),
+                pin_hash.clone().into(),
+                self.user.full_name.clone().into(),
+                UserState::Active.to_string().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
+
+        // Execute the insert query
+        service.db_adapter.execute(&insert_query, vec![])?;
+
+        // Create and return the new user object
         let new_user = User {
-            id: Uuid::now_v7().into(),
+            id: user_id,
             username: self.user.username.clone(),
             pin_hash,
             full_name: self.user.full_name.clone(),
             state: UserState::Active,
             last_login_at: None,
-            created_at: Utc::now().naive_utc(),
-            updated_at: Utc::now().naive_utc(),
+            created_at: now,
+            updated_at: now,
         };
-        let user = diesel::insert_into(users::table)
-            .values(&new_user)
-            .get_result::<User>(&mut service.conn)?;
 
-        Ok(user)
+        Ok(new_user)
     }
 }
 
@@ -67,23 +99,70 @@ impl Command for UpdateUserCommand {
     type Output = User;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        users::table
-            .filter(users::id.eq(&self.user.id))
-            .get_result::<User>(&mut service.conn)?;
+        // Check if user exists using SeaQuery
+        let check_query = Query::select()
+            .from(Users::Table)
+            .columns([Users::Id])
+            .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-        let user = UserUpdateChangeset {
-            id: self.user.id,
-            full_name: self.user.full_name.clone(),
-            state: self.user.state.clone(),
-            username: self.user.username.clone(),
-            pin_hash: self.user.pin.clone(),
-            updated_at: Utc::now().naive_utc(),
-        };
+        let existing_user = service.db_adapter.query_optional::<User>(&check_query, vec![])?;
 
-        let user = diesel::update(users::table.filter(users::id.eq(&self.user.id)))
-            .set(&user)
-            .returning(User::as_returning())
-            .get_result(&mut service.conn)?;
+        if existing_user.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        // Build update query with SeaQuery
+        let now = Utc::now().naive_utc();
+
+        // Create the update query
+        let mut query = Query::update();
+        query.table(Users::Table)
+            .value(Users::UpdatedAt, now.to_string());
+
+        // Add optional fields if they exist
+        if let Some(full_name) = &self.user.full_name {
+            query.value(Users::FullName, full_name.clone());
+        }
+
+        if let Some(state) = &self.user.state {
+            query.value(Users::State, state.to_string());
+        }
+
+        if let Some(username) = &self.user.username {
+            query.value(Users::Username, username.clone());
+        }
+
+        if let Some(pin) = &self.user.pin {
+            query.value(Users::PinHash, pin.clone());
+        }
+
+        // Add WHERE condition
+        query.and_where(Expr::col(Users::Id).eq(self.user.id.to_string()));
+
+        // Generate the SQL query
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the update
+        service.db_adapter.execute(&sql, vec![])?;
+
+        // Retrieve the updated user
+        let select_query = Query::select()
+            .from(Users::Table)
+            .columns([
+                Users::Id,
+                Users::Username,
+                Users::PinHash,
+                Users::FullName,
+                Users::State,
+                Users::LastLoginAt,
+                Users::CreatedAt,
+                Users::UpdatedAt,
+            ])
+            .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let user = service.db_adapter.query_one::<User>(&select_query, vec![])?;
 
         Ok(user)
     }
@@ -93,9 +172,16 @@ impl Command for DeleteUserCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let res = diesel::delete(users::table.filter(users::id.eq(&self.id)))
-            .execute(&mut service.conn)?;
-        Ok(res as i32)
+        // Build delete query with SeaQuery
+        let delete_query = Query::delete()
+            .from_table(Users::Table)
+            .and_where(Expr::col(Users::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        // Execute the delete query
+        let affected_rows = service.db_adapter.execute(&delete_query, vec![])?;
+
+        Ok(affected_rows as i32)
     }
 }
 

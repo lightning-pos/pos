@@ -33,6 +33,7 @@ use diesel::{
     Associations, Selectable,
 };
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::models::catalog::item_model::Item;
 use crate::core::types::{db_uuid::DbUuid, money::Money};
@@ -102,4 +103,17 @@ pub struct ItemVariantUpdateInput {
     pub price_adjustment: Option<Option<Money>>,
     pub is_default: Option<bool>,
     pub updated_at: Option<NaiveDateTime>,
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum ItemVariants {
+    Table,
+    Id,
+    ItemId,
+    Sku,
+    PriceAdjustment,
+    IsDefault,
+    CreatedAt,
+    UpdatedAt,
 }

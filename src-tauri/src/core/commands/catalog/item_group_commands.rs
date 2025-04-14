@@ -1,17 +1,15 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
-    core::{
+    adapters::outgoing::database::DatabaseAdapter, core::{
         commands::{app_service::AppService, Command},
         models::catalog::item_group_model::{
-            ItemGroup, ItemGroupNew, ItemGroupState, ItemGroupUpdate,
+            ItemCategories, ItemGroup, ItemGroupNew, ItemGroupState, ItemGroupUpdate,
         },
         types::db_uuid::DbUuid,
-    },
-    error::{Error, Result},
-    schema::{item_categories::dsl::*, items},
+    }, error::{Error, Result}
 };
 
 // Commands
@@ -32,19 +30,25 @@ impl Command for CreateItemGroupCommand {
     type Output = ItemGroup;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let existing_cat = item_categories
-                .filter(name.eq(&self.category.name))
-                .select(ItemGroup::as_select())
-                .get_result::<ItemGroup>(conn);
+        service.db_adapter.transaction(|db| {
+            // Check if a category with the same name already exists
+            let select_query = Query::select()
+                .from(ItemCategories::Table)
+                .column(ItemCategories::Id)
+                .and_where(Expr::col(ItemCategories::Name).eq(self.category.name.clone()))
+                .to_string(SqliteQueryBuilder);
 
-            if let Ok(_) = existing_cat {
+            let existing = db.query_optional::<ItemGroup>(&select_query, vec![])?;
+
+            if existing.is_some() {
                 return Err(Error::UniqueConstraintError);
             }
 
             let now = Utc::now().naive_utc();
+            let item_id = Uuid::now_v7().into();
+
             let new_cat = ItemGroup {
-                id: Uuid::now_v7().into(),
+                id: item_id,
                 name: self.category.name.clone(),
                 description: self.category.description.clone(),
                 state: ItemGroupState::Inactive,
@@ -52,12 +56,30 @@ impl Command for CreateItemGroupCommand {
                 updated_at: now,
             };
 
-            let cat = diesel::insert_into(item_categories)
-                .values(&new_cat)
-                .returning(ItemGroup::as_returning())
-                .get_result(conn)?;
+            // Insert the new category
+            let insert_query = Query::insert()
+                .into_table(ItemCategories::Table)
+                .columns([
+                    ItemCategories::Id,
+                    ItemCategories::Name,
+                    ItemCategories::Description,
+                    ItemCategories::State,
+                    ItemCategories::CreatedAt,
+                    ItemCategories::UpdatedAt,
+                ])
+                .values_panic([
+                    new_cat.id.to_string().into(),
+                    new_cat.name.clone().into(),
+                    new_cat.description.clone().map_or_else(|| "NULL".into(), |d| d.into()),
+                    new_cat.state.to_string().into(),
+                    new_cat.created_at.to_string().into(),
+                    new_cat.updated_at.to_string().into(),
+                ])
+                .to_string(SqliteQueryBuilder);
 
-            Ok(cat)
+            db.execute(&insert_query, vec![])?;
+
+            Ok(new_cat)
         })
     }
 }
@@ -66,24 +88,70 @@ impl Command for UpdateItemGroupCommand {
     type Output = ItemGroup;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            item_categories
-                .filter(id.eq(&self.category.id))
-                .limit(1)
-                .select(ItemGroup::as_select())
-                .get_result::<ItemGroup>(conn)?;
+        service.db_adapter.transaction(|db| {
+            // Check if the category exists
+            let select_query = Query::select()
+                .from(ItemCategories::Table)
+                .columns([
+                    ItemCategories::Id,
+                    ItemCategories::Name,
+                    ItemCategories::Description,
+                    ItemCategories::State,
+                    ItemCategories::CreatedAt,
+                    ItemCategories::UpdatedAt,
+                ])
+                .and_where(Expr::col(ItemCategories::Id).eq(self.category.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let existing = db.query_optional::<ItemGroup>(&select_query, vec![])?;
+
+            if existing.is_none() {
+                return Err(Error::NotFoundError);
+            }
 
             let now = Utc::now().naive_utc();
 
-            let mut category = self.category.clone();
-            category.updated_at = Some(now);
+            // Build the update query
+            let mut update_query = Query::update();
+            update_query.table(ItemCategories::Table)
+                .and_where(Expr::col(ItemCategories::Id).eq(self.category.id.to_string()))
+                .value(ItemCategories::UpdatedAt, now.to_string());
 
-            let cat = diesel::update(item_categories.filter(id.eq(&self.category.id)))
-                .set(&category)
-                .returning(ItemGroup::as_returning())
-                .get_result(conn)?;
+            // Add optional fields if they exist
+            if let Some(name) = &self.category.name {
+                update_query.value(ItemCategories::Name, name.clone());
+            }
 
-            Ok(cat)
+            if let Some(description) = &self.category.description {
+                match description {
+                    Some(desc) => update_query.value(ItemCategories::Description, desc.clone()),
+                    None => update_query.value(ItemCategories::Description, "NULL"),
+                };
+            }
+
+            if let Some(state) = &self.category.state {
+                update_query.value(ItemCategories::State, state.to_string());
+            }
+
+            let sql = update_query.to_string(SqliteQueryBuilder);
+            db.execute(&sql, vec![])?;
+
+            // Retrieve the updated category
+            let updated_query = Query::select()
+                .from(ItemCategories::Table)
+                .columns([
+                    ItemCategories::Id,
+                    ItemCategories::Name,
+                    ItemCategories::Description,
+                    ItemCategories::State,
+                    ItemCategories::CreatedAt,
+                    ItemCategories::UpdatedAt,
+                ])
+                .and_where(Expr::col(ItemCategories::Id).eq(self.category.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let updated_cat = db.query_one::<ItemGroup>(&updated_query, vec![])?;
+            Ok(updated_cat)
         })
     }
 }
@@ -92,20 +160,32 @@ impl Command for DeleteItemGroupCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             // Check if category has items
-            let items = items::table
-                .filter(items::category_id.eq(&self.id))
-                .count()
-                .get_result::<i64>(conn)?;
+            use crate::core::models::catalog::item_model::Items;
 
-            if items > 0 {
+            let count_query = Query::select()
+                .from(Items::Table)
+                .expr(Expr::count(Expr::col(Items::Id)))
+                .and_where(Expr::col(Items::CategoryId).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            // Execute the count query
+            let count_result = db.query_one::<i64>(&count_query, vec![])?;
+
+            if count_result > 0 {
                 return Err(Error::ForeignKeyConstraintError);
             }
 
-            let res = diesel::delete(item_categories.filter(id.eq(&self.id))).execute(conn)?;
+            // Delete the category
+            let delete_query = Query::delete()
+                .from_table(ItemCategories::Table)
+                .and_where(Expr::col(ItemCategories::Id).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
 
-            Ok(res as i32)
+            let affected_rows = db.execute(&delete_query, vec![])?;
+
+            Ok(affected_rows as i32)
         })
     }
 }

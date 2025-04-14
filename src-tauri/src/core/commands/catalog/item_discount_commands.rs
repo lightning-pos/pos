@@ -1,10 +1,10 @@
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 
+use crate::adapters::outgoing::database::DatabaseAdapter;
 use crate::core::commands::{app_service::AppService, Command};
-use crate::core::models::catalog::item_discount_model::{ItemDiscount, ItemDiscountNewInput};
+use crate::core::models::catalog::item_discount_model::{ItemDiscount, ItemDiscountNewInput, ItemDiscounts};
 use crate::core::types::db_uuid::DbUuid;
 use crate::error::Result;
-use crate::schema::item_discounts::dsl::*;
 
 // --- Command Structs ---
 
@@ -31,14 +31,18 @@ impl Command for AddItemDiscountCommand {
     type Output = ItemDiscount;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let conn = &mut service.conn;
-
         // Check if the relationship already exists
-        let existing = item_discounts
-            .filter(item_id.eq(&self.item_discount.item_id))
-            .filter(discount_id.eq(&self.item_discount.discount_id))
-            .first::<ItemDiscount>(conn)
-            .optional()?;
+        let select_query = Query::select()
+            .from(ItemDiscounts::Table)
+            .columns([
+                ItemDiscounts::ItemId,
+                ItemDiscounts::DiscountId,
+            ])
+            .and_where(Expr::col(ItemDiscounts::ItemId).eq(self.item_discount.item_id.to_string()))
+            .and_where(Expr::col(ItemDiscounts::DiscountId).eq(self.item_discount.discount_id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let existing = service.db_adapter.query_optional::<ItemDiscount>(&select_query, vec![])?;
 
         if let Some(existing_relation) = existing {
             return Ok(existing_relation);
@@ -50,9 +54,19 @@ impl Command for AddItemDiscountCommand {
             discount_id: self.item_discount.discount_id,
         };
 
-        diesel::insert_into(item_discounts)
-            .values(&new_item_discount)
-            .execute(conn)?;
+        let insert_query = Query::insert()
+            .into_table(ItemDiscounts::Table)
+            .columns([
+                ItemDiscounts::ItemId,
+                ItemDiscounts::DiscountId,
+            ])
+            .values_panic([
+                self.item_discount.item_id.to_string().into(),
+                self.item_discount.discount_id.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
+
+        service.db_adapter.execute(&insert_query, vec![])?;
 
         Ok(new_item_discount)
     }
@@ -62,16 +76,15 @@ impl Command for RemoveItemDiscountCommand {
     type Output = usize;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let conn = &mut service.conn;
+        let delete_query = Query::delete()
+            .from_table(ItemDiscounts::Table)
+            .and_where(Expr::col(ItemDiscounts::ItemId).eq(self.item_id.to_string()))
+            .and_where(Expr::col(ItemDiscounts::DiscountId).eq(self.discount_id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-        let deleted_count = diesel::delete(
-            item_discounts
-                .filter(item_id.eq(&self.item_id))
-                .filter(discount_id.eq(&self.discount_id)),
-        )
-        .execute(conn)?;
+        let affected_rows = service.db_adapter.execute(&delete_query, vec![])?;
 
-        Ok(deleted_count)
+        Ok(affected_rows as usize)
     }
 }
 
@@ -79,11 +92,16 @@ impl Command for GetItemDiscountsCommand {
     type Output = Vec<ItemDiscount>;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let conn = &mut service.conn;
+        let select_query = Query::select()
+            .from(ItemDiscounts::Table)
+            .columns([
+                ItemDiscounts::ItemId,
+                ItemDiscounts::DiscountId,
+            ])
+            .and_where(Expr::col(ItemDiscounts::ItemId).eq(self.item_id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-        let result = item_discounts
-            .filter(item_id.eq(&self.item_id))
-            .load::<ItemDiscount>(conn)?;
+        let result = service.db_adapter.query_many::<ItemDiscount>(&select_query, vec![])?;
 
         Ok(result)
     }
@@ -93,11 +111,16 @@ impl Command for GetDiscountItemsCommand {
     type Output = Vec<ItemDiscount>;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let conn = &mut service.conn;
+        let select_query = Query::select()
+            .from(ItemDiscounts::Table)
+            .columns([
+                ItemDiscounts::ItemId,
+                ItemDiscounts::DiscountId,
+            ])
+            .and_where(Expr::col(ItemDiscounts::DiscountId).eq(self.discount_id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-        let result = item_discounts
-            .filter(discount_id.eq(&self.discount_id))
-            .load::<ItemDiscount>(conn)?;
+        let result = service.db_adapter.query_many::<ItemDiscount>(&select_query, vec![])?;
 
         Ok(result)
     }
@@ -115,9 +138,7 @@ mod tests {
         item_group_model::ItemGroupNew,
     };
     use crate::core::types::money::Money;
-    use crate::schema::items;
     use chrono::Utc;
-    use diesel::RunQueryDsl;
     use uuid::Uuid;
 
     fn create_test_item_category(service: &mut AppService) -> DbUuid {
@@ -135,9 +156,10 @@ mod tests {
     fn create_test_item(service: &mut AppService) -> Item {
         let now = Utc::now().naive_utc();
         let category_id = create_test_item_category(service);
+        let item_id = Uuid::now_v7().into();
 
         let item = Item {
-            id: Uuid::now_v7().into(),
+            id: item_id,
             category_id,
             name: "Test Item".to_string(),
             description: None,
@@ -148,10 +170,37 @@ mod tests {
             updated_at: now,
         };
 
-        diesel::insert_into(items::table)
-            .values(&item)
-            .execute(&mut service.conn)
-            .unwrap();
+        // Use SeaQuery to insert the item
+        use crate::core::models::catalog::item_model::Items;
+        use sea_query::{Query, SqliteQueryBuilder};
+
+        let insert_query = Query::insert()
+            .into_table(Items::Table)
+            .columns([
+                Items::Id,
+                Items::CategoryId,
+                Items::Name,
+                Items::Description,
+                Items::Nature,
+                Items::State,
+                Items::Price,
+                Items::CreatedAt,
+                Items::UpdatedAt,
+            ])
+            .values_panic([
+                item.id.to_string().into(),
+                item.category_id.to_string().into(),
+                item.name.clone().into(),
+                item.description.clone().map_or_else(|| "NULL".into(), |d| d.into()),
+                item.nature.to_string().into(),
+                item.state.to_string().into(),
+                item.price.to_string().into(),
+                item.created_at.to_string().into(),
+                item.updated_at.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
+
+        service.db_adapter.execute(&insert_query, vec![]).unwrap();
 
         item
     }

@@ -4,6 +4,7 @@ use diesel::{
     Associations, Selectable,
 };
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::models::catalog::variant_type_model::VariantType;
 use crate::core::types::db_uuid::DbUuid;
@@ -35,4 +36,16 @@ pub struct VariantValueUpdateInput {
     pub value: Option<String>,
     pub display_order: Option<i32>,
     pub updated_at: Option<NaiveDateTime>,
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum VariantValues {
+    Table,
+    Id,
+    VariantTypeId,
+    Value,
+    DisplayOrder,
+    CreatedAt,
+    UpdatedAt,
 }

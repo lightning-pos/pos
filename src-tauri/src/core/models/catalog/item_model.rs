@@ -1,10 +1,12 @@
 use chrono::NaiveDateTime;
+use derive_more::Display;
 use diesel::{
     prelude::{AsChangeset, Associations, Insertable, Queryable},
     Selectable,
 };
 use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use sea_query::Iden;
 
 use crate::core::{
     models::catalog::item_group_model::ItemGroup,
@@ -51,15 +53,30 @@ pub struct UpdateItem {
     pub updated_at: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum)]
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, Display)]
 pub enum ItemNature {
     Goods,
     Service,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum)]
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, Display)]
 pub enum ItemState {
     Active,
     Inactive,
     Deleted,
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum Items {
+    Table,
+    Id,
+    Name,
+    Description,
+    Nature,
+    State,
+    Price,
+    CategoryId,
+    CreatedAt,
+    UpdatedAt,
 }

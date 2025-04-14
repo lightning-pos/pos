@@ -1,15 +1,15 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder, Value};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
-        models::catalog::variant_type_model::{VariantType, VariantTypeNewInput, VariantTypeUpdateInput},
+        models::catalog::variant_type_model::{VariantType, VariantTypeNewInput, VariantTypeUpdateInput, VariantTypes},
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
-    schema::variant_types,
 };
 
 // Commands
@@ -36,7 +36,7 @@ impl Command for CreateVariantTypeCommand {
     type Output = VariantType;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             let now = Utc::now().naive_utc();
             let new_variant_type = VariantType {
                 id: Uuid::now_v7().into(),
@@ -46,12 +46,27 @@ impl Command for CreateVariantTypeCommand {
                 updated_at: now,
             };
 
-            let res = diesel::insert_into(variant_types::table)
-                .values(&new_variant_type)
-                .returning(VariantType::as_returning())
-                .get_result(conn)?;
+            let query = Query::insert()
+                .into_table(VariantTypes::Table)
+                .columns([
+                    VariantTypes::Id,
+                    VariantTypes::Name,
+                    VariantTypes::Description,
+                    VariantTypes::CreatedAt,
+                    VariantTypes::UpdatedAt,
+                ])
+                .values_panic([
+                    new_variant_type.id.to_string().into(),
+                    new_variant_type.name.clone().into(),
+                    new_variant_type.description.clone().into(),
+                    new_variant_type.created_at.to_string().into(),
+                    new_variant_type.updated_at.to_string().into(),
+                ])
+                .to_string(SqliteQueryBuilder);
 
-            Ok(res)
+            db.execute(&query, vec![])?;
+
+            Ok(new_variant_type)
         })
     }
 }
@@ -60,24 +75,64 @@ impl Command for UpdateVariantTypeCommand {
     type Output = VariantType;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             // Verify variant type exists
-            variant_types::table
-                .find(&self.variant_type.id)
-                .select(VariantType::as_select())
-                .get_result::<VariantType>(conn)?;
+            let query = Query::select()
+                .from(VariantTypes::Table)
+                .columns([
+                    VariantTypes::Id,
+                    VariantTypes::Name,
+                    VariantTypes::Description,
+                    VariantTypes::CreatedAt,
+                    VariantTypes::UpdatedAt,
+                ])
+                .and_where(Expr::col(VariantTypes::Id).eq(self.variant_type.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let existing_type = db.query_optional::<VariantType>(&query, vec![])?;
+            if existing_type.is_none() {
+                return Err(Error::NotFoundError);
+            }
+            let existing_type = existing_type.unwrap();
 
             let now = Utc::now().naive_utc();
 
-            let mut variant_type = self.variant_type.clone();
-            variant_type.updated_at = Some(now);
+            // Build update query
+            let mut update_query = Query::update();
+            let update = update_query
+                .table(VariantTypes::Table)
+                .and_where(Expr::col(VariantTypes::Id).eq(self.variant_type.id.to_string()))
+                .value(VariantTypes::UpdatedAt, now.to_string());
 
-            let res = diesel::update(variant_types::table.find(&self.variant_type.id))
-                .set(&variant_type)
-                .returning(VariantType::as_returning())
-                .get_result(conn)?;
+            if let Some(name) = &self.variant_type.name {
+                update.value(VariantTypes::Name, name.clone());
+            }
 
-            Ok(res)
+            if let Some(description) = &self.variant_type.description {
+                match description {
+                    Some(desc) => update.value(VariantTypes::Description, desc.clone()),
+                    None => update.value(VariantTypes::Description, Value::String(None)),
+                };
+            }
+
+            let sql = update.to_string(SqliteQueryBuilder);
+            db.execute(&sql, vec![])?;
+
+            // Fetch the updated record
+            let query = Query::select()
+                .from(VariantTypes::Table)
+                .columns([
+                    VariantTypes::Id,
+                    VariantTypes::Name,
+                    VariantTypes::Description,
+                    VariantTypes::CreatedAt,
+                    VariantTypes::UpdatedAt,
+                ])
+                .and_where(Expr::col(VariantTypes::Id).eq(self.variant_type.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let updated_type = db.query_one::<VariantType>(&query, vec![])?;
+            Ok(updated_type)
         })
     }
 }
@@ -86,24 +141,32 @@ impl Command for DeleteVariantTypeCommand {
     type Output = usize;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             // Check if there are any variant values using this type
-            let count: i64 = crate::schema::variant_values::table
-                .filter(crate::schema::variant_values::variant_type_id.eq(&self.id))
-                .count()
-                .get_result(conn)?;
+            let count_query = Query::select()
+                .from(crate::core::models::catalog::variant_value_model::VariantValues::Table)
+                .expr(Expr::count(Expr::col(crate::core::models::catalog::variant_value_model::VariantValues::Id)))
+                .and_where(Expr::col(crate::core::models::catalog::variant_value_model::VariantValues::VariantTypeId).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let count: i64 = db.query_one(&count_query, vec![])?;
 
             if count > 0 {
                 return Err(Error::HasChildrenError);
             }
 
-            let num_deleted = diesel::delete(variant_types::table.filter(variant_types::id.eq(&self.id)))
-                .execute(conn)?;
+            // Delete the variant type
+            let delete_query = Query::delete()
+                .from_table(VariantTypes::Table)
+                .and_where(Expr::col(VariantTypes::Id).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let num_deleted = db.execute(&delete_query, vec![])?;
 
             if num_deleted == 0 {
                 Err(Error::NotFoundError)
             } else {
-                Ok(num_deleted)
+                Ok(num_deleted as usize)
             }
         })
     }
@@ -113,13 +176,24 @@ impl Command for GetVariantTypeCommand {
     type Output = VariantType;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let variant_type = variant_types::table
-                .find(&self.id)
-                .select(VariantType::as_select())
-                .first::<VariantType>(conn)
-                .map_err(|_| Error::NotFoundError)?;
-            Ok(variant_type)
+        service.db_adapter.transaction(|db| {
+            let query = Query::select()
+                .from(VariantTypes::Table)
+                .columns([
+                    VariantTypes::Id,
+                    VariantTypes::Name,
+                    VariantTypes::Description,
+                    VariantTypes::CreatedAt,
+                    VariantTypes::UpdatedAt,
+                ])
+                .and_where(Expr::col(VariantTypes::Id).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let variant_type = db.query_optional::<VariantType>(&query, vec![])?;
+            match variant_type {
+                Some(vt) => Ok(vt),
+                None => Err(Error::NotFoundError),
+            }
         })
     }
 }
@@ -128,10 +202,19 @@ impl Command for ListVariantTypesCommand {
     type Output = Vec<VariantType>;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let results = variant_types::table
-                .select(VariantType::as_select())
-                .load::<VariantType>(conn)?;
+        service.db_adapter.transaction(|db| {
+            let query = Query::select()
+                .from(VariantTypes::Table)
+                .columns([
+                    VariantTypes::Id,
+                    VariantTypes::Name,
+                    VariantTypes::Description,
+                    VariantTypes::CreatedAt,
+                    VariantTypes::UpdatedAt,
+                ])
+                .to_string(SqliteQueryBuilder);
+
+            let results = db.query_many::<VariantType>(&query, vec![])?;
             Ok(results)
         })
     }

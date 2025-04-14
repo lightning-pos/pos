@@ -1,18 +1,18 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
         models::{
-            catalog::item_model::Item,
-            common::tax_model::{ItemTax, ItemTaxNewInput, Tax, TaxNewInput, TaxUpdateInput},
+            catalog::item_model::{Item, Items},
+            common::tax_model::{ItemTax, ItemTaxNewInput, ItemTaxes, Tax, TaxNewInput, TaxUpdateInput, Taxes},
         },
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
-    schema::{item_taxes, items, taxes},
 };
 
 // Commands
@@ -42,14 +42,20 @@ impl Command for CreateTaxCommand {
     type Output = Tax;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             // Verify all items exist if item_ids are provided
             if let Some(item_ids) = &self.tax.item_ids {
                 for item_id in item_ids {
-                    items::table
-                        .filter(items::id.eq(item_id))
-                        .select(Item::as_select())
-                        .get_result::<Item>(conn)?;
+                    let item_query = Query::select()
+                        .from(Items::Table)
+                        .columns([Items::Id])
+                        .and_where(Expr::col(Items::Id).eq(item_id.to_string()))
+                        .to_string(SqliteQueryBuilder);
+
+                    let item = db.query_optional::<Item>(&item_query, vec![])?;
+                    if item.is_none() {
+                        return Err(Error::NotFoundError);
+                    }
                 }
             }
 
@@ -64,9 +70,30 @@ impl Command for CreateTaxCommand {
             };
 
             // Insert the tax
-            diesel::insert_into(taxes::table)
-                .values(&new_tax)
-                .execute(conn)?;
+            let tax_query = Query::insert()
+                .into_table(Taxes::Table)
+                .columns([
+                    Taxes::Id,
+                    Taxes::Name,
+                    Taxes::Rate,
+                    Taxes::Description,
+                    Taxes::CreatedAt,
+                    Taxes::UpdatedAt,
+                ])
+                .values_panic([
+                    new_tax.id.to_string().into(),
+                    new_tax.name.clone().into(),
+                    new_tax.rate.to_string().into(),
+                    match &new_tax.description {
+                        Some(desc) => desc.clone().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    new_tax.created_at.to_string().into(),
+                    new_tax.updated_at.to_string().into(),
+                ])
+                .to_string(SqliteQueryBuilder);
+
+            db.execute(&tax_query, vec![])?;
 
             // Create item-tax associations if item_ids are provided
             if let Some(item_ids) = &self.tax.item_ids {
@@ -75,9 +102,20 @@ impl Command for CreateTaxCommand {
                         item_id: *item_id,
                         tax_id: new_tax.id,
                     };
-                    diesel::insert_into(item_taxes::table)
-                        .values(&item_tax)
-                        .execute(conn)?;
+
+                    let item_tax_query = Query::insert()
+                        .into_table(ItemTaxes::Table)
+                        .columns([
+                            ItemTaxes::ItemId,
+                            ItemTaxes::TaxId,
+                        ])
+                        .values_panic([
+                            item_tax.item_id.to_string().into(),
+                            item_tax.tax_id.to_string().into(),
+                        ])
+                        .to_string(SqliteQueryBuilder);
+
+                    db.execute(&item_tax_query, vec![])?;
                 }
             }
 
@@ -90,13 +128,52 @@ impl Command for UpdateTaxCommand {
     type Output = Tax;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let tax = taxes::table
-                .filter(taxes::id.eq(&self.tax.id))
-                .select(Tax::as_select())
-                .get_result::<Tax>(conn)?;
+        service.db_adapter.transaction(|db| {
+            // Get the existing tax
+            let query = Query::select()
+                .from(Taxes::Table)
+                .columns([
+                    Taxes::Id,
+                    Taxes::Name,
+                    Taxes::Rate,
+                    Taxes::Description,
+                    Taxes::CreatedAt,
+                    Taxes::UpdatedAt,
+                ])
+                .and_where(Expr::col(Taxes::Id).eq(self.tax.id.to_string()))
+                .to_string(SqliteQueryBuilder);
 
+            let tax = db.query_optional::<Tax>(&query, vec![])?;
+            if tax.is_none() {
+                return Err(Error::NotFoundError);
+            }
+            let tax = tax.unwrap();
+
+            let now = Utc::now().naive_utc();
+
+            // Build update query
+            let mut update_query = Query::update();
+            let update = update_query
+                .table(Taxes::Table)
+                .and_where(Expr::col(Taxes::Id).eq(self.tax.id.to_string()))
+                .value(Taxes::UpdatedAt, now.to_string());
+
+            if let Some(name) = &self.tax.name {
+                update.value(Taxes::Name, name.clone());
+            }
+
+            if let Some(rate) = self.tax.rate {
+                update.value(Taxes::Rate, rate.to_string());
+            }
+
+            if let Some(description) = &self.tax.description {
+                update.value(Taxes::Description, description.clone());
+            }
+
+            let sql = update.to_string(SqliteQueryBuilder);
+            db.execute(&sql, vec![])?;
+
+            // Return the updated tax
             let updated_tax = Tax {
                 id: tax.id,
                 name: self.tax.name.clone().unwrap_or(tax.name),
@@ -105,16 +182,6 @@ impl Command for UpdateTaxCommand {
                 created_at: tax.created_at,
                 updated_at: now,
             };
-
-            diesel::update(taxes::table)
-                .filter(taxes::id.eq(&self.tax.id))
-                .set((
-                    taxes::name.eq(&updated_tax.name),
-                    taxes::rate.eq(updated_tax.rate),
-                    taxes::description.eq(&updated_tax.description),
-                    taxes::updated_at.eq(updated_tax.updated_at),
-                ))
-                .execute(conn)?;
 
             Ok(updated_tax)
         })
@@ -125,10 +192,13 @@ impl Command for DeleteTaxCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let result = diesel::delete(taxes::table)
-                .filter(taxes::id.eq(&self.id))
-                .execute(conn)?;
+        service.db_adapter.transaction(|db| {
+            let query = Query::delete()
+                .from_table(Taxes::Table)
+                .and_where(Expr::col(Taxes::Id).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let result = db.execute(&query, vec![])?;
 
             if result == 0 {
                 return Err(Error::NotFoundError);
@@ -143,27 +213,42 @@ impl Command for AssignTaxToItemCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             // Verify item exists
-            items::table
-                .filter(items::id.eq(&self.item_tax.item_id))
-                .select(Item::as_select())
-                .get_result::<Item>(conn)?;
+            let item_query = Query::select()
+                .from(Items::Table)
+                .columns([Items::Id])
+                .and_where(Expr::col(Items::Id).eq(self.item_tax.item_id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let item = db.query_optional::<Item>(&item_query, vec![])?;
+            if item.is_none() {
+                return Err(Error::NotFoundError);
+            }
 
             // Verify tax exists
-            taxes::table
-                .filter(taxes::id.eq(&self.item_tax.tax_id))
-                .select(Tax::as_select())
-                .get_result::<Tax>(conn)?;
+            let tax_query = Query::select()
+                .from(Taxes::Table)
+                .columns([Taxes::Id])
+                .and_where(Expr::col(Taxes::Id).eq(self.item_tax.tax_id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let tax = db.query_optional::<Tax>(&tax_query, vec![])?;
+            if tax.is_none() {
+                return Err(Error::NotFoundError);
+            }
 
             // Check if association already exists
-            let existing = item_taxes::table
-                .filter(item_taxes::item_id.eq(&self.item_tax.item_id))
-                .filter(item_taxes::tax_id.eq(&self.item_tax.tax_id))
-                .count()
-                .get_result::<i64>(conn)?;
+            let exists_query = Query::select()
+                .from(ItemTaxes::Table)
+                .expr(Expr::count(Expr::col(ItemTaxes::ItemId)))
+                .and_where(Expr::col(ItemTaxes::ItemId).eq(self.item_tax.item_id.to_string()))
+                .and_where(Expr::col(ItemTaxes::TaxId).eq(self.item_tax.tax_id.to_string()))
+                .to_string(SqliteQueryBuilder);
 
-            if existing > 0 {
+            let count: i64 = db.query_one(&exists_query, vec![])?;
+
+            if count > 0 {
                 return Err(Error::AlreadyExistsError);
             }
 
@@ -172,9 +257,19 @@ impl Command for AssignTaxToItemCommand {
                 tax_id: self.item_tax.tax_id,
             };
 
-            let rows_affected = diesel::insert_into(item_taxes::table)
-                .values(&item_tax)
-                .execute(conn)?;
+            let insert_query = Query::insert()
+                .into_table(ItemTaxes::Table)
+                .columns([
+                    ItemTaxes::ItemId,
+                    ItemTaxes::TaxId,
+                ])
+                .values_panic([
+                    item_tax.item_id.to_string().into(),
+                    item_tax.tax_id.to_string().into(),
+                ])
+                .to_string(SqliteQueryBuilder);
+
+            let rows_affected = db.execute(&insert_query, vec![])?;
 
             Ok(rows_affected as i32)
         })
@@ -185,11 +280,14 @@ impl Command for RemoveTaxFromItemCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let result = diesel::delete(item_taxes::table)
-                .filter(item_taxes::item_id.eq(&self.item_id))
-                .filter(item_taxes::tax_id.eq(&self.tax_id))
-                .execute(conn)?;
+        service.db_adapter.transaction(|db| {
+            let query = Query::delete()
+                .from_table(ItemTaxes::Table)
+                .and_where(Expr::col(ItemTaxes::ItemId).eq(self.item_id.to_string()))
+                .and_where(Expr::col(ItemTaxes::TaxId).eq(self.tax_id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let result = db.execute(&query, vec![])?;
 
             if result == 0 {
                 return Err(Error::NotFoundError);
@@ -254,10 +352,13 @@ mod tests {
         assert_eq!(tax.rate, Percentage::from_float(18.0));
 
         // Verify item-tax associations were created
-        let associations = item_taxes::table
-            .filter(item_taxes::tax_id.eq(tax.id))
-            .load::<ItemTax>(&mut service.conn)
-            .unwrap();
+        let query = Query::select()
+            .from(ItemTaxes::Table)
+            .columns([ItemTaxes::ItemId, ItemTaxes::TaxId])
+            .and_where(Expr::col(ItemTaxes::TaxId).eq(tax.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let associations = service.db_adapter.query_many::<ItemTax>(&query, vec![]).unwrap();
 
         assert_eq!(associations.len(), 2);
         assert!(associations.iter().any(|a| a.item_id == item1.id));
@@ -394,10 +495,36 @@ mod tests {
             updated_at: now,
         };
 
-        diesel::insert_into(items::table)
-            .values(&item)
-            .execute(&mut service.conn)
-            .unwrap();
+        let query = Query::insert()
+            .into_table(Items::Table)
+            .columns([
+                Items::Id,
+                Items::CategoryId,
+                Items::Name,
+                Items::Description,
+                Items::Nature,
+                Items::State,
+                Items::Price,
+                Items::CreatedAt,
+                Items::UpdatedAt,
+            ])
+            .values_panic([
+                item.id.to_string().into(),
+                item.category_id.to_string().into(),
+                item.name.clone().into(),
+                match &item.description {
+                    Some(desc) => desc.clone().into(),
+                    None => sea_query::Value::String(None).into(),
+                },
+                item.nature.to_string().into(),
+                item.state.to_string().into(),
+                item.price.to_string().into(),
+                item.created_at.to_string().into(),
+                item.updated_at.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
+
+        service.db_adapter.execute(&query, vec![]).unwrap();
 
         item
     }

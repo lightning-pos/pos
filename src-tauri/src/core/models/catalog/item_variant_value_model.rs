@@ -21,6 +21,7 @@
 
 use diesel::{prelude::Insertable, Associations, Queryable};
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::models::catalog::{
     item_variant_model::ItemVariant, variant_value_model::VariantValue,
@@ -52,6 +53,14 @@ use crate::schema::item_variant_values;
 pub struct ItemVariantValue {
     pub item_variant_id: DbUuid,
     pub variant_value_id: DbUuid,
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum ItemVariantValues {
+    Table,
+    ItemVariantId,
+    VariantValueId,
 }
 
 /// Input type for creating a new item variant value association.
