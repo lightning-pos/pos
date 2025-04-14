@@ -11,6 +11,7 @@ pub enum Error {
     UniqueConstraintError,
     HasChildrenError,
     AlreadyExistsError,
+    DatabaseError(String),
 
     // External Errors
     GraphQLError(juniper::GraphQLError),
@@ -19,6 +20,7 @@ pub enum Error {
     SerdeJsonError(serde_json::Error),
     TauriError(tauri::Error),
     UuidError(uuid::Error),
+    LibsqlError(libsql::Error),
 }
 
 impl From<Error> for InvokeError {

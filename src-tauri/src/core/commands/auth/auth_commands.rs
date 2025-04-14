@@ -1,4 +1,4 @@
-use diesel::{query_dsl::methods::FilterDsl, ExpressionMethods, OptionalExtension, RunQueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
 
 use crate::{
     core::{
@@ -28,9 +28,9 @@ impl Command for LoginCommand {
         match user {
             Some(user) => {
                 service.state.current_user = Some(user.id);
-                return Ok(());
+                Ok(())
             }
-            None => return Err(Error::NotFoundError),
+            None => Err(Error::NotFoundError)
         }
     }
 }

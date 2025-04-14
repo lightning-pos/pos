@@ -5,7 +5,6 @@ pub mod common;
 pub mod finance;
 pub mod purchases;
 pub mod sales;
-pub mod sync_service;
 
 pub use app_service::*;
 pub use auth::*;
@@ -14,7 +13,6 @@ pub use common::*;
 pub use finance::*;
 pub use purchases::*;
 pub use sales::*;
-pub use sync_service::*;
 
 use crate::error::Result;
 
