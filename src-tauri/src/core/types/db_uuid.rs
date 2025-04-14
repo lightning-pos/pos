@@ -8,6 +8,7 @@ use diesel::{
 use juniper::graphql_scalar;
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
+use std::fmt;
 use uuid::Uuid;
 
 #[derive(
@@ -46,5 +47,11 @@ impl ToSql<Text, Sqlite> for DbUuid {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Sqlite>) -> serialize::Result {
         out.set_value(self.0.to_string());
         Ok(IsNull::No)
+    }
+}
+
+impl fmt::Display for DbUuid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
