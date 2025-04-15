@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use derive_more::Display;
 use diesel::{
     expression::AsExpression,
     prelude::{AsChangeset, Identifiable, Insertable, Queryable},
@@ -7,6 +8,7 @@ use diesel::{
 };
 use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use sea_query::Iden;
 use uuid::Uuid;
 
 use crate::core::types::{db_uuid::DbUuid, money::Money};
@@ -166,7 +168,7 @@ pub struct SalesOrderUpdateChangeset {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, DbEnum, GraphQLEnum, AsExpression)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, DbEnum, GraphQLEnum, AsExpression, Display)]
 #[diesel(sql_type = Text)]
 pub enum SalesOrderState {
     Draft,
@@ -174,7 +176,7 @@ pub enum SalesOrderState {
     Cancelled,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, DbEnum, GraphQLEnum, AsExpression)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, DbEnum, GraphQLEnum, AsExpression, Display)]
 #[diesel(sql_type = Text)]
 pub enum SalesOrderPaymentState {
     Pending,
@@ -210,4 +212,34 @@ impl SalesOrderUpdateInput {
             updated_at: now,
         }
     }
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum SalesOrders {
+    Table,
+    Id,
+    OrderReadableId,
+    OrderDate,
+    CustomerId,
+    CustomerName,
+    CustomerPhoneNumber,
+    BillingAddress,
+    ShippingAddress,
+    NetAmount,
+    DiscAmount,
+    TaxableAmount,
+    TaxAmount,
+    TotalAmount,
+    OrderState,
+    PaymentState,
+    Notes,
+    ChannelId,
+    LocationId,
+    CostCenterId,
+    CreatedBy,
+    UpdatedBy,
+    DiscountId,
+    CreatedAt,
+    UpdatedAt,
 }

@@ -1,9 +1,12 @@
-use diesel::{dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::purchases::supplier_model::Supplier, types::db_uuid::DbUuid},
-    schema::suppliers,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::purchases::supplier_model::{Supplier, Suppliers},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
@@ -12,33 +15,71 @@ pub fn suppliers(
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<Supplier>> {
-    let mut service = context.service.lock().unwrap();
-    let mut query = suppliers::table.into_boxed();
+    let service = context.service.lock().unwrap();
+    
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(Suppliers::Table)
+        .columns([
+            Suppliers::Id,
+            Suppliers::Name,
+            Suppliers::Address,
+            Suppliers::Phone,
+            Suppliers::CreatedAt,
+            Suppliers::UpdatedAt,
+        ]);
+
+    // Apply pagination if parameters are provided
     if let Some(limit) = first {
-        query = query.limit(limit as i64);
+        query.limit(limit as u64);
     }
     if let Some(off) = offset {
-        query = query.offset(off as i64);
+        query.offset(off as u64);
     }
-    let result = query
-        .select(Supplier::as_select())
-        .load::<Supplier>(&mut service.conn)?;
+
+    let sql = query.to_string(SqliteQueryBuilder);
+
+    // Execute the query
+    let result = service.db_adapter.query_many::<Supplier>(&sql, vec![])?;
+    
     Ok(result)
 }
 
 pub fn total_suppliers(context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let result: i64 = suppliers::table
-        .select(count(suppliers::id))
-        .get_result(&mut service.conn)?;
+    let service = context.service.lock().unwrap();
+    
+    // Build the count query with SeaQuery
+    let query = Query::select()
+        .from(Suppliers::Table)
+        .expr_as(Expr::col(Suppliers::Id).count(), Alias::new("count"))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
+    
     Ok(result as i32)
 }
 
 pub fn supplier(id: DbUuid, context: &AppState) -> FieldResult<Supplier> {
-    let mut service = context.service.lock().unwrap();
-    let result = suppliers::table
-        .filter(suppliers::id.eq(id))
-        .select(Supplier::as_select())
-        .get_result(&mut service.conn)?;
+    let service = context.service.lock().unwrap();
+    
+    // Build the query with SeaQuery
+    let query = Query::select()
+        .from(Suppliers::Table)
+        .columns([
+            Suppliers::Id,
+            Suppliers::Name,
+            Suppliers::Address,
+            Suppliers::Phone,
+            Suppliers::CreatedAt,
+            Suppliers::UpdatedAt,
+        ])
+        .and_where(Expr::col(Suppliers::Id).eq(id.to_string()))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_one::<Supplier>(&query, vec![])?;
+    
     Ok(result)
 }

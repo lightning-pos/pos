@@ -1,9 +1,12 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::purchases::purchase_category_model::PurchaseCategory, types::db_uuid::DbUuid},
-    schema::purchase_categories,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::purchases::purchase_category_model::{PurchaseCategory, PurchaseCategoryState, PurchaseCategories},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
@@ -13,21 +16,33 @@ pub fn purchase_categories(
     context: &AppState,
 ) -> FieldResult<Vec<PurchaseCategory>> {
     println!("yoyo inside purchase_categories");
-    let mut service = context.service.lock().unwrap();
+    let service = context.service.lock().unwrap();
 
-    let mut query = purchase_categories::table.into_boxed();
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(PurchaseCategories::Table)
+        .columns([
+            PurchaseCategories::Id,
+            PurchaseCategories::Name,
+            PurchaseCategories::Description,
+            PurchaseCategories::State,
+            PurchaseCategories::CreatedAt,
+            PurchaseCategories::UpdatedAt,
+        ]);
 
     // Apply pagination if parameters are provided
     if let Some(limit) = first {
-        query = query.limit(limit as i64);
+        query.limit(limit as u64);
     }
     if let Some(off) = offset {
-        query = query.offset(off as i64);
+        query.offset(off as u64);
     }
 
-    let result = query
-        .select(PurchaseCategory::as_select())
-        .load::<PurchaseCategory>(&mut service.conn)?;
+    let sql = query.to_string(SqliteQueryBuilder);
+
+    // Execute the query
+    let result = service.db_adapter.query_many::<PurchaseCategory>(&sql, vec![])?;
 
     println!("yoyo result: {:?}", result);
 
@@ -35,20 +50,47 @@ pub fn purchase_categories(
 }
 
 pub fn purchase_category(id: DbUuid, context: &AppState) -> FieldResult<PurchaseCategory> {
-    let mut service = context.service.lock().unwrap();
-    let result = purchase_categories::table
-        .filter(purchase_categories::id.eq(id))
-        .first::<PurchaseCategory>(&mut service.conn)?;
+    let service = context.service.lock().unwrap();
+    
+    // Build the query with SeaQuery
+    let query = Query::select()
+        .from(PurchaseCategories::Table)
+        .columns([
+            PurchaseCategories::Id,
+            PurchaseCategories::Name,
+            PurchaseCategories::Description,
+            PurchaseCategories::State,
+            PurchaseCategories::CreatedAt,
+            PurchaseCategories::UpdatedAt,
+        ])
+        .and_where(Expr::col(PurchaseCategories::Id).eq(id.to_string()))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_one::<PurchaseCategory>(&query, vec![])?;
+    
     Ok(result)
 }
 
 pub fn all_purchase_categories(context: &AppState) -> FieldResult<Vec<PurchaseCategory>> {
-    let mut service = context.service.lock().unwrap();
-
-    use crate::core::models::purchases::purchase_category_model::PurchaseCategoryState;
-
-    let result = purchase_categories::table
-        .filter(purchase_categories::state.eq(PurchaseCategoryState::Active))
-        .load::<PurchaseCategory>(&mut service.conn)?;
+    let service = context.service.lock().unwrap();
+    
+    // Build the query with SeaQuery
+    let query = Query::select()
+        .from(PurchaseCategories::Table)
+        .columns([
+            PurchaseCategories::Id,
+            PurchaseCategories::Name,
+            PurchaseCategories::Description,
+            PurchaseCategories::State,
+            PurchaseCategories::CreatedAt,
+            PurchaseCategories::UpdatedAt,
+        ])
+        .and_where(Expr::col(PurchaseCategories::State).eq(PurchaseCategoryState::Active.to_string()))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_many::<PurchaseCategory>(&query, vec![])?;
+    
     Ok(result)
 }

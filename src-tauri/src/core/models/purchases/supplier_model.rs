@@ -4,6 +4,7 @@ use diesel::{
     Selectable,
 };
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::types::db_uuid::DbUuid;
 use crate::schema::suppliers;
@@ -42,4 +43,16 @@ pub struct SupplierUpdateChangeset {
     pub address: Option<Option<String>>,
     pub phone: Option<Option<String>>,
     pub updated_at: NaiveDateTime,
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum Suppliers {
+    Table,
+    Id,
+    Name,
+    Address,
+    Phone,
+    CreatedAt,
+    UpdatedAt,
 }

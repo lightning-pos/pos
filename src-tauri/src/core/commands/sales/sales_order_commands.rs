@@ -1,22 +1,21 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use rand::Rng;
 use uuid::Uuid;
 
 use crate::{
-    core::{
+    adapters::outgoing::database::DatabaseAdapter, core::{
         commands::{app_service::AppService, Command},
         models::sales::{
-            sales_order_charge_model::SalesOrderCharge,
-            sales_order_item_model::SalesOrderItem,
+            sales_order_charge_model::{SalesOrderCharge, SalesOrderCharges},
+            sales_order_item_model::{SalesOrderItem, SalesOrderItems},
             sales_order_model::{
-                SalesOrder, SalesOrderNewInput, SalesOrderPaymentState, SalesOrderState,
+                SalesOrder, SalesOrders, SalesOrderNewInput, SalesOrderPaymentState, SalesOrderState,
             },
         },
         types::db_uuid::DbUuid,
     },
-    error::{Error, Result},
-    schema::{sales_order_charges, sales_order_items, sales_orders},
+    error::{Error, Result}
 };
 
 // Helper function to generate readable ID (Example: ORD-YYYYMMDD-XXXX)
@@ -48,12 +47,13 @@ impl Command for CreateSalesOrderCommand {
     type Output = SalesOrder;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             let now = Utc::now().naive_utc();
             let user_id = self.created_by_user_id;
+            let order_id: DbUuid = Uuid::now_v7().into();
 
             let new_sales_order = SalesOrder {
-                id: Uuid::now_v7().into(),
+                id: order_id,
                 order_readable_id: generate_readable_order_id(),
                 customer_id: self.sales_order.customer_id,
                 customer_name: self.sales_order.customer_name.clone(),
@@ -79,58 +79,206 @@ impl Command for CreateSalesOrderCommand {
                 updated_at: now,
             };
 
-            let order = diesel::insert_into(sales_orders::table)
-                .values(&new_sales_order)
-                .returning(SalesOrder::as_returning())
-                .get_result(conn)?;
+            // Insert the sales order
+            let query = Query::insert()
+                .into_table(SalesOrders::Table)
+                .columns([
+                    SalesOrders::Id,
+                    SalesOrders::OrderReadableId,
+                    SalesOrders::OrderDate,
+                    SalesOrders::CustomerId,
+                    SalesOrders::CustomerName,
+                    SalesOrders::CustomerPhoneNumber,
+                    SalesOrders::BillingAddress,
+                    SalesOrders::ShippingAddress,
+                    SalesOrders::NetAmount,
+                    SalesOrders::DiscAmount,
+                    SalesOrders::TaxableAmount,
+                    SalesOrders::TaxAmount,
+                    SalesOrders::TotalAmount,
+                    SalesOrders::OrderState,
+                    SalesOrders::PaymentState,
+                    SalesOrders::Notes,
+                    SalesOrders::ChannelId,
+                    SalesOrders::LocationId,
+                    SalesOrders::CostCenterId,
+                    SalesOrders::CreatedBy,
+                    SalesOrders::UpdatedBy,
+                    SalesOrders::DiscountId,
+                    SalesOrders::CreatedAt,
+                    SalesOrders::UpdatedAt,
+                ])
+                .values_panic([
+                    new_sales_order.id.to_string().into(),
+                    new_sales_order.order_readable_id.clone().into(),
+                    new_sales_order.order_date.to_string().into(),
+                    match new_sales_order.customer_id {
+                        Some(id) => id.to_string().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    match &new_sales_order.customer_name {
+                        Some(name) => name.clone().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    match &new_sales_order.customer_phone_number {
+                        Some(phone) => phone.clone().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    match &new_sales_order.billing_address {
+                        Some(addr) => addr.clone().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    match &new_sales_order.shipping_address {
+                        Some(addr) => addr.clone().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    new_sales_order.net_amount.to_string().into(),
+                    new_sales_order.disc_amount.to_string().into(),
+                    new_sales_order.taxable_amount.to_string().into(),
+                    new_sales_order.tax_amount.to_string().into(),
+                    new_sales_order.total_amount.to_string().into(),
+                    new_sales_order.order_state.to_string().into(),
+                    new_sales_order.payment_state.to_string().into(),
+                    match &new_sales_order.notes {
+                        Some(notes) => notes.clone().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    new_sales_order.channel_id.to_string().into(),
+                    new_sales_order.location_id.to_string().into(),
+                    new_sales_order.cost_center_id.to_string().into(),
+                    new_sales_order.created_by.to_string().into(),
+                    new_sales_order.updated_by.to_string().into(),
+                    match new_sales_order.discount_id {
+                        Some(id) => id.to_string().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    new_sales_order.created_at.to_string().into(),
+                    new_sales_order.updated_at.to_string().into(),
+                ])
+                .to_string(SqliteQueryBuilder);
 
-            let order_items: Vec<SalesOrderItem> = self
-                .sales_order
-                .items
-                .iter()
-                .map(|item| SalesOrderItem {
-                    id: Uuid::now_v7().into(),
-                    order_id: order.id,
-                    item_id: item.item_id,
-                    item_name: item.item_name.clone(),
-                    quantity: item.quantity,
-                    sku: item.sku.clone(),
-                    price_amount: item.price_amount,
-                    disc_amount: item.disc_amount,
-                    taxable_amount: item.taxable_amount,
-                    tax_amount: item.tax_amount,
-                    total_amount: item.total_amount,
-                    created_at: now,
-                    updated_at: now,
-                })
-                .collect();
+            db.execute(&query, vec![])?;
 
-            diesel::insert_into(sales_order_items::table)
-                .values(&order_items)
-                .execute(conn)?;
+            // Insert order items
+            for item in &self.sales_order.items {
+                let item_id: DbUuid = Uuid::now_v7().into();
 
-            if let Some(charges_input) = &self.sales_order.charges {
-                let order_charges: Vec<SalesOrderCharge> = charges_input
-                    .iter()
-                    .map(|charge| SalesOrderCharge {
-                        id: Uuid::now_v7().into(),
-                        order_id: order.id,
-                        charge_type_id: charge.charge_type_id,
-                        charge_type_name: charge.charge_type_name.clone(),
-                        amount: charge.amount,
-                        tax_amount: charge.tax_amount,
-                        tax_group_id: charge.tax_group_id,
-                        created_at: now,
-                        updated_at: now,
-                    })
-                    .collect();
+                let insert_query = Query::insert()
+                    .into_table(SalesOrderItems::Table)
+                    .columns([
+                        SalesOrderItems::Id,
+                        SalesOrderItems::OrderId,
+                        SalesOrderItems::ItemId,
+                        SalesOrderItems::ItemName,
+                        SalesOrderItems::Quantity,
+                        SalesOrderItems::Sku,
+                        SalesOrderItems::PriceAmount,
+                        SalesOrderItems::DiscAmount,
+                        SalesOrderItems::TaxableAmount,
+                        SalesOrderItems::TaxAmount,
+                        SalesOrderItems::TotalAmount,
+                        SalesOrderItems::CreatedAt,
+                        SalesOrderItems::UpdatedAt,
+                    ])
+                    .values_panic([
+                        item_id.to_string().into(),
+                        order_id.to_string().into(),
+                        match item.item_id {
+                            Some(id) => id.to_string().into(),
+                            None => sea_query::Value::String(None).into(),
+                        },
+                        item.item_name.clone().into(),
+                        item.quantity.into(),
+                        match &item.sku {
+                            Some(sku) => sku.clone().into(),
+                            None => sea_query::Value::String(None).into(),
+                        },
+                        item.price_amount.to_string().into(),
+                        item.disc_amount.to_string().into(),
+                        item.taxable_amount.to_string().into(),
+                        item.tax_amount.to_string().into(),
+                        item.total_amount.to_string().into(),
+                        now.to_string().into(),
+                        now.to_string().into(),
+                    ])
+                    .to_string(SqliteQueryBuilder);
 
-                diesel::insert_into(sales_order_charges::table)
-                    .values(&order_charges)
-                    .execute(conn)?;
+                db.execute(&insert_query, vec![])?;
             }
 
-            Ok(order)
+            // Insert order charges if any
+            if let Some(charges_input) = &self.sales_order.charges {
+                for charge in charges_input {
+                    let charge_id: DbUuid = Uuid::now_v7().into();
+
+                    let insert_query = Query::insert()
+                        .into_table(SalesOrderCharges::Table)
+                        .columns([
+                            SalesOrderCharges::Id,
+                            SalesOrderCharges::OrderId,
+                            SalesOrderCharges::ChargeTypeId,
+                            SalesOrderCharges::ChargeTypeName,
+                            SalesOrderCharges::Amount,
+                            SalesOrderCharges::TaxAmount,
+                            SalesOrderCharges::TaxGroupId,
+                            SalesOrderCharges::CreatedAt,
+                            SalesOrderCharges::UpdatedAt,
+                        ])
+                        .values_panic([
+                            charge_id.to_string().into(),
+                            order_id.to_string().into(),
+                            charge.charge_type_id.to_string().into(),
+                            charge.charge_type_name.clone().into(),
+                            charge.amount.to_string().into(),
+                            charge.tax_amount.to_string().into(),
+                            match charge.tax_group_id {
+                                Some(id) => id.to_string().into(),
+                                None => sea_query::Value::String(None).into(),
+                            },
+                            now.to_string().into(),
+                            now.to_string().into(),
+                        ])
+                        .to_string(SqliteQueryBuilder);
+
+                    db.execute(&insert_query, vec![])?;
+                }
+            }
+
+            // Retrieve the created order
+            let select_query = Query::select()
+                .from(SalesOrders::Table)
+                .columns([
+                    SalesOrders::Id,
+                    SalesOrders::OrderReadableId,
+                    SalesOrders::OrderDate,
+                    SalesOrders::CustomerId,
+                    SalesOrders::CustomerName,
+                    SalesOrders::CustomerPhoneNumber,
+                    SalesOrders::BillingAddress,
+                    SalesOrders::ShippingAddress,
+                    SalesOrders::NetAmount,
+                    SalesOrders::DiscAmount,
+                    SalesOrders::TaxableAmount,
+                    SalesOrders::TaxAmount,
+                    SalesOrders::TotalAmount,
+                    SalesOrders::OrderState,
+                    SalesOrders::PaymentState,
+                    SalesOrders::Notes,
+                    SalesOrders::ChannelId,
+                    SalesOrders::LocationId,
+                    SalesOrders::CostCenterId,
+                    SalesOrders::CreatedBy,
+                    SalesOrders::UpdatedBy,
+                    SalesOrders::DiscountId,
+                    SalesOrders::CreatedAt,
+                    SalesOrders::UpdatedAt,
+                ])
+                .and_where(Expr::col(SalesOrders::Id).eq(order_id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let created_order = db.query_one::<SalesOrder>(&select_query, vec![])?;
+
+            Ok(created_order)
         })
     }
 }
@@ -139,28 +287,95 @@ impl Command for VoidSalesOrderCommand {
     type Output = SalesOrder;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             let now = Utc::now().naive_utc();
             let user_id = self.updated_by_user_id;
 
-            let order = sales_orders::table
-                .find(self.id)
-                .filter(sales_orders::order_state.eq(SalesOrderState::Completed))
-                .select(SalesOrder::as_select())
-                .first::<SalesOrder>(conn)
-                .map_err(|_| Error::NotFoundError)?;
+            // Check if the order exists and is in Completed state
+            let check_query = Query::select()
+                .from(SalesOrders::Table)
+                .columns([
+                    SalesOrders::Id,
+                    SalesOrders::OrderReadableId,
+                    SalesOrders::OrderDate,
+                    SalesOrders::CustomerId,
+                    SalesOrders::CustomerName,
+                    SalesOrders::CustomerPhoneNumber,
+                    SalesOrders::BillingAddress,
+                    SalesOrders::ShippingAddress,
+                    SalesOrders::NetAmount,
+                    SalesOrders::DiscAmount,
+                    SalesOrders::TaxableAmount,
+                    SalesOrders::TaxAmount,
+                    SalesOrders::TotalAmount,
+                    SalesOrders::OrderState,
+                    SalesOrders::PaymentState,
+                    SalesOrders::Notes,
+                    SalesOrders::ChannelId,
+                    SalesOrders::LocationId,
+                    SalesOrders::CostCenterId,
+                    SalesOrders::CreatedBy,
+                    SalesOrders::UpdatedBy,
+                    SalesOrders::DiscountId,
+                    SalesOrders::CreatedAt,
+                    SalesOrders::UpdatedAt,
+                ])
+                .and_where(Expr::col(SalesOrders::Id).eq(self.id.to_string()))
+                .and_where(Expr::col(SalesOrders::OrderState).eq(SalesOrderState::Completed.to_string()))
+                .to_string(SqliteQueryBuilder);
 
-            let res = diesel::update(&order)
-                .set((
-                    sales_orders::order_state.eq(SalesOrderState::Cancelled),
-                    sales_orders::payment_state.eq(SalesOrderPaymentState::Voided),
-                    sales_orders::updated_by.eq(user_id),
-                    sales_orders::updated_at.eq(now),
-                ))
-                .returning(SalesOrder::as_returning())
-                .get_result(conn)?;
+            let order = db.query_optional::<SalesOrder>(&check_query, vec![])?;
+            if order.is_none() {
+                return Err(Error::NotFoundError);
+            }
 
-            Ok(res)
+            // Update the order state
+            let update_query = Query::update()
+                .table(SalesOrders::Table)
+                .value(SalesOrders::OrderState, SalesOrderState::Cancelled.to_string())
+                .value(SalesOrders::PaymentState, SalesOrderPaymentState::Voided.to_string())
+                .value(SalesOrders::UpdatedBy, user_id.to_string())
+                .value(SalesOrders::UpdatedAt, now.to_string())
+                .and_where(Expr::col(SalesOrders::Id).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            db.execute(&update_query, vec![])?;
+
+            // Retrieve the updated order
+            let select_query = Query::select()
+                .from(SalesOrders::Table)
+                .columns([
+                    SalesOrders::Id,
+                    SalesOrders::OrderReadableId,
+                    SalesOrders::OrderDate,
+                    SalesOrders::CustomerId,
+                    SalesOrders::CustomerName,
+                    SalesOrders::CustomerPhoneNumber,
+                    SalesOrders::BillingAddress,
+                    SalesOrders::ShippingAddress,
+                    SalesOrders::NetAmount,
+                    SalesOrders::DiscAmount,
+                    SalesOrders::TaxableAmount,
+                    SalesOrders::TaxAmount,
+                    SalesOrders::TotalAmount,
+                    SalesOrders::OrderState,
+                    SalesOrders::PaymentState,
+                    SalesOrders::Notes,
+                    SalesOrders::ChannelId,
+                    SalesOrders::LocationId,
+                    SalesOrders::CostCenterId,
+                    SalesOrders::CreatedBy,
+                    SalesOrders::UpdatedBy,
+                    SalesOrders::DiscountId,
+                    SalesOrders::CreatedAt,
+                    SalesOrders::UpdatedAt,
+                ])
+                .and_where(Expr::col(SalesOrders::Id).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let updated_order = db.query_one::<SalesOrder>(&select_query, vec![])?;
+
+            Ok(updated_order)
         })
     }
 }
@@ -338,20 +553,50 @@ mod tests {
         assert_eq!(result.updated_by, user_id);
         assert!(!result.order_readable_id.is_empty());
 
-        let inserted_items = sales_order_items::table
-            .filter(sales_order_items::order_id.eq(result.id))
-            .select(SalesOrderItem::as_select())
-            .load::<SalesOrderItem>(&mut service.conn)
-            .unwrap();
-        assert_eq!(inserted_items.len(), 2);
-        assert_eq!(inserted_items[0].item_name, "Item 1");
-        assert_eq!(inserted_items[1].item_name, "Item 2");
+        // Query items using SeaQuery
+        let items_query = Query::select()
+            .from(SalesOrderItems::Table)
+            .columns([
+                SalesOrderItems::Id,
+                SalesOrderItems::OrderId,
+                SalesOrderItems::ItemId,
+                SalesOrderItems::ItemName,
+                SalesOrderItems::Quantity,
+                SalesOrderItems::Sku,
+                SalesOrderItems::PriceAmount,
+                SalesOrderItems::DiscAmount,
+                SalesOrderItems::TaxableAmount,
+                SalesOrderItems::TaxAmount,
+                SalesOrderItems::TotalAmount,
+                SalesOrderItems::CreatedAt,
+                SalesOrderItems::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderItems::OrderId).eq(result.id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-        let inserted_charges = sales_order_charges::table
-            .filter(sales_order_charges::order_id.eq(result.id))
-            .select(SalesOrderCharge::as_select())
-            .load::<SalesOrderCharge>(&mut service.conn)
-            .unwrap();
+        let inserted_items = service.db_adapter.query_many::<SalesOrderItem>(&items_query, vec![]).unwrap();
+        assert_eq!(inserted_items.len(), 2);
+        assert!(inserted_items.iter().any(|item| item.item_name == "Item 1"));
+        assert!(inserted_items.iter().any(|item| item.item_name == "Item 2"));
+
+        // Query charges using SeaQuery
+        let charges_query = Query::select()
+            .from(SalesOrderCharges::Table)
+            .columns([
+                SalesOrderCharges::Id,
+                SalesOrderCharges::OrderId,
+                SalesOrderCharges::ChargeTypeId,
+                SalesOrderCharges::ChargeTypeName,
+                SalesOrderCharges::Amount,
+                SalesOrderCharges::TaxAmount,
+                SalesOrderCharges::TaxGroupId,
+                SalesOrderCharges::CreatedAt,
+                SalesOrderCharges::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderCharges::OrderId).eq(result.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let inserted_charges = service.db_adapter.query_many::<SalesOrderCharge>(&charges_query, vec![]).unwrap();
         assert!(inserted_charges.is_empty());
     }
 
@@ -418,17 +663,32 @@ mod tests {
         };
         let result = cmd.exec(&mut service).unwrap();
 
-        let inserted_charges = sales_order_charges::table
-            .filter(sales_order_charges::order_id.eq(result.id))
-            .order(sales_order_charges::created_at.asc())
-            .select(SalesOrderCharge::as_select())
-            .load::<SalesOrderCharge>(&mut service.conn)
-            .unwrap();
+        // Query charges using SeaQuery
+        let charges_query = Query::select()
+            .from(SalesOrderCharges::Table)
+            .columns([
+                SalesOrderCharges::Id,
+                SalesOrderCharges::OrderId,
+                SalesOrderCharges::ChargeTypeId,
+                SalesOrderCharges::ChargeTypeName,
+                SalesOrderCharges::Amount,
+                SalesOrderCharges::TaxAmount,
+                SalesOrderCharges::TaxGroupId,
+                SalesOrderCharges::CreatedAt,
+                SalesOrderCharges::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderCharges::OrderId).eq(result.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let inserted_charges = service.db_adapter.query_many::<SalesOrderCharge>(&charges_query, vec![]).unwrap();
         assert_eq!(inserted_charges.len(), 2);
-        assert_eq!(inserted_charges[0].charge_type_name, "Service Charge");
-        assert_eq!(inserted_charges[0].amount, 50.into());
-        assert_eq!(inserted_charges[1].charge_type_name, "Delivery Fee");
-        assert_eq!(inserted_charges[1].amount, 100.into());
+
+        // Find the charges by name
+        let service_charge = inserted_charges.iter().find(|c| c.charge_type_name == "Service Charge").unwrap();
+        let delivery_fee = inserted_charges.iter().find(|c| c.charge_type_name == "Delivery Fee").unwrap();
+
+        assert_eq!(service_charge.amount, 50.into());
+        assert_eq!(delivery_fee.amount, 100.into());
 
         assert_eq!(result.total_amount, 550.into());
     }

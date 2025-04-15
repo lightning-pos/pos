@@ -1,18 +1,17 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
         models::finance::payment_method_model::{
-            PaymentMethod, PaymentMethodNewInput, PaymentMethodState, PaymentMethodUpdateChangeset,
-            PaymentMethodUpdateInput,
+            PaymentMethod, PaymentMethodNewInput, PaymentMethodState, PaymentMethodUpdateInput, PaymentMethods,
         },
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
-    schema::payment_methods,
 };
 
 // Commands
@@ -33,38 +32,60 @@ impl Command for CreatePaymentMethodCommand {
     type Output = PaymentMethod;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Check if a payment method with the same code already exists
-            let existing = payment_methods::table
-                .filter(payment_methods::code.eq(&self.payment_method.code))
-                .first::<PaymentMethod>(conn)
-                .ok();
+        // Check if a payment method with the same code already exists
+        let check_query = Query::select()
+            .from(PaymentMethods::Table)
+            .columns([PaymentMethods::Id])
+            .and_where(Expr::col(PaymentMethods::Code).eq(&self.payment_method.code))
+            .to_string(SqliteQueryBuilder);
+            
+        let existing = service.db_adapter.query_optional::<DbUuid>(&check_query, vec![])?;
 
-            if existing.is_some() {
-                return Err(Error::UniqueConstraintError);
-            }
+        if existing.is_some() {
+            return Err(Error::UniqueConstraintError);
+        }
 
-            let now = Utc::now().naive_utc();
-            let new_payment_method = PaymentMethod {
-                id: Uuid::now_v7().into(),
-                name: self.payment_method.name.clone(),
-                code: self.payment_method.code.clone(),
-                description: self.payment_method.description.clone(),
-                state: self
-                    .payment_method
-                    .state
-                    .unwrap_or(PaymentMethodState::Active),
-                created_at: now,
-                updated_at: now,
-            };
+        let now = Utc::now().naive_utc();
+        let new_id = Uuid::now_v7();
+        
+        let new_payment_method = PaymentMethod {
+            id: new_id.into(),
+            name: self.payment_method.name.clone(),
+            code: self.payment_method.code.clone(),
+            description: self.payment_method.description.clone(),
+            state: self.payment_method.state.unwrap_or(PaymentMethodState::Active),
+            created_at: now,
+            updated_at: now,
+        };
 
-            let result = diesel::insert_into(payment_methods::table)
-                .values(&new_payment_method)
-                .returning(PaymentMethod::as_returning())
-                .get_result(conn)?;
+        // Build the insert query with SeaQuery
+        let query = Query::insert()
+            .into_table(PaymentMethods::Table)
+            .columns([
+                PaymentMethods::Id,
+                PaymentMethods::Name,
+                PaymentMethods::Code,
+                PaymentMethods::Description,
+                PaymentMethods::State,
+                PaymentMethods::CreatedAt,
+                PaymentMethods::UpdatedAt,
+            ])
+            .values_panic([
+                new_id.to_string().into(),
+                self.payment_method.name.clone().into(),
+                self.payment_method.code.clone().into(),
+                self.payment_method.description.clone().into(),
+                self.payment_method.state.unwrap_or(PaymentMethodState::Active).to_string().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
 
-            Ok(result)
-        })
+        // Execute the query
+        service.db_adapter.execute(&query, vec![])?;
+
+        // Return the newly created payment method
+        Ok(new_payment_method)
     }
 }
 
@@ -72,44 +93,84 @@ impl Command for UpdatePaymentMethodCommand {
     type Output = PaymentMethod;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Check if the payment method exists
-            let _ = payment_methods::table
-                .find(self.payment_method.id)
-                .first::<PaymentMethod>(conn)
-                .map_err(|_| Error::NotFoundError)?;
+        // Check if the payment method exists
+        let check_query = Query::select()
+            .from(PaymentMethods::Table)
+            .columns([
+                PaymentMethods::Id,
+                PaymentMethods::Name,
+                PaymentMethods::Code,
+                PaymentMethods::Description,
+                PaymentMethods::State,
+                PaymentMethods::CreatedAt,
+                PaymentMethods::UpdatedAt,
+            ])
+            .and_where(Expr::col(PaymentMethods::Id).eq(self.payment_method.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let existing = service.db_adapter.query_optional::<PaymentMethod>(&check_query, vec![])?;
 
-            // Check if we're trying to update the code and it already exists
-            if let Some(code) = &self.payment_method.code {
-                let existing = payment_methods::table
-                    .filter(payment_methods::code.eq(code))
-                    .filter(payment_methods::id.ne(self.payment_method.id))
-                    .first::<PaymentMethod>(conn)
-                    .ok();
+        if existing.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-                if existing.is_some() {
-                    return Err(Error::UniqueConstraintError);
-                }
+        // Check if we're trying to update the code and it already exists
+        if let Some(code) = &self.payment_method.code {
+            let duplicate_check_query = Query::select()
+                .from(PaymentMethods::Table)
+                .columns([PaymentMethods::Id])
+                .and_where(Expr::col(PaymentMethods::Code).eq(code))
+                .and_where(Expr::col(PaymentMethods::Id).ne(self.payment_method.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+                
+            let duplicate = service.db_adapter.query_optional::<DbUuid>(&duplicate_check_query, vec![])?;
+
+            if duplicate.is_some() {
+                return Err(Error::UniqueConstraintError);
             }
+        }
 
-            let now = Utc::now().naive_utc();
-            let changeset = PaymentMethodUpdateChangeset {
-                id: self.payment_method.id,
-                name: self.payment_method.name.clone(),
-                code: self.payment_method.code.clone(),
-                description: self.payment_method.description.clone(),
-                state: self.payment_method.state,
-                updated_at: now,
+        let now = Utc::now().naive_utc();
+
+        // Build the update query with SeaQuery
+        let mut update_query = Query::update();
+        let query = update_query.table(PaymentMethods::Table);
+
+        // Only set fields that are provided in the update input
+        if let Some(name) = &self.payment_method.name {
+            query.value(PaymentMethods::Name, name.clone());
+        }
+
+        if let Some(code) = &self.payment_method.code {
+            query.value(PaymentMethods::Code, code.clone());
+        }
+
+        if let Some(description) = &self.payment_method.description {
+            match description {
+                Some(desc) => query.value(PaymentMethods::Description, desc.clone()),
+                None => query.value(PaymentMethods::Description, sea_query::Value::String(None)),
             };
+        }
 
-            let result = diesel::update(payment_methods::table)
-                .filter(payment_methods::id.eq(self.payment_method.id))
-                .set(&changeset)
-                .returning(PaymentMethod::as_returning())
-                .get_result(conn)?;
+        if let Some(state) = &self.payment_method.state {
+            query.value(PaymentMethods::State, state.to_string());
+        }
 
-            Ok(result)
-        })
+        // Always update the updated_at timestamp
+        query.value(PaymentMethods::UpdatedAt, now.to_string());
+
+        // Add the WHERE clause
+        query.and_where(Expr::col(PaymentMethods::Id).eq(self.payment_method.id.to_string()));
+
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        service.db_adapter.execute(&sql, vec![])?;
+
+        // Get the updated payment method
+        let updated = service.db_adapter.query_one::<PaymentMethod>(&check_query, vec![])?;
+
+        Ok(updated)
     }
 }
 
@@ -117,63 +178,72 @@ impl Command for DeletePaymentMethodCommand {
     type Output = usize;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Check if the payment method exists
-            let _ = payment_methods::table
-                .find(self.id)
-                .first::<PaymentMethod>(conn)
-                .map_err(|_| Error::NotFoundError)?;
+        // Check if the payment method exists
+        let check_query = Query::select()
+            .from(PaymentMethods::Table)
+            .columns([PaymentMethods::Id])
+            .and_where(Expr::col(PaymentMethods::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let existing = service.db_adapter.query_optional::<DbUuid>(&check_query, vec![])?;
 
-            // NOTE: This code is currently commented out because the sales_order_payments
-            // table migrations have been created but are not yet applied in the test environment.
-            // When the sales_order_payments table is actually implemented and the migrations
-            // are applied in production, this code should be uncommented.
+        if existing.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-            /*
-            // Check if payment method is used in any sales_order_payments
-            use crate::schema::sales_order_payments;
+        // NOTE: This code is currently commented out because the sales_order_payments
+        // table migrations have been created but are not yet applied in the test environment.
+        // When the sales_order_payments table is actually implemented and the migrations
+        // are applied in production, this code should be uncommented.
 
-            let payment_method_in_use = sales_order_payments::table
-                .filter(sales_order_payments::payment_method_id.eq(self.id))
-                .count()
-                .get_result::<i64>(conn)?;
+        /*
+        // Check if payment method is used in any sales_order_payments
+        let count_query = Query::select()
+            .from(SalesOrderPayments::Table)
+            .expr_as(Expr::col(SalesOrderPayments::Id).count(), Alias::new("count"))
+            .and_where(Expr::col(SalesOrderPayments::PaymentMethodId).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let payment_method_in_use = service.db_adapter.query_one::<i64>(&count_query, vec![])?;
 
-            if payment_method_in_use > 0 {
-                return Err(Error::ValidationError(
-                    format!("Cannot delete payment method because it is used in {} sales", payment_method_in_use)
-                ));
-            }
-            */
+        if payment_method_in_use > 0 {
+            return Err(Error::ValidationError(
+                format!("Cannot delete payment method because it is used in {} sales", payment_method_in_use)
+            ));
+        }
+        */
 
-            let result = diesel::delete(payment_methods::table)
-                .filter(payment_methods::id.eq(self.id))
-                .execute(conn)?;
+        // Build the delete query with SeaQuery
+        let query = Query::delete()
+            .from_table(PaymentMethods::Table)
+            .and_where(Expr::col(PaymentMethods::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-            Ok(result)
-        })
+        // Execute the query
+        let affected_rows = service.db_adapter.execute(&query, vec![])?;
+
+        Ok(affected_rows as usize)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use diesel::sql_query;
+    use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     fn setup_test_db(service: &mut AppService) {
         // Create payment_methods table for testing
-        sql_query(
-            "CREATE TABLE IF NOT EXISTS payment_methods (
-                id TEXT PRIMARY KEY NOT NULL,
-                name TEXT NOT NULL,
-                code TEXT NOT NULL UNIQUE,
-                description TEXT,
-                state TEXT NOT NULL DEFAULT 'Active',
-                created_at TIMESTAMP NOT NULL,
-                updated_at TIMESTAMP NOT NULL
-            )",
-        )
-        .execute(&mut service.conn)
-        .unwrap();
+        let create_table_sql = "CREATE TABLE IF NOT EXISTS payment_methods (
+            id TEXT PRIMARY KEY NOT NULL,
+            name TEXT NOT NULL,
+            code TEXT NOT NULL UNIQUE,
+            description TEXT,
+            state TEXT NOT NULL DEFAULT 'Active',
+            created_at TIMESTAMP NOT NULL,
+            updated_at TIMESTAMP NOT NULL
+        )";
+        
+        service.db_adapter.execute(create_table_sql, vec![]).unwrap();
     }
 
     #[test]

@@ -1,8 +1,10 @@
 use crate::schema::payment_methods;
 use chrono::NaiveDateTime;
+use derive_more::Display;
 use diesel::prelude::{AsChangeset, Insertable, Queryable, Selectable};
 use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use sea_query::Iden;
 
 use crate::core::types::db_uuid::DbUuid;
 
@@ -46,8 +48,21 @@ pub struct PaymentMethodUpdateChangeset {
     pub updated_at: NaiveDateTime,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq, Display)]
 pub enum PaymentMethodState {
     Active,
     Inactive,
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum PaymentMethods {
+    Table,
+    Id,
+    Name,
+    Code,
+    Description,
+    State,
+    CreatedAt,
+    UpdatedAt,
 }

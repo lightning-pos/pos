@@ -1,9 +1,12 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::catalog::item_model::Item, types::db_uuid::DbUuid},
-    schema::items,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::catalog::item_model::{Item, Items},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
@@ -12,29 +15,62 @@ pub fn items(
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<Item>> {
-    let mut service = context.service.lock().unwrap();
+    let service = context.service.lock().unwrap();
 
-    let mut query = items::table.into_boxed();
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(Items::Table)
+        .columns([
+            Items::Id,
+            Items::Name,
+            Items::Description,
+            Items::Nature,
+            Items::State,
+            Items::Price,
+            Items::CategoryId,
+            Items::CreatedAt,
+            Items::UpdatedAt,
+        ]);
 
     if let Some(limit) = first {
-        query = query.limit(limit as i64);
+        query.limit(limit as u64);
     }
 
     if let Some(off) = offset {
-        query = query.offset(off as i64);
+        query.offset(off as u64);
     }
 
-    let result = query
-        .select(Item::as_select())
-        .load::<Item>(&mut service.conn)?;
+    let sql = query.to_string(SqliteQueryBuilder);
+
+    // Execute the query
+    let result = service.db_adapter.query_many::<Item>(&sql, vec![])?;
+    
     Ok(result)
 }
 
 pub fn item(id: DbUuid, context: &AppState) -> FieldResult<Item> {
-    let mut service = context.service.lock().unwrap();
-    let result = items::table
-        .filter(items::id.eq(id))
-        .select(Item::as_select())
-        .get_result(&mut service.conn)?;
+    let service = context.service.lock().unwrap();
+    
+    // Build the query with SeaQuery
+    let query = Query::select()
+        .from(Items::Table)
+        .columns([
+            Items::Id,
+            Items::Name,
+            Items::Description,
+            Items::Nature,
+            Items::State,
+            Items::Price,
+            Items::CategoryId,
+            Items::CreatedAt,
+            Items::UpdatedAt,
+        ])
+        .and_where(Expr::col(Items::Id).eq(id.to_string()))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_one::<Item>(&query, vec![])?;
+    
     Ok(result)
 }

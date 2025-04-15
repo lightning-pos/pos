@@ -1,27 +1,25 @@
 use chrono::NaiveDateTime;
-use diesel::{
-    query_dsl::methods::{FilterDsl, FindDsl, SelectDsl},
-    ExpressionMethods, RunQueryDsl, SelectableHelper,
-};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{finance::sales_order_payment_commands::GetSalesOrderPaymentsCommand, Command},
         models::{
             finance::{
-                cost_center_model::CostCenter, sales_order_payment_model::SalesOrderPayment,
+                cost_center_model::{CostCenter, CostCenters},
+                sales_order_payment_model::{SalesOrderPayment, SalesOrderPaymentState},
             },
             sales::{
-                customer_model::Customer,
-                sales_order_charge_model::SalesOrderCharge,
-                sales_order_item_model::SalesOrderItem,
-                sales_order_model::{SalesOrder, SalesOrderPaymentState, SalesOrderState},
+                customer_model::{Customer, Customers},
+                sales_order_charge_model::{SalesOrderCharge, SalesOrderCharges},
+                sales_order_item_model::{SalesOrderItem, SalesOrderItems},
+                sales_order_model::{SalesOrder, SalesOrderPaymentState as OrderPaymentState, SalesOrderState},
             },
         },
         types::{db_uuid::DbUuid, money::Money},
     },
-    schema::{cost_centers, customers, sales_order_charges, sales_order_items},
     AppState,
 };
 
@@ -83,7 +81,7 @@ impl SalesOrder {
         self.order_state
     }
 
-    pub fn payment_state(&self) -> SalesOrderPaymentState {
+    pub fn payment_state(&self) -> OrderPaymentState {
         self.payment_state
     }
 
@@ -126,11 +124,24 @@ impl SalesOrder {
     // Relationships
     pub fn customer(&self, context: &AppState) -> FieldResult<Option<Customer>> {
         if let Some(customer_id) = self.customer_id {
-            let mut service = context.service.lock().unwrap();
-            let customer = customers::table
-                .find(customer_id)
-                .select(Customer::as_select())
-                .first::<Customer>(&mut service.conn)?;
+            let service = context.service.lock().unwrap();
+            
+            let query = Query::select()
+                .from(Customers::Table)
+                .columns([
+                    Customers::Id,
+                    Customers::FullName,
+                    Customers::Email,
+                    Customers::Phone,
+                    Customers::Address,
+                    Customers::CreatedAt,
+                    Customers::UpdatedAt,
+                ])
+                .and_where(Expr::col(Customers::Id).eq(customer_id.to_string()))
+                .to_string(SqliteQueryBuilder);
+                
+            let customer = service.db_adapter.query_one::<Customer>(&query, vec![])?;
+            
             Ok(Some(customer))
         } else {
             Ok(None)
@@ -138,29 +149,76 @@ impl SalesOrder {
     }
 
     pub fn cost_center(&self, context: &AppState) -> FieldResult<CostCenter> {
-        let mut service = context.service.lock().unwrap();
-        let cost_center = cost_centers::table
-            .find(self.cost_center_id)
-            .select(CostCenter::as_select())
-            .first::<CostCenter>(&mut service.conn)?;
+        let service = context.service.lock().unwrap();
+        
+        let query = Query::select()
+            .from(CostCenters::Table)
+            .columns([
+                CostCenters::Id,
+                CostCenters::Name,
+                CostCenters::Code,
+                CostCenters::Description,
+                CostCenters::State,
+                CostCenters::CreatedAt,
+                CostCenters::UpdatedAt,
+            ])
+            .and_where(Expr::col(CostCenters::Id).eq(self.cost_center_id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let cost_center = service.db_adapter.query_one::<CostCenter>(&query, vec![])?;
+        
         Ok(cost_center)
     }
 
     pub fn items(&self, context: &AppState) -> FieldResult<Vec<SalesOrderItem>> {
-        let mut service = context.service.lock().unwrap();
-        let items = sales_order_items::table
-            .filter(sales_order_items::order_id.eq(self.id))
-            .select(SalesOrderItem::as_select())
-            .load::<SalesOrderItem>(&mut service.conn)?;
+        let service = context.service.lock().unwrap();
+        
+        let query = Query::select()
+            .from(SalesOrderItems::Table)
+            .columns([
+                SalesOrderItems::Id,
+                SalesOrderItems::OrderId,
+                SalesOrderItems::ItemId,
+                SalesOrderItems::ItemName,
+                SalesOrderItems::Quantity,
+                SalesOrderItems::Sku,
+                SalesOrderItems::PriceAmount,
+                SalesOrderItems::DiscAmount,
+                SalesOrderItems::TaxableAmount,
+                SalesOrderItems::TaxAmount,
+                SalesOrderItems::TotalAmount,
+                SalesOrderItems::CreatedAt,
+                SalesOrderItems::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderItems::OrderId).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let items = service.db_adapter.query_many::<SalesOrderItem>(&query, vec![])?;
+        
         Ok(items)
     }
 
     pub fn charges(&self, context: &AppState) -> FieldResult<Vec<SalesOrderCharge>> {
-        let mut service = context.service.lock().unwrap();
-        let charges = sales_order_charges::table
-            .filter(sales_order_charges::order_id.eq(self.id))
-            .select(SalesOrderCharge::as_select())
-            .load::<SalesOrderCharge>(&mut service.conn)?;
+        let service = context.service.lock().unwrap();
+        
+        let query = Query::select()
+            .from(SalesOrderCharges::Table)
+            .columns([
+                SalesOrderCharges::Id,
+                SalesOrderCharges::OrderId,
+                SalesOrderCharges::ChargeTypeId,
+                SalesOrderCharges::ChargeTypeName,
+                SalesOrderCharges::Amount,
+                SalesOrderCharges::TaxAmount,
+                SalesOrderCharges::TaxGroupId,
+                SalesOrderCharges::CreatedAt,
+                SalesOrderCharges::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderCharges::OrderId).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let charges = service.db_adapter.query_many::<SalesOrderCharge>(&query, vec![])?;
+        
         Ok(charges)
     }
 
@@ -178,7 +236,7 @@ impl SalesOrder {
 
         let total: Money = payments
             .iter()
-            .filter(|p| p.state == crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentState::Completed)
+            .filter(|p| p.state == SalesOrderPaymentState::Completed)
             .map(|p| p.amount)
             .sum();
 

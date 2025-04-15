@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::{Identifiable, Insertable, Queryable, Selectable};
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::{
     core::types::{db_uuid::DbUuid, money::Money},
@@ -69,3 +70,18 @@ pub struct SalesOrderChargeNewInput {
 
 // No UpdateInput or Changeset needed as charges are typically created with the order
 // and not updated individually. If needed, they can be added later.
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum SalesOrderCharges {
+    Table,
+    Id,
+    OrderId,
+    ChargeTypeId,
+    ChargeTypeName,
+    Amount,
+    TaxAmount,
+    TaxGroupId,
+    CreatedAt,
+    UpdatedAt,
+}

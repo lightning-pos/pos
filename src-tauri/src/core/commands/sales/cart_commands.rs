@@ -1,15 +1,15 @@
 use chrono::Utc;
-use diesel::{Connection, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
-        models::sales::cart_model::{Cart, CartNewInput, CartUpdateChangeset, CartUpdateInput},
+        models::sales::cart_model::{Cart, CartNewInput, CartUpdateInput, Carts},
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
-    schema::carts,
 };
 
 // Commands
@@ -30,23 +30,41 @@ impl Command for CreateCartCommand {
     type Output = Cart;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let new_cart = Cart {
-                id: Uuid::now_v7().into(),
-                customer_id: self.cart.customer_id,
-                cart_data: self.cart.cart_data.clone(),
-                created_at: now,
-                updated_at: now,
-            };
+        let now = Utc::now().naive_utc();
+        let new_id = Uuid::now_v7();
+        
+        let new_cart = Cart {
+            id: new_id.into(),
+            customer_id: self.cart.customer_id,
+            cart_data: self.cart.cart_data.clone(),
+            created_at: now,
+            updated_at: now,
+        };
 
-            let res = diesel::insert_into(carts::table)
-                .values(&new_cart)
-                .returning(Cart::as_returning())
-                .get_result(conn)?;
+        // Build the insert query with SeaQuery
+        let query = Query::insert()
+            .into_table(Carts::Table)
+            .columns([
+                Carts::Id,
+                Carts::CustomerId,
+                Carts::CartData,
+                Carts::CreatedAt,
+                Carts::UpdatedAt,
+            ])
+            .values_panic([
+                new_id.to_string().into(),
+                self.cart.customer_id.map(|id| id.to_string()).into(),
+                self.cart.cart_data.clone().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
 
-            Ok(res)
-        })
+        // Execute the query
+        service.db_adapter.execute(&query, vec![])?;
+
+        // Return the newly created cart
+        Ok(new_cart)
     }
 }
 
@@ -54,28 +72,52 @@ impl Command for UpdateCartCommand {
     type Output = Cart;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Verify cart exists
-            carts::table
-                .find(&self.cart.id)
-                .select(Cart::as_select())
-                .get_result::<Cart>(conn)?;
+        let now = Utc::now().naive_utc();
+        let cart_id = self.cart.id;
 
-            let now = Utc::now().naive_utc();
+        // First, check if the cart exists
+        let check_query = Query::select()
+            .from(Carts::Table)
+            .columns([
+                Carts::Id,
+                Carts::CustomerId,
+                Carts::CartData,
+                Carts::CreatedAt,
+                Carts::UpdatedAt,
+            ])
+            .and_where(Expr::col(Carts::Id).eq(cart_id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let existing = service.db_adapter.query_optional::<Cart>(&check_query, vec![])?;
 
-            let changeset = CartUpdateChangeset {
-                id: self.cart.id,
-                cart_data: self.cart.cart_data.clone(),
-                updated_at: Some(now),
-            };
+        if existing.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-            let res = diesel::update(carts::table.find(&self.cart.id))
-                .set(&changeset)
-                .returning(Cart::as_returning())
-                .get_result(conn)?;
+        // Build the update query with SeaQuery
+        let mut update_query = Query::update();
+        let query = update_query.table(Carts::Table);
 
-            Ok(res)
-        })
+        // Only set fields that are provided in the update input
+        if let Some(cart_data) = &self.cart.cart_data {
+            query.value(Carts::CartData, cart_data.clone());
+        }
+
+        // Always update the updated_at timestamp
+        query.value(Carts::UpdatedAt, now.to_string());
+
+        // Add the WHERE clause
+        query.and_where(Expr::col(Carts::Id).eq(cart_id.to_string()));
+
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        service.db_adapter.execute(&sql, vec![])?;
+
+        // Get the updated cart
+        let updated_cart = service.db_adapter.query_one::<Cart>(&check_query, vec![])?;
+
+        Ok(updated_cart)
     }
 }
 
@@ -83,15 +125,20 @@ impl Command for DeleteCartCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let result = diesel::delete(carts::table.find(&self.id)).execute(conn)?;
+        // Build the delete query with SeaQuery
+        let query = Query::delete()
+            .from_table(Carts::Table)
+            .and_where(Expr::col(Carts::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-            if result == 0 {
-                return Err(Error::NotFoundError);
-            }
+        // Execute the query
+        let affected_rows = service.db_adapter.execute(&query, vec![])?;
 
-            Ok(result as i32)
-        })
+        if affected_rows == 0 {
+            return Err(Error::NotFoundError);
+        }
+
+        Ok(affected_rows as i32)
     }
 }
 
@@ -105,6 +152,7 @@ mod tests {
         models::sales::customer_model::CustomerNewInput,
     };
     use rand::Rng;
+    use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     fn create_test_customer(service: &mut AppService) -> DbUuid {
         let random_suffix = rand::thread_rng().gen_range(1000..9999).to_string();
@@ -227,15 +275,15 @@ mod tests {
         let result = delete_command.exec(&mut app_service).unwrap();
         assert_eq!(result, 1); // Should return 1 for successful deletion
 
-        // Verify deletion by attempting to update (should fail)
-        let update_command = UpdateCartCommand {
-            cart: CartUpdateInput {
-                id: created_cart.id,
-                cart_data: Some("{}".to_string()),
-            },
-        };
-        let update_result = update_command.exec(&mut app_service);
-        assert!(update_result.is_err());
+        // Verify deletion by checking if cart exists
+        let check_query = Query::select()
+            .from(Carts::Table)
+            .expr_as(Expr::col(Carts::Id).count(), Alias::new("count"))
+            .and_where(Expr::col(Carts::Id).eq(created_cart.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let count = app_service.db_adapter.query_one::<i64>(&check_query, vec![]).unwrap();
+        assert_eq!(count, 0);
     }
 
     #[test]

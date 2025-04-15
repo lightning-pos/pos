@@ -1,17 +1,17 @@
 use chrono::Utc;
-use diesel::{Connection, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
         models::purchases::expense_model::{
-            Expense, ExpenseNewInput, ExpenseUpdateChangeset, ExpenseUpdateInput,
+            Expense, ExpenseNewInput, ExpenseUpdateInput, Expenses,
         },
         types::db_uuid::DbUuid,
     },
     error::Result,
-    schema::expenses,
 };
 
 // Commands
@@ -32,27 +32,53 @@ impl Command for CreateExpenseCommand {
     type Output = Expense;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let new_expense = Expense {
-                id: Uuid::now_v7().into(),
-                title: self.expense.title.clone(),
-                amount: self.expense.amount,
-                expense_date: self.expense.expense_date,
-                category_id: self.expense.category_id,
-                cost_center_id: self.expense.cost_center_id,
-                description: self.expense.description.clone(),
-                created_at: now,
-                updated_at: now,
-            };
+        let now = Utc::now().naive_utc();
+        let new_id = Uuid::now_v7();
+        
+        let new_expense = Expense {
+            id: new_id.into(),
+            title: self.expense.title.clone(),
+            amount: self.expense.amount,
+            expense_date: self.expense.expense_date,
+            category_id: self.expense.category_id,
+            cost_center_id: self.expense.cost_center_id,
+            description: self.expense.description.clone(),
+            created_at: now,
+            updated_at: now,
+        };
 
-            let res = diesel::insert_into(expenses::table)
-                .values(&new_expense)
-                .returning(Expense::as_returning())
-                .get_result(conn)?;
+        // Build the insert query with SeaQuery
+        let query = Query::insert()
+            .into_table(Expenses::Table)
+            .columns([
+                Expenses::Id,
+                Expenses::Title,
+                Expenses::Amount,
+                Expenses::ExpenseDate,
+                Expenses::CategoryId,
+                Expenses::CostCenterId,
+                Expenses::Description,
+                Expenses::CreatedAt,
+                Expenses::UpdatedAt,
+            ])
+            .values_panic([
+                new_id.to_string().into(),
+                self.expense.title.clone().into(),
+                self.expense.amount.to_string().into(),
+                self.expense.expense_date.to_string().into(),
+                self.expense.category_id.to_string().into(),
+                self.expense.cost_center_id.to_string().into(),
+                self.expense.description.clone().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
 
-            Ok(res)
-        })
+        // Execute the query
+        service.db_adapter.execute(&query, vec![])?;
+
+        // Return the newly created expense
+        Ok(new_expense)
     }
 }
 
@@ -60,28 +86,75 @@ impl Command for UpdateExpenseCommand {
     type Output = Expense;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let expense_id = self.expense.id;
+        let now = Utc::now().naive_utc();
+        let expense_id = self.expense.id;
 
-            let changeset = ExpenseUpdateChangeset {
-                id: expense_id,
-                title: self.expense.title.clone(),
-                amount: self.expense.amount,
-                expense_date: self.expense.expense_date,
-                category_id: self.expense.category_id,
-                cost_center_id: self.expense.cost_center_id,
-                description: self.expense.description.clone(),
-                updated_at: now,
+        // First, get the current expense
+        let get_query = Query::select()
+            .from(Expenses::Table)
+            .columns([
+                Expenses::Id,
+                Expenses::Title,
+                Expenses::Amount,
+                Expenses::ExpenseDate,
+                Expenses::CategoryId,
+                Expenses::CostCenterId,
+                Expenses::Description,
+                Expenses::CreatedAt,
+                Expenses::UpdatedAt,
+            ])
+            .and_where(Expr::col(Expenses::Id).eq(expense_id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let current_expense = service.db_adapter.query_one::<Expense>(&get_query, vec![])?;
+
+        // Build the update query with SeaQuery
+        let mut update_query = Query::update();
+        let query = update_query.table(Expenses::Table);
+
+        // Only set fields that are provided in the update input
+        if let Some(title) = &self.expense.title {
+            query.value(Expenses::Title, title.clone());
+        }
+
+        if let Some(amount) = &self.expense.amount {
+            query.value(Expenses::Amount, amount.to_string());
+        }
+
+        if let Some(expense_date) = &self.expense.expense_date {
+            query.value(Expenses::ExpenseDate, expense_date.to_string());
+        }
+
+        if let Some(category_id) = &self.expense.category_id {
+            query.value(Expenses::CategoryId, category_id.to_string());
+        }
+
+        if let Some(cost_center_id) = &self.expense.cost_center_id {
+            query.value(Expenses::CostCenterId, cost_center_id.to_string());
+        }
+
+        if let Some(description) = &self.expense.description {
+            match description {
+                Some(desc) => query.value(Expenses::Description, desc.clone()),
+                None => query.value(Expenses::Description, sea_query::Value::String(None)),
             };
+        }
 
-            let res = diesel::update(expenses::table.find(expense_id))
-                .set(changeset)
-                .returning(Expense::as_returning())
-                .get_result(conn)?;
+        // Always update the updated_at timestamp
+        query.value(Expenses::UpdatedAt, now.to_string());
 
-            Ok(res)
-        })
+        // Add the WHERE clause
+        query.and_where(Expr::col(Expenses::Id).eq(expense_id.to_string()));
+
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        service.db_adapter.execute(&sql, vec![])?;
+
+        // Get the updated expense
+        let updated_expense = service.db_adapter.query_one::<Expense>(&get_query, vec![])?;
+
+        Ok(updated_expense)
     }
 }
 
@@ -89,10 +162,16 @@ impl Command for DeleteExpenseCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let res = diesel::delete(expenses::table.find(self.id)).execute(conn)?;
-            Ok(res as i32)
-        })
+        // Build the delete query with SeaQuery
+        let query = Query::delete()
+            .from_table(Expenses::Table)
+            .and_where(Expr::col(Expenses::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        let affected_rows = service.db_adapter.execute(&query, vec![])?;
+
+        Ok(affected_rows as i32)
     }
 }
 
@@ -106,7 +185,7 @@ mod tests {
             purchases::purchase_category_model::{PurchaseCategory, PurchaseCategoryNew},
         },
     };
-    use diesel::{ExpressionMethods, RunQueryDsl};
+    use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     fn create_test_category(service: &mut AppService) -> PurchaseCategory {
         let command = CreatePurchaseCategoryCommand {
@@ -230,11 +309,13 @@ mod tests {
         assert_eq!(result, 1);
 
         // Verify expense no longer exists
-        let count: i64 = expenses::table
-            .filter(expenses::id.eq(expense.id))
-            .count()
-            .get_result(&mut service.conn)
-            .unwrap();
+        let count_query = Query::select()
+            .from(Expenses::Table)
+            .expr_as(Expr::col(Expenses::Id).count(), Alias::new("count"))
+            .and_where(Expr::col(Expenses::Id).eq(expense.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let count = service.db_adapter.query_one::<i64>(&count_query, vec![]).unwrap();
         assert_eq!(count, 0);
     }
 

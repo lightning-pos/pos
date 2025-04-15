@@ -106,6 +106,25 @@ let new_item = Item {
 };
 ```
 
+For insert operations, always use the `values_panic` method rather than `values`. The `values_panic` method will panic if the number of values doesn't match the number of columns, which helps catch errors at runtime:
+
+```rust
+// Correct approach - use values_panic
+let insert_query = Query::insert()
+    .into_table(TableName::Table)
+    .columns([
+        TableName::Id,
+        TableName::Name,
+        // ...other columns
+    ])
+    .values_panic([  // This will panic if the number of values doesn't match columns
+        item_id.to_string().into(),
+        self.item.name.clone().into(),
+        // ...other values
+    ])
+    .to_string(SqliteQueryBuilder);
+```
+
 Note that SeaQuery doesn't have a direct equivalent to Diesel's `returning` clause, so you'll need to manually construct the returned object or perform a separate select query.
 
 #### 4.2 Read/Select Operations
@@ -265,17 +284,22 @@ Be consistent with error handling across all commands. Consider creating helper 
 For optional fields that might be NULL:
 
 ```rust
-// For insert operations
-self.item.description.clone().map_or_else(|| "NULL".into(), |d| d.into()),
+// For insert operations with optional fields
+match &self.item.description {
+    Some(desc) => desc.clone().into(),
+    None => sea_query::Value::String(None).into(),
+},
 
-// For update operations with nested optionals
+// For update operations with nested optionals (Option<Option<T>>)
 if let Some(description) = &self.item.description {
     match description {
         Some(desc) => query.value(TableName::Description, desc.clone()),
-        None => query.value(TableName::Description, "NULL"),
+        None => query.value(TableName::Description, sea_query::Value::String(None)),
     };
 }
 ```
+
+It's important to use `sea_query::Value::String(None).into()` rather than `"NULL".into()` or other approaches, as this properly represents NULL values in the database.
 
 Be careful with NULL values, especially for nested optionals (Option<Option<T>>).
 

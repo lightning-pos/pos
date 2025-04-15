@@ -1,13 +1,16 @@
 use chrono::NaiveDateTime;
-use diesel::prelude::*;
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
-        models::sales::{cart_model::Cart, customer_model::Customer},
+        models::sales::{
+            cart_model::Cart,
+            customer_model::{Customer, Customers},
+        },
         types::db_uuid::DbUuid,
     },
-    schema::customers,
     AppState,
 };
 
@@ -36,11 +39,24 @@ impl Cart {
     // Relationships
     pub fn customer(&self, context: &AppState) -> FieldResult<Option<Customer>> {
         if let Some(customer_id) = self.customer_id {
-            let mut service = context.service.lock().unwrap();
-            let customer = customers::table
-                .find(customer_id)
-                .select(Customer::as_select())
-                .first::<Customer>(&mut service.conn)?;
+            let service = context.service.lock().unwrap();
+
+            let query = Query::select()
+                .from(Customers::Table)
+                .columns([
+                    Customers::Id,
+                    Customers::FullName,
+                    Customers::Email,
+                    Customers::Phone,
+                    Customers::Address,
+                    Customers::CreatedAt,
+                    Customers::UpdatedAt,
+                ])
+                .and_where(Expr::col(Customers::Id).eq(customer_id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let customer = service.db_adapter.query_one::<Customer>(&query, vec![])?;
+
             Ok(Some(customer))
         } else {
             Ok(None)

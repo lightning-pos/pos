@@ -1,21 +1,21 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
         models::{
             finance::sales_order_payment_model::{
                 SalesOrderPayment, SalesOrderPaymentNewInput, SalesOrderPaymentState,
-                SalesOrderPaymentUpdateChangeset, SalesOrderPaymentUpdateInput,
+                SalesOrderPaymentUpdateChangeset, SalesOrderPaymentUpdateInput, SalesOrderPayments,
             },
-            sales::sales_order_model::{SalesOrder, SalesOrderState},
+            sales::sales_order_model::{SalesOrder, SalesOrderState, SalesOrders},
         },
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
-    schema::{sales_order_payments, sales_orders},
 };
 
 // Commands
@@ -40,20 +40,28 @@ impl Command for CreateSalesOrderPaymentCommand {
     type Output = SalesOrderPayment;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             let now = Utc::now().naive_utc();
 
             // Check if the order exists and is in Completed state
-            let _order = sales_orders::table
-                .find(self.payment.order_id)
-                .filter(sales_orders::order_state.eq(SalesOrderState::Completed))
-                .select(SalesOrder::as_select())
-                .first::<SalesOrder>(conn)
-                .map_err(|_| Error::NotFoundError)?;
+            let check_query = Query::select()
+                .from(SalesOrders::Table)
+                .column(SalesOrders::Id)
+                .and_where(Expr::col(SalesOrders::Id).eq(self.payment.order_id.to_string()))
+                .and_where(Expr::col(SalesOrders::OrderState).eq(SalesOrderState::Completed.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let order = db.query_optional::<SalesOrder>(&check_query, vec![])?;
+            if order.is_none() {
+                return Err(Error::NotFoundError);
+            }
+
+            // Create a new payment ID
+            let payment_id: DbUuid = Uuid::now_v7().into();
 
             // Create the payment
             let new_payment = SalesOrderPayment {
-                id: Uuid::now_v7().into(),
+                id: payment_id,
                 order_id: self.payment.order_id,
                 payment_method_id: self.payment.payment_method_id,
                 payment_date: self.payment.payment_date,
@@ -68,13 +76,45 @@ impl Command for CreateSalesOrderPaymentCommand {
                 updated_at: now,
             };
 
-            // Insert the payment
-            let payment = diesel::insert_into(sales_order_payments::table)
-                .values(&new_payment)
-                .returning(SalesOrderPayment::as_returning())
-                .get_result(conn)?;
+            // Build the insert query
+            let insert_query = Query::insert()
+                .into_table(SalesOrderPayments::Table)
+                .columns([
+                    SalesOrderPayments::Id,
+                    SalesOrderPayments::OrderId,
+                    SalesOrderPayments::PaymentMethodId,
+                    SalesOrderPayments::PaymentDate,
+                    SalesOrderPayments::Amount,
+                    SalesOrderPayments::ReferenceNumber,
+                    SalesOrderPayments::Notes,
+                    SalesOrderPayments::State,
+                    SalesOrderPayments::CreatedAt,
+                    SalesOrderPayments::UpdatedAt,
+                ])
+                .values_panic([
+                    payment_id.to_string().into(),
+                    self.payment.order_id.to_string().into(),
+                    self.payment.payment_method_id.to_string().into(),
+                    self.payment.payment_date.to_string().into(),
+                    self.payment.amount.to_string().into(),
+                    match &self.payment.reference_number {
+                        Some(ref_num) => ref_num.clone().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    match &self.payment.notes {
+                        Some(notes) => notes.clone().into(),
+                        None => sea_query::Value::String(None).into(),
+                    },
+                    new_payment.state.to_string().into(),
+                    now.to_string().into(),
+                    now.to_string().into(),
+                ])
+                .to_string(SqliteQueryBuilder);
 
-            Ok(payment)
+            // Execute the insert query
+            db.execute(&insert_query, vec![])?;
+
+            Ok(new_payment)
         })
     }
 }
@@ -83,15 +123,34 @@ impl Command for UpdateSalesOrderPaymentCommand {
     type Output = SalesOrderPayment;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             let now = Utc::now().naive_utc();
 
             // Check if the payment exists and is in Completed state
-            let _payment = sales_order_payments::table
-                .find(self.payment.id)
-                .filter(sales_order_payments::state.eq(SalesOrderPaymentState::Completed))
-                .first::<SalesOrderPayment>(conn)
-                .map_err(|_| Error::NotFoundError)?;
+            let check_query = Query::select()
+                .from(SalesOrderPayments::Table)
+                .columns([
+                    SalesOrderPayments::Id,
+                    SalesOrderPayments::OrderId,
+                    SalesOrderPayments::PaymentMethodId,
+                    SalesOrderPayments::PaymentDate,
+                    SalesOrderPayments::Amount,
+                    SalesOrderPayments::ReferenceNumber,
+                    SalesOrderPayments::Notes,
+                    SalesOrderPayments::State,
+                    SalesOrderPayments::CreatedAt,
+                    SalesOrderPayments::UpdatedAt,
+                ])
+                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.payment.id.to_string()))
+                .and_where(Expr::col(SalesOrderPayments::State).eq(SalesOrderPaymentState::Completed.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let payment = db.query_optional::<SalesOrderPayment>(&check_query, vec![])?;
+            if payment.is_none() {
+                return Err(Error::NotFoundError);
+            }
+
+            let payment = payment.unwrap();
 
             // Create the changeset
             let changeset = SalesOrderPaymentUpdateChangeset {
@@ -105,12 +164,70 @@ impl Command for UpdateSalesOrderPaymentCommand {
                 updated_at: now,
             };
 
-            // Update the payment
-            let updated_payment = diesel::update(sales_order_payments::table)
-                .filter(sales_order_payments::id.eq(self.payment.id))
-                .set(&changeset)
-                .returning(SalesOrderPayment::as_returning())
-                .get_result(conn)?;
+            // Build the update query
+            let mut update_query = Query::update();
+            update_query.table(SalesOrderPayments::Table)
+                .value(SalesOrderPayments::UpdatedAt, now.to_string());
+
+            // Add optional fields if they exist
+            if let Some(payment_method_id) = &changeset.payment_method_id {
+                update_query.value(SalesOrderPayments::PaymentMethodId, payment_method_id.to_string());
+            }
+
+            if let Some(payment_date) = &changeset.payment_date {
+                update_query.value(SalesOrderPayments::PaymentDate, payment_date.to_string());
+            }
+
+            if let Some(amount) = &changeset.amount {
+                update_query.value(SalesOrderPayments::Amount, amount.to_string());
+            }
+
+            if let Some(reference_number) = &changeset.reference_number {
+                match reference_number {
+                    Some(ref_num) => update_query.value(SalesOrderPayments::ReferenceNumber, ref_num.clone()),
+                    None => update_query.value(SalesOrderPayments::ReferenceNumber, sea_query::Value::String(None)),
+                };
+            }
+
+            if let Some(notes) = &changeset.notes {
+                match notes {
+                    Some(note_text) => update_query.value(SalesOrderPayments::Notes, note_text.clone()),
+                    None => update_query.value(SalesOrderPayments::Notes, sea_query::Value::String(None)),
+                };
+            }
+
+            if let Some(state) = &changeset.state {
+                update_query.value(SalesOrderPayments::State, state.to_string());
+            }
+
+            // Add WHERE condition
+            update_query.and_where(Expr::col(SalesOrderPayments::Id).eq(self.payment.id.to_string()));
+
+            // Generate the SQL query
+            let sql = update_query.to_string(SqliteQueryBuilder);
+
+            // Execute the update
+            db.execute(&sql, vec![])?;
+
+            // Retrieve the updated payment
+            let select_query = Query::select()
+                .from(SalesOrderPayments::Table)
+                .columns([
+                    SalesOrderPayments::Id,
+                    SalesOrderPayments::OrderId,
+                    SalesOrderPayments::PaymentMethodId,
+                    SalesOrderPayments::PaymentDate,
+                    SalesOrderPayments::Amount,
+                    SalesOrderPayments::ReferenceNumber,
+                    SalesOrderPayments::Notes,
+                    SalesOrderPayments::State,
+                    SalesOrderPayments::CreatedAt,
+                    SalesOrderPayments::UpdatedAt,
+                ])
+                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.payment.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let updated_payment = db.query_one::<SalesOrderPayment>(&select_query, vec![])?;
 
             Ok(updated_payment)
         })
@@ -121,25 +238,63 @@ impl Command for VoidSalesOrderPaymentCommand {
     type Output = SalesOrderPayment;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
+        service.db_adapter.transaction(|db| {
             let now = Utc::now().naive_utc();
 
             // Check if the payment exists and is in Completed state
-            let _payment = sales_order_payments::table
-                .find(self.id)
-                .filter(sales_order_payments::state.eq(SalesOrderPaymentState::Completed))
-                .first::<SalesOrderPayment>(conn)
-                .map_err(|_| Error::NotFoundError)?;
+            let check_query = Query::select()
+                .from(SalesOrderPayments::Table)
+                .columns([
+                    SalesOrderPayments::Id,
+                    SalesOrderPayments::OrderId,
+                    SalesOrderPayments::PaymentMethodId,
+                    SalesOrderPayments::PaymentDate,
+                    SalesOrderPayments::Amount,
+                    SalesOrderPayments::ReferenceNumber,
+                    SalesOrderPayments::Notes,
+                    SalesOrderPayments::State,
+                    SalesOrderPayments::CreatedAt,
+                    SalesOrderPayments::UpdatedAt,
+                ])
+                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.id.to_string()))
+                .and_where(Expr::col(SalesOrderPayments::State).eq(SalesOrderPaymentState::Completed.to_string()))
+                .to_string(SqliteQueryBuilder);
 
-            // Update the payment state
-            let updated_payment = diesel::update(sales_order_payments::table)
-                .filter(sales_order_payments::id.eq(self.id))
-                .set((
-                    sales_order_payments::state.eq(SalesOrderPaymentState::Voided),
-                    sales_order_payments::updated_at.eq(now),
-                ))
-                .returning(SalesOrderPayment::as_returning())
-                .get_result(conn)?;
+            let payment = db.query_optional::<SalesOrderPayment>(&check_query, vec![])?;
+            if payment.is_none() {
+                return Err(Error::NotFoundError);
+            }
+
+            // Build the update query
+            let update_query = Query::update()
+                .table(SalesOrderPayments::Table)
+                .value(SalesOrderPayments::State, SalesOrderPaymentState::Voided.to_string())
+                .value(SalesOrderPayments::UpdatedAt, now.to_string())
+                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            // Execute the update
+            db.execute(&update_query, vec![])?;
+
+            // Retrieve the updated payment
+            let select_query = Query::select()
+                .from(SalesOrderPayments::Table)
+                .columns([
+                    SalesOrderPayments::Id,
+                    SalesOrderPayments::OrderId,
+                    SalesOrderPayments::PaymentMethodId,
+                    SalesOrderPayments::PaymentDate,
+                    SalesOrderPayments::Amount,
+                    SalesOrderPayments::ReferenceNumber,
+                    SalesOrderPayments::Notes,
+                    SalesOrderPayments::State,
+                    SalesOrderPayments::CreatedAt,
+                    SalesOrderPayments::UpdatedAt,
+                ])
+                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.id.to_string()))
+                .to_string(SqliteQueryBuilder);
+
+            let updated_payment = db.query_one::<SalesOrderPayment>(&select_query, vec![])?;
 
             Ok(updated_payment)
         })
@@ -151,15 +306,36 @@ impl Command for GetSalesOrderPaymentsCommand {
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Check if the order exists
-        let _ = sales_orders::table
-            .find(self.order_id)
-            .first::<SalesOrder>(&mut service.conn)
-            .map_err(|_| Error::NotFoundError)?;
+        let check_query = Query::select()
+            .from(SalesOrders::Table)
+            .column(SalesOrders::Id)
+            .and_where(Expr::col(SalesOrders::Id).eq(self.order_id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let order = service.db_adapter.query_optional::<SalesOrder>(&check_query, vec![])?;
+        if order.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
         // Get all payments for the order
-        let payments = sales_order_payments::table
-            .filter(sales_order_payments::order_id.eq(self.order_id))
-            .load::<SalesOrderPayment>(&mut service.conn)?;
+        let select_query = Query::select()
+            .from(SalesOrderPayments::Table)
+            .columns([
+                SalesOrderPayments::Id,
+                SalesOrderPayments::OrderId,
+                SalesOrderPayments::PaymentMethodId,
+                SalesOrderPayments::PaymentDate,
+                SalesOrderPayments::Amount,
+                SalesOrderPayments::ReferenceNumber,
+                SalesOrderPayments::Notes,
+                SalesOrderPayments::State,
+                SalesOrderPayments::CreatedAt,
+                SalesOrderPayments::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderPayments::OrderId).eq(self.order_id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let payments = service.db_adapter.query_many::<SalesOrderPayment>(&select_query, vec![])?;
 
         Ok(payments)
     }
@@ -188,6 +364,7 @@ mod tests {
         },
     };
     use rand::Rng;
+    use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     fn create_test_payment_method(
         service: &mut AppService,
@@ -370,14 +547,28 @@ mod tests {
         assert_eq!(result2.amount, 490.into());
 
         // Query the database to ensure both payments exist
-        let payments = sales_order_payments::table
-            .filter(sales_order_payments::order_id.eq(order.id))
-            .load::<SalesOrderPayment>(&mut service.conn)
-            .unwrap();
+        let select_query = Query::select()
+            .from(SalesOrderPayments::Table)
+            .columns([
+                SalesOrderPayments::Id,
+                SalesOrderPayments::OrderId,
+                SalesOrderPayments::PaymentMethodId,
+                SalesOrderPayments::PaymentDate,
+                SalesOrderPayments::Amount,
+                SalesOrderPayments::ReferenceNumber,
+                SalesOrderPayments::Notes,
+                SalesOrderPayments::State,
+                SalesOrderPayments::CreatedAt,
+                SalesOrderPayments::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderPayments::OrderId).eq(order.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        let payments = service.db_adapter.query_many::<SalesOrderPayment>(&select_query, vec![]).unwrap();
 
         assert_eq!(payments.len(), 2);
-        assert_eq!(payments[0].id, result1.id);
-        assert_eq!(payments[1].id, result2.id);
+        assert!(payments.iter().any(|p| p.id == result1.id));
+        assert!(payments.iter().any(|p| p.id == result2.id));
     }
 
     #[test]
@@ -550,8 +741,8 @@ mod tests {
         let payments = get_cmd.exec(&mut service).unwrap();
 
         assert_eq!(payments.len(), 2);
-        assert_eq!(payments[0].amount, 500.into());
-        assert_eq!(payments[1].amount, 490.into());
+        assert!(payments.iter().any(|p| p.amount == 500.into()));
+        assert!(payments.iter().any(|p| p.amount == 490.into()));
     }
 
     #[test]

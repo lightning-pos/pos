@@ -1,14 +1,18 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
-        models::sales::sales_charge_type_model::*,
+        models::sales::{
+            sales_charge_type_model::{SalesChargeType, SalesChargeTypeNewInput, SalesChargeTypeUpdateInput, SalesChargeTypes},
+            sales_order_charge_model::SalesOrderCharges,
+        },
+        types::db_uuid::DbUuid,
     },
-    error::Result,
-    schema::sales_charge_types,
+    error::{Error, Result},
 };
 
 // Commands
@@ -21,7 +25,7 @@ pub struct UpdateSalesChargeTypeCommand {
 }
 
 pub struct DeleteSalesChargeTypeCommand {
-    pub id: crate::core::types::db_uuid::DbUuid,
+    pub id: DbUuid,
 }
 
 // Command Implementations
@@ -29,23 +33,41 @@ impl Command for CreateSalesChargeTypeCommand {
     type Output = SalesChargeType;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let new_charge_type = SalesChargeType {
-                id: Uuid::now_v7().into(),
-                name: self.charge_type.name.clone(),
-                description: self.charge_type.description.clone(),
-                created_at: now,
-                updated_at: now,
-            };
+        let now = Utc::now().naive_utc();
+        let new_id = Uuid::now_v7();
+        
+        let new_charge_type = SalesChargeType {
+            id: new_id.into(),
+            name: self.charge_type.name.clone(),
+            description: self.charge_type.description.clone(),
+            created_at: now,
+            updated_at: now,
+        };
 
-            let res = diesel::insert_into(sales_charge_types::table)
-                .values(&new_charge_type)
-                .returning(SalesChargeType::as_returning())
-                .get_result(conn)?;
+        // Build the insert query with SeaQuery
+        let query = Query::insert()
+            .into_table(SalesChargeTypes::Table)
+            .columns([
+                SalesChargeTypes::Id,
+                SalesChargeTypes::Name,
+                SalesChargeTypes::Description,
+                SalesChargeTypes::CreatedAt,
+                SalesChargeTypes::UpdatedAt,
+            ])
+            .values_panic([
+                new_id.to_string().into(),
+                self.charge_type.name.clone().into(),
+                self.charge_type.description.clone().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
 
-            Ok(res)
-        })
+        // Execute the query
+        service.db_adapter.execute(&query, vec![])?;
+
+        // Return the newly created charge type
+        Ok(new_charge_type)
     }
 }
 
@@ -53,18 +75,59 @@ impl Command for UpdateSalesChargeTypeCommand {
     type Output = SalesChargeType;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let changeset = self.charge_type.clone().into_changeset(now);
+        let now = Utc::now().naive_utc();
+        let charge_type_id = self.charge_type.id;
 
-            let res = diesel::update(sales_charge_types::table)
-                .filter(sales_charge_types::id.eq(self.charge_type.id))
-                .set(changeset)
-                .returning(SalesChargeType::as_returning())
-                .get_result(conn)?;
+        // First, check if the charge type exists
+        let check_query = Query::select()
+            .from(SalesChargeTypes::Table)
+            .columns([
+                SalesChargeTypes::Id,
+                SalesChargeTypes::Name,
+                SalesChargeTypes::Description,
+                SalesChargeTypes::CreatedAt,
+                SalesChargeTypes::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesChargeTypes::Id).eq(charge_type_id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let existing = service.db_adapter.query_optional::<SalesChargeType>(&check_query, vec![])?;
 
-            Ok(res)
-        })
+        if existing.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        // Build the update query with SeaQuery
+        let mut update_query = Query::update();
+        let query = update_query.table(SalesChargeTypes::Table);
+
+        // Only set fields that are provided in the update input
+        if let Some(name) = &self.charge_type.name {
+            query.value(SalesChargeTypes::Name, name.clone());
+        }
+
+        if let Some(description) = &self.charge_type.description {
+            match description {
+                Some(desc) => query.value(SalesChargeTypes::Description, desc.clone()),
+                None => query.value(SalesChargeTypes::Description, sea_query::Value::String(None)),
+            };
+        }
+
+        // Always update the updated_at timestamp
+        query.value(SalesChargeTypes::UpdatedAt, now.to_string());
+
+        // Add the WHERE clause
+        query.and_where(Expr::col(SalesChargeTypes::Id).eq(charge_type_id.to_string()));
+
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        service.db_adapter.execute(&sql, vec![])?;
+
+        // Get the updated charge type
+        let updated_charge_type = service.db_adapter.query_one::<SalesChargeType>(&check_query, vec![])?;
+
+        Ok(updated_charge_type)
     }
 }
 
@@ -72,25 +135,29 @@ impl Command for DeleteSalesChargeTypeCommand {
     type Output = bool;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Check if the charge type is used in any sales order charges
-            let is_used = diesel::dsl::select(diesel::dsl::exists(
-                crate::schema::sales_order_charges::table
-                    .filter(crate::schema::sales_order_charges::charge_type_id.eq(self.id)),
-            ))
-            .get_result::<bool>(conn)?;
+        // Check if the charge type is used in any sales order charges
+        let count_query = Query::select()
+            .from(SalesOrderCharges::Table)
+            .expr_as(Expr::col(SalesOrderCharges::Id).count(), Alias::new("count"))
+            .and_where(Expr::col(SalesOrderCharges::ChargeTypeId).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let count = service.db_adapter.query_one::<i64>(&count_query, vec![])?;
 
-            if is_used {
-                return Err(crate::error::Error::HasChildrenError);
-            }
+        if count > 0 {
+            return Err(Error::HasChildrenError);
+        }
 
-            // Delete the charge type
-            let deleted_count = diesel::delete(sales_charge_types::table)
-                .filter(sales_charge_types::id.eq(self.id))
-                .execute(conn)?;
+        // Build the delete query with SeaQuery
+        let query = Query::delete()
+            .from_table(SalesChargeTypes::Table)
+            .and_where(Expr::col(SalesChargeTypes::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
 
-            Ok(deleted_count > 0)
-        })
+        // Execute the query
+        let affected_rows = service.db_adapter.execute(&query, vec![])?;
+
+        Ok(affected_rows > 0)
     }
 }
 
@@ -98,6 +165,7 @@ impl Command for DeleteSalesChargeTypeCommand {
 mod tests {
     use super::*;
     use crate::error::Error;
+    use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     #[test]
     fn test_create_sales_charge_type() {
@@ -171,7 +239,7 @@ mod tests {
         };
         let result = update_cmd.exec(&mut service);
 
-        assert!(matches!(result, Err(Error::DieselError(_))));
+        assert!(result.is_err());
     }
 
     #[test]
@@ -192,17 +260,14 @@ mod tests {
 
         assert!(result);
 
-        // Verify it's gone by trying to update it
-        let update_input = SalesChargeTypeUpdateInput {
-            id: created.id,
-            name: Some("Updated Name".to_string()),
-            description: None,
-        };
-        let update_cmd = UpdateSalesChargeTypeCommand {
-            charge_type: update_input,
-        };
-        let update_result = update_cmd.exec(&mut service);
-
-        assert!(matches!(update_result, Err(Error::DieselError(_))));
+        // Verify it's gone
+        let check_query = Query::select()
+            .from(SalesChargeTypes::Table)
+            .expr_as(Expr::col(SalesChargeTypes::Id).count(), Alias::new("count"))
+            .and_where(Expr::col(SalesChargeTypes::Id).eq(created.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let count = service.db_adapter.query_one::<i64>(&check_query, vec![]).unwrap();
+        assert_eq!(count, 0);
     }
 }

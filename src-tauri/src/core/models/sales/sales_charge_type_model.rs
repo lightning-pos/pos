@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::{AsChangeset, Identifiable, Insertable, Queryable, Selectable};
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::{core::types::db_uuid::DbUuid, schema::sales_charge_types};
 
@@ -47,4 +48,15 @@ impl SalesChargeTypeUpdateInput {
             updated_at: now,
         }
     }
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum SalesChargeTypes {
+    Table,
+    Id,
+    Name,
+    Description,
+    CreatedAt,
+    UpdatedAt,
 }

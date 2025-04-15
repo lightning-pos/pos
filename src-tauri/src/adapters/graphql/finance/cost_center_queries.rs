@@ -1,9 +1,12 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Order, Query, SqliteQueryBuilder};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::finance::cost_center_model::CostCenter, types::db_uuid::DbUuid},
-    schema::cost_centers,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::finance::cost_center_model::{CostCenter, CostCenterState, CostCenters},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
@@ -12,46 +15,97 @@ pub fn cost_centers(
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<CostCenter>> {
-    let mut service = context.service.lock().unwrap();
+    let service = context.service.lock().unwrap();
 
-    let mut query = cost_centers::table.into_boxed();
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(CostCenters::Table)
+        .columns([
+            CostCenters::Id,
+            CostCenters::Name,
+            CostCenters::Code,
+            CostCenters::Description,
+            CostCenters::State,
+            CostCenters::CreatedAt,
+            CostCenters::UpdatedAt,
+        ]);
 
     // Apply pagination if parameters are provided
     if let Some(limit) = first {
-        query = query.limit(limit as i64);
+        query.limit(limit as u64);
     }
     if let Some(off) = offset {
-        query = query.offset(off as i64);
+        query.offset(off as u64);
     }
 
-    let result = query
-        .select(CostCenter::as_select())
-        .load::<CostCenter>(&mut service.conn)?;
+    let sql = query.to_string(SqliteQueryBuilder);
+
+    // Execute the query
+    let result = service.db_adapter.query_many::<CostCenter>(&sql, vec![])?;
 
     Ok(result)
 }
 
 pub fn cost_center(id: DbUuid, context: &AppState) -> FieldResult<CostCenter> {
-    let mut service = context.service.lock().unwrap();
-    let result = cost_centers::table
-        .filter(cost_centers::id.eq(id))
-        .first::<CostCenter>(&mut service.conn)?;
+    let service = context.service.lock().unwrap();
+    
+    // Build the query with SeaQuery
+    let query = Query::select()
+        .from(CostCenters::Table)
+        .columns([
+            CostCenters::Id,
+            CostCenters::Name,
+            CostCenters::Code,
+            CostCenters::Description,
+            CostCenters::State,
+            CostCenters::CreatedAt,
+            CostCenters::UpdatedAt,
+        ])
+        .and_where(Expr::col(CostCenters::Id).eq(id.to_string()))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_one::<CostCenter>(&query, vec![])?;
+    
     Ok(result)
 }
 
 pub fn all_cost_centers(context: &AppState) -> FieldResult<Vec<CostCenter>> {
-    let mut service = context.service.lock().unwrap();
-
-    use crate::core::models::finance::cost_center_model::CostCenterState;
-
-    let result = cost_centers::table
-        .filter(cost_centers::state.eq(CostCenterState::Active))
-        .load::<CostCenter>(&mut service.conn)?;
+    let service = context.service.lock().unwrap();
+    
+    // Build the query with SeaQuery
+    let query = Query::select()
+        .from(CostCenters::Table)
+        .columns([
+            CostCenters::Id,
+            CostCenters::Name,
+            CostCenters::Code,
+            CostCenters::Description,
+            CostCenters::State,
+            CostCenters::CreatedAt,
+            CostCenters::UpdatedAt,
+        ])
+        .and_where(Expr::col(CostCenters::State).eq(CostCenterState::Active.to_string()))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_many::<CostCenter>(&query, vec![])?;
+    
     Ok(result)
 }
 
 pub fn total_cost_centers(context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let count: i64 = cost_centers::table.count().get_result(&mut service.conn)?;
-    Ok(count as i32)
+    let service = context.service.lock().unwrap();
+    
+    // Build the count query with SeaQuery
+    let query = Query::select()
+        .from(CostCenters::Table)
+        .expr_as(Expr::col(CostCenters::Id).count(), Alias::new("count"))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
+    
+    Ok(result as i32)
 }

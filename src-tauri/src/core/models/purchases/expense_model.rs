@@ -4,6 +4,7 @@ use diesel::{
     Selectable,
 };
 use juniper::GraphQLInputObject;
+use sea_query::Iden;
 
 use crate::core::types::{db_uuid::DbUuid, money::Money};
 use crate::schema::expenses;
@@ -54,4 +55,19 @@ pub struct ExpenseUpdateChangeset {
     pub cost_center_id: Option<DbUuid>,
     pub description: Option<Option<String>>,
     pub updated_at: NaiveDateTime,
+}
+
+// Define table and column identifiers for SeaQuery
+#[derive(Iden)]
+pub enum Expenses {
+    Table,
+    Id,
+    Title,
+    Amount,
+    ExpenseDate,
+    CategoryId,
+    CostCenterId,
+    Description,
+    CreatedAt,
+    UpdatedAt,
 }

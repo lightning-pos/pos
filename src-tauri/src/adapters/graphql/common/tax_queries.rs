@@ -1,45 +1,82 @@
-use diesel::{dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Order, Query, SqliteQueryBuilder};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::common::tax_model::Tax, types::db_uuid::DbUuid},
-    schema::taxes,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::common::tax_model::{Tax, Taxes},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
 pub fn taxes(first: Option<i32>, offset: Option<i32>, context: &AppState) -> FieldResult<Vec<Tax>> {
-    let mut service = context.service.lock().unwrap();
+    let service = context.service.lock().unwrap();
 
-    let mut query = taxes::table.order(taxes::created_at.desc()).into_boxed();
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(Taxes::Table)
+        .columns([
+            Taxes::Id,
+            Taxes::Name,
+            Taxes::Rate,
+            Taxes::Description,
+            Taxes::CreatedAt,
+            Taxes::UpdatedAt,
+        ])
+        .order_by(Taxes::CreatedAt, Order::Desc);
 
     // Apply pagination if parameters are provided
     if let Some(limit) = first {
-        query = query.limit(limit as i64);
+        query.limit(limit as u64);
     }
     if let Some(off) = offset {
-        query = query.offset(off as i64);
+        query.offset(off as u64);
     }
 
-    let result = query
-        .select(Tax::as_select())
-        .load::<Tax>(&mut service.conn)?;
+    let sql = query.to_string(SqliteQueryBuilder);
+
+    // Execute the query
+    let result = service.db_adapter.query_many::<Tax>(&sql, vec![])?;
 
     Ok(result)
 }
 
 pub fn tax(id: DbUuid, context: &AppState) -> FieldResult<Tax> {
-    let mut service = context.service.lock().unwrap();
-    let result = taxes::table
-        .find(id)
-        .select(Tax::as_select())
-        .get_result::<Tax>(&mut service.conn)?;
+    let service = context.service.lock().unwrap();
+    
+    // Build the query with SeaQuery
+    let query = Query::select()
+        .from(Taxes::Table)
+        .columns([
+            Taxes::Id,
+            Taxes::Name,
+            Taxes::Rate,
+            Taxes::Description,
+            Taxes::CreatedAt,
+            Taxes::UpdatedAt,
+        ])
+        .and_where(Expr::col(Taxes::Id).eq(id.to_string()))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_one::<Tax>(&query, vec![])?;
+    
     Ok(result)
 }
 
 pub fn total_taxes(context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let result: i64 = taxes::table
-        .select(count(taxes::id))
-        .get_result(&mut service.conn)?;
+    let service = context.service.lock().unwrap();
+    
+    // Build the count query with SeaQuery
+    let query = Query::select()
+        .from(Taxes::Table)
+        .expr_as(Expr::col(Taxes::Id).count(), Alias::new("count"))
+        .to_string(SqliteQueryBuilder);
+    
+    // Execute the query
+    let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
+    
     Ok(result as i32)
 }

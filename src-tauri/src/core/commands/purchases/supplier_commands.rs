@@ -1,17 +1,17 @@
 use chrono::Utc;
-use diesel::{Connection, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
         models::purchases::supplier_model::{
-            Supplier, SupplierNewInput, SupplierUpdateChangeset, SupplierUpdateInput,
+            Supplier, SupplierNewInput, SupplierUpdateInput, Suppliers,
         },
         types::db_uuid::DbUuid,
     },
-    error::Result,
-    schema::suppliers,
+    error::{Error, Result},
 };
 
 // Commands
@@ -32,24 +32,44 @@ impl Command for CreateSupplierCommand {
     type Output = Supplier;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let new_supplier = Supplier {
-                id: Uuid::now_v7().into(),
-                name: self.supplier.name.clone(),
-                address: self.supplier.address.clone(),
-                phone: self.supplier.phone.clone(),
-                created_at: now,
-                updated_at: now,
-            };
+        let now = Utc::now().naive_utc();
+        let new_id = Uuid::now_v7();
+        
+        let new_supplier = Supplier {
+            id: new_id.into(),
+            name: self.supplier.name.clone(),
+            address: self.supplier.address.clone(),
+            phone: self.supplier.phone.clone(),
+            created_at: now,
+            updated_at: now,
+        };
 
-            let res = diesel::insert_into(suppliers::table)
-                .values(&new_supplier)
-                .returning(Supplier::as_returning())
-                .get_result(conn)?;
+        // Build the insert query with SeaQuery
+        let query = Query::insert()
+            .into_table(Suppliers::Table)
+            .columns([
+                Suppliers::Id,
+                Suppliers::Name,
+                Suppliers::Address,
+                Suppliers::Phone,
+                Suppliers::CreatedAt,
+                Suppliers::UpdatedAt,
+            ])
+            .values_panic([
+                new_id.to_string().into(),
+                self.supplier.name.clone().into(),
+                self.supplier.address.clone().into(),
+                self.supplier.phone.clone().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ])
+            .to_string(SqliteQueryBuilder);
 
-            Ok(res)
-        })
+        // Execute the query
+        service.db_adapter.execute(&query, vec![])?;
+
+        // Return the newly created supplier
+        Ok(new_supplier)
     }
 }
 
@@ -57,25 +77,67 @@ impl Command for UpdateSupplierCommand {
     type Output = Supplier;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let supplier_id = self.supplier.id;
+        let now = Utc::now().naive_utc();
+        let supplier_id = self.supplier.id;
 
-            let changeset = SupplierUpdateChangeset {
-                id: supplier_id,
-                name: self.supplier.name.clone(),
-                address: self.supplier.address.clone(),
-                phone: self.supplier.phone.clone(),
-                updated_at: now,
+        // First, check if the supplier exists
+        let check_query = Query::select()
+            .from(Suppliers::Table)
+            .columns([
+                Suppliers::Id,
+                Suppliers::Name,
+                Suppliers::Address,
+                Suppliers::Phone,
+                Suppliers::CreatedAt,
+                Suppliers::UpdatedAt,
+            ])
+            .and_where(Expr::col(Suppliers::Id).eq(supplier_id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let existing = service.db_adapter.query_optional::<Supplier>(&check_query, vec![])?;
+
+        if existing.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        // Build the update query with SeaQuery
+        let mut update_query = Query::update();
+        let query = update_query.table(Suppliers::Table);
+
+        // Only set fields that are provided in the update input
+        if let Some(name) = &self.supplier.name {
+            query.value(Suppliers::Name, name.clone());
+        }
+
+        if let Some(address) = &self.supplier.address {
+            match address {
+                Some(addr) => query.value(Suppliers::Address, addr.clone()),
+                None => query.value(Suppliers::Address, sea_query::Value::String(None)),
             };
+        }
 
-            let res = diesel::update(suppliers::table.find(supplier_id))
-                .set(changeset)
-                .returning(Supplier::as_returning())
-                .get_result(conn)?;
+        if let Some(phone) = &self.supplier.phone {
+            match phone {
+                Some(p) => query.value(Suppliers::Phone, p.clone()),
+                None => query.value(Suppliers::Phone, sea_query::Value::String(None)),
+            };
+        }
 
-            Ok(res)
-        })
+        // Always update the updated_at timestamp
+        query.value(Suppliers::UpdatedAt, now.to_string());
+
+        // Add the WHERE clause
+        query.and_where(Expr::col(Suppliers::Id).eq(supplier_id.to_string()));
+
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        service.db_adapter.execute(&sql, vec![])?;
+
+        // Get the updated supplier
+        let updated_supplier = service.db_adapter.query_one::<Supplier>(&check_query, vec![])?;
+
+        Ok(updated_supplier)
     }
 }
 
@@ -83,18 +145,23 @@ impl Command for DeleteSupplierCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let res = diesel::delete(suppliers::table.find(self.id)).execute(conn)?;
-            Ok(res as i32)
-        })
+        // Build the delete query with SeaQuery
+        let query = Query::delete()
+            .from_table(Suppliers::Table)
+            .and_where(Expr::col(Suppliers::Id).eq(self.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        let affected_rows = service.db_adapter.execute(&query, vec![])?;
+
+        Ok(affected_rows as i32)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::schema::suppliers;
-    use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+    use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     #[test]
     fn test_create_supplier() {
@@ -232,11 +299,13 @@ mod tests {
         assert_eq!(result, 1);
 
         // Verify supplier no longer exists
-        let count: i64 = suppliers::table
-            .filter(suppliers::id.eq(supplier.id))
-            .count()
-            .get_result(&mut service.conn)
-            .unwrap();
+        let count_query = Query::select()
+            .from(Suppliers::Table)
+            .expr_as(Expr::col(Suppliers::Id).count(), Alias::new("count"))
+            .and_where(Expr::col(Suppliers::Id).eq(supplier.id.to_string()))
+            .to_string(SqliteQueryBuilder);
+            
+        let count = service.db_adapter.query_one::<i64>(&count_query, vec![]).unwrap();
         assert_eq!(count, 0);
     }
 

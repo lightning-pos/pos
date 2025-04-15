@@ -1,35 +1,73 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::common::channel_model::Channel, types::db_uuid::DbUuid},
-    schema::channels,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::common::channel_model::{Channel, Channels},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
 pub fn get_channel(id: DbUuid, context: &AppState) -> FieldResult<Channel> {
-    let conn = &mut context.service.lock().unwrap().conn;
-    let channel = channels::table
-        .filter(channels::id.eq(id))
-        .select(Channel::as_select())
-        .get_result(conn)?;
+    let service = context.service.lock().unwrap();
+    
+    let query = Query::select()
+        .from(Channels::Table)
+        .columns([
+            Channels::Id,
+            Channels::Name,
+            Channels::Description,
+            Channels::IsActive,
+            Channels::CreatedAt,
+            Channels::UpdatedAt,
+        ])
+        .and_where(Expr::col(Channels::Id).eq(id.to_string()))
+        .to_string(SqliteQueryBuilder);
+        
+    let channel = service.db_adapter.query_one::<Channel>(&query, vec![])?;
 
     Ok(channel)
 }
 
 pub fn get_channels(context: &AppState) -> FieldResult<Vec<Channel>> {
-    let conn = &mut context.service.lock().unwrap().conn;
-    let channels_list = channels::table.select(Channel::as_select()).load(conn)?;
+    let service = context.service.lock().unwrap();
+    
+    let query = Query::select()
+        .from(Channels::Table)
+        .columns([
+            Channels::Id,
+            Channels::Name,
+            Channels::Description,
+            Channels::IsActive,
+            Channels::CreatedAt,
+            Channels::UpdatedAt,
+        ])
+        .to_string(SqliteQueryBuilder);
+        
+    let channels_list = service.db_adapter.query_many::<Channel>(&query, vec![])?;
 
     Ok(channels_list)
 }
 
 pub fn get_active_channels(context: &AppState) -> FieldResult<Vec<Channel>> {
-    let conn = &mut context.service.lock().unwrap().conn;
-    let channels_list = channels::table
-        .filter(channels::is_active.eq(true))
-        .select(Channel::as_select())
-        .load(conn)?;
+    let service = context.service.lock().unwrap();
+    
+    let query = Query::select()
+        .from(Channels::Table)
+        .columns([
+            Channels::Id,
+            Channels::Name,
+            Channels::Description,
+            Channels::IsActive,
+            Channels::CreatedAt,
+            Channels::UpdatedAt,
+        ])
+        .and_where(Expr::col(Channels::IsActive).eq(true))
+        .to_string(SqliteQueryBuilder);
+        
+    let channels_list = service.db_adapter.query_many::<Channel>(&query, vec![])?;
 
     Ok(channels_list)
 }
