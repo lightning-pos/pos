@@ -193,13 +193,13 @@ impl Command for DeleteItemGroupCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::catalog::item_group_model::ItemGroupState;
+    use crate::core::{commands::tests::setup_service, models::catalog::item_group_model::ItemGroupState};
     use diesel::result::Error::NotFound;
     use uuid::Uuid;
 
     #[test]
     fn test_create_item_category() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let new_cat = ItemGroupNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_create_item_category_already_exists() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let new_cat = ItemGroupNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_update_item_category() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let new_cat = ItemGroupNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_update_item_category_does_not_exist() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let now = Utc::now().naive_utc();
         let category = ItemGroupUpdate {
             id: Uuid::now_v7().into(),
@@ -274,7 +274,7 @@ mod tests {
 
     #[test]
     fn test_delete_item_category() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let new_cat = ItemGroupNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),

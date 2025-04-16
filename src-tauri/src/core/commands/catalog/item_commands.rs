@@ -264,6 +264,8 @@ impl Command for DeleteItemCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::commands::tests::setup_service;
+
     use super::*;
 
     // Helper function to create a test category
@@ -343,7 +345,7 @@ mod tests {
 
     #[test]
     fn test_create_item() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a test category first
         let category = create_test_category(&mut service);
@@ -367,7 +369,7 @@ mod tests {
 
     #[test]
     fn test_create_item_with_taxes() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create test category
         let category = create_test_category(&mut service);
@@ -410,7 +412,7 @@ mod tests {
 
     #[test]
     fn test_create_item_with_nonexistent_tax() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create only category
         let category = create_test_category(&mut service);
@@ -433,7 +435,7 @@ mod tests {
 
     #[test]
     fn test_update_item() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a test category first
         let category = create_test_category(&mut service);
@@ -470,7 +472,7 @@ mod tests {
 
     #[test]
     fn test_update_item_does_not_exist() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let now = Utc::now().naive_utc();
         let item = UpdateItem {
@@ -492,7 +494,7 @@ mod tests {
 
     #[test]
     fn test_delete_item() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a test category first
         let category = create_test_category(&mut service);
@@ -518,7 +520,7 @@ mod tests {
 
     #[test]
     fn test_delete_item_does_not_exist() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = DeleteItemCommand {
             id: Uuid::now_v7().into(),

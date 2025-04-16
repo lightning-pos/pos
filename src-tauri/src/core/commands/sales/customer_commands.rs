@@ -34,7 +34,7 @@ impl Command for CreateCustomerCommand {
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
-        
+
         let new_customer = Customer {
             id: new_id.into(),
             full_name: self.customer.full_name.clone(),
@@ -97,7 +97,7 @@ impl Command for UpdateCustomerCommand {
             ])
             .and_where(Expr::col(Customers::Id).eq(customer_id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<Customer>(&check_query, vec![])?;
 
         if existing.is_none() {
@@ -175,13 +175,15 @@ impl Command for DeleteCustomerCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::commands::tests::setup_service;
+
     use super::*;
     use uuid::Uuid;
     use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     #[test]
     fn test_create_customer() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let new_customer = CustomerNewInput {
             full_name: String::from("John Doe"),
             email: Some(String::from("john@example.com")),
@@ -201,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_update_customer() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let new_customer = CustomerNewInput {
             full_name: String::from("John Doe"),
             email: Some(String::from("john@example.com")),
@@ -235,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_update_customer_does_not_exist() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let customer = CustomerUpdateInput {
             id: Uuid::now_v7().into(),
             full_name: Some(String::from("John Smith")),
@@ -251,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_delete_customer() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let new_customer = CustomerNewInput {
             full_name: String::from("John Doe"),
             email: Some(String::from("john@example.com")),
@@ -267,21 +269,21 @@ mod tests {
         let delete_command = DeleteCustomerCommand { id: customer.id };
         let result = delete_command.exec(&mut app_service);
         assert!(result.is_ok());
-        
+
         // Verify customer no longer exists
         let count_query = Query::select()
             .from(Customers::Table)
             .expr_as(Expr::col(Customers::Id).count(), Alias::new("count"))
             .and_where(Expr::col(Customers::Id).eq(customer.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let count = app_service.db_adapter.query_one::<i64>(&count_query, vec![]).unwrap();
         assert_eq!(count, 0);
     }
 
     #[test]
     fn test_delete_customer_does_not_exist() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let command = DeleteCustomerCommand {
             id: Uuid::now_v7().into(),
         };

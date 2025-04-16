@@ -344,6 +344,7 @@ impl Command for GetSalesOrderPaymentsCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::commands::tests::setup_service;
     use crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentState;
     use crate::core::{
         commands::{
@@ -481,7 +482,7 @@ mod tests {
 
     #[test]
     fn test_create_sales_order_payment() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let order = create_test_sales_order(&mut service);
         let payment_method = create_test_payment_method(&mut service);
@@ -507,7 +508,7 @@ mod tests {
 
     #[test]
     fn test_create_multiple_payments_for_order() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let order = create_test_sales_order(&mut service);
         let payment_method = create_test_payment_method(&mut service);
@@ -573,7 +574,7 @@ mod tests {
 
     #[test]
     fn test_update_sales_order_payment() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let order = create_test_sales_order(&mut service);
         let payment_method = create_test_payment_method(&mut service);
@@ -619,7 +620,7 @@ mod tests {
 
     #[test]
     fn test_void_sales_order_payment() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let order = create_test_sales_order(&mut service);
         let payment_method = create_test_payment_method(&mut service);
@@ -646,7 +647,7 @@ mod tests {
 
     #[test]
     fn test_void_already_voided_payment() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let order = create_test_sales_order(&mut service);
         let payment_method = create_test_payment_method(&mut service);
@@ -672,7 +673,7 @@ mod tests {
 
     #[test]
     fn test_void_non_existent_payment() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let id = Uuid::now_v7().into();
 
         let void_cmd = VoidSalesOrderPaymentCommand { id };
@@ -682,7 +683,7 @@ mod tests {
 
     #[test]
     fn test_update_non_existent_payment() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let id = Uuid::now_v7().into();
 
         let update_input = SalesOrderPaymentUpdateInput {
@@ -704,7 +705,7 @@ mod tests {
 
     #[test]
     fn test_get_sales_order_payments() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let order = create_test_sales_order(&mut service);
         let payment_method = create_test_payment_method(&mut service);
@@ -747,7 +748,7 @@ mod tests {
 
     #[test]
     fn test_get_payments_for_nonexistent_order() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let id = Uuid::now_v7().into();
 
         let get_cmd = GetSalesOrderPaymentsCommand { order_id: id };

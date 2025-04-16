@@ -32,7 +32,7 @@ impl Command for CreateCartCommand {
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
-        
+
         let new_cart = Cart {
             id: new_id.into(),
             customer_id: self.cart.customer_id,
@@ -87,7 +87,7 @@ impl Command for UpdateCartCommand {
             ])
             .and_where(Expr::col(Carts::Id).eq(cart_id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<Cart>(&check_query, vec![])?;
 
         if existing.is_none() {
@@ -148,7 +148,7 @@ mod tests {
     use chrono::Utc;
     use uuid::Uuid;
     use crate::core::{
-        commands::sales::customer_commands::CreateCustomerCommand,
+        commands::{sales::customer_commands::CreateCustomerCommand, tests::setup_service},
         models::sales::customer_model::CustomerNewInput,
     };
     use rand::Rng;
@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn test_create_cart_with_customer() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let customer_id = Some(create_test_customer(&mut app_service));
         let cart_data = r#"{"items": []}"#.to_string();
 
@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_create_cart_without_customer() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
         let cart_data = r#"{"items": []}"#.to_string();
 
         let command = CreateCartCommand {
@@ -210,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_update_cart() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
 
         // First create a cart without customer
         let initial_cart_data = r#"{"items": []}"#.to_string();
@@ -240,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_update_cart_does_not_exist() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
 
         let nonexistent_id = Uuid::now_v7().into();
         let command = UpdateCartCommand {
@@ -256,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_delete_cart() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
 
         // First create a cart
         let create_command = CreateCartCommand {
@@ -281,14 +281,14 @@ mod tests {
             .expr_as(Expr::col(Carts::Id).count(), Alias::new("count"))
             .and_where(Expr::col(Carts::Id).eq(created_cart.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let count = app_service.db_adapter.query_one::<i64>(&check_query, vec![]).unwrap();
         assert_eq!(count, 0);
     }
 
     #[test]
     fn test_delete_cart_does_not_exist() {
-        let mut app_service = AppService::new(":memory:");
+        let mut app_service = setup_service();
 
         let nonexistent_id = Uuid::now_v7().into();
         let command = DeleteCartCommand { id: nonexistent_id };

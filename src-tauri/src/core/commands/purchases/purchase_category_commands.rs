@@ -38,7 +38,7 @@ impl Command for CreatePurchaseCategoryCommand {
             .columns([PurchaseCategories::Id])
             .and_where(Expr::col(PurchaseCategories::Name).eq(&self.category.name))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<DbUuid>(&check_query, vec![])?;
 
         if existing.is_some() {
@@ -47,7 +47,7 @@ impl Command for CreatePurchaseCategoryCommand {
 
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
-        
+
         let new_category = PurchaseCategory {
             id: new_id.into(),
             name: self.category.name.clone(),
@@ -103,7 +103,7 @@ impl Command for UpdatePurchaseCategoryCommand {
             ])
             .and_where(Expr::col(PurchaseCategories::Id).eq(self.category.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<PurchaseCategory>(&check_query, vec![])?;
 
         if existing.is_none() {
@@ -160,7 +160,7 @@ impl Command for DeletePurchaseCategoryCommand {
             .columns([PurchaseCategories::Id])
             .and_where(Expr::col(PurchaseCategories::Id).eq(self.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<DbUuid>(&check_query, vec![])?;
 
         if existing.is_none() {
@@ -182,12 +182,14 @@ impl Command for DeletePurchaseCategoryCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::commands::tests::setup_service;
+
     use super::*;
     use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     #[test]
     fn test_create_purchase_category() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = CreatePurchaseCategoryCommand {
             category: PurchaseCategoryNew {
@@ -208,7 +210,7 @@ mod tests {
 
     #[test]
     fn test_create_duplicate_category() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create first category
         let command1 = CreatePurchaseCategoryCommand {
@@ -234,7 +236,7 @@ mod tests {
 
     #[test]
     fn test_update_purchase_category() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create category
         let command = CreatePurchaseCategoryCommand {
@@ -268,7 +270,7 @@ mod tests {
 
     #[test]
     fn test_update_nonexistent_category() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let update_command = UpdatePurchaseCategoryCommand {
             category: PurchaseCategoryUpdate {
@@ -286,7 +288,7 @@ mod tests {
 
     #[test]
     fn test_delete_purchase_category() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create category
         let command = CreatePurchaseCategoryCommand {
@@ -309,14 +311,14 @@ mod tests {
             .expr_as(Expr::col(PurchaseCategories::Id).count(), Alias::new("count"))
             .and_where(Expr::col(PurchaseCategories::Id).eq(category.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let count = service.db_adapter.query_one::<i64>(&count_query, vec![]).unwrap();
         assert_eq!(count, 0);
     }
 
     #[test]
     fn test_delete_nonexistent_category() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let delete_command = DeletePurchaseCategoryCommand {
             id: Uuid::now_v7().into(),

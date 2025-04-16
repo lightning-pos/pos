@@ -53,12 +53,10 @@ mod tests {
     use crate::{
         core::{
             commands::{
-                app_service::AppService,
-                auth::{
+                app_service::AppService, auth::{
                     auth_commands::{LoginCommand, LogoutCommand},
                     user_commands::AddUserCommand,
-                },
-                Command,
+                }, tests::setup_service, Command
             },
             models::auth::user_model::UserNewInput,
         },
@@ -67,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_login_command() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "testuser".to_string(),
@@ -101,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_logout_command() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         service.state.current_user = Some(Uuid::now_v7().into());
 
         let logout_command = LogoutCommand;

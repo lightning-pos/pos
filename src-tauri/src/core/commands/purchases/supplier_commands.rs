@@ -34,7 +34,7 @@ impl Command for CreateSupplierCommand {
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
-        
+
         let new_supplier = Supplier {
             id: new_id.into(),
             name: self.supplier.name.clone(),
@@ -93,7 +93,7 @@ impl Command for UpdateSupplierCommand {
             ])
             .and_where(Expr::col(Suppliers::Id).eq(supplier_id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<Supplier>(&check_query, vec![])?;
 
         if existing.is_none() {
@@ -160,12 +160,14 @@ impl Command for DeleteSupplierCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::commands::tests::setup_service;
+
     use super::*;
     use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     #[test]
     fn test_create_supplier() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = CreateSupplierCommand {
             supplier: SupplierNewInput {
@@ -183,7 +185,7 @@ mod tests {
 
     #[test]
     fn test_create_supplier_minimal() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = CreateSupplierCommand {
             supplier: SupplierNewInput {
@@ -201,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_update_supplier() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create supplier
         let create_command = CreateSupplierCommand {
@@ -232,7 +234,7 @@ mod tests {
 
     #[test]
     fn test_update_supplier_remove_field() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create supplier
         let create_command = CreateSupplierCommand {
@@ -263,7 +265,7 @@ mod tests {
 
     #[test]
     fn test_update_nonexistent_supplier() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let update_command = UpdateSupplierCommand {
             supplier: SupplierUpdateInput {
@@ -280,7 +282,7 @@ mod tests {
 
     #[test]
     fn test_delete_supplier() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create supplier
         let create_command = CreateSupplierCommand {
@@ -304,14 +306,14 @@ mod tests {
             .expr_as(Expr::col(Suppliers::Id).count(), Alias::new("count"))
             .and_where(Expr::col(Suppliers::Id).eq(supplier.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let count = service.db_adapter.query_one::<i64>(&count_query, vec![]).unwrap();
         assert_eq!(count, 0);
     }
 
     #[test]
     fn test_delete_nonexistent_supplier() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Delete non-existent supplier
         let delete_command = DeleteSupplierCommand {

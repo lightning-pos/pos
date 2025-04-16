@@ -35,7 +35,7 @@ impl Command for CreateSalesChargeTypeCommand {
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
-        
+
         let new_charge_type = SalesChargeType {
             id: new_id.into(),
             name: self.charge_type.name.clone(),
@@ -90,7 +90,7 @@ impl Command for UpdateSalesChargeTypeCommand {
             ])
             .and_where(Expr::col(SalesChargeTypes::Id).eq(charge_type_id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<SalesChargeType>(&check_query, vec![])?;
 
         if existing.is_none() {
@@ -141,7 +141,7 @@ impl Command for DeleteSalesChargeTypeCommand {
             .expr_as(Expr::col(SalesOrderCharges::Id).count(), Alias::new("count"))
             .and_where(Expr::col(SalesOrderCharges::ChargeTypeId).eq(self.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let count = service.db_adapter.query_one::<i64>(&count_query, vec![])?;
 
         if count > 0 {
@@ -164,12 +164,12 @@ impl Command for DeleteSalesChargeTypeCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::Error;
+    use crate::{core::commands::tests::setup_service, error::Error};
     use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     #[test]
     fn test_create_sales_charge_type() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let input = SalesChargeTypeNewInput {
             name: "Service Charge".to_string(),
@@ -185,7 +185,7 @@ mod tests {
 
     #[test]
     fn test_update_sales_charge_type() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create first
         let input = SalesChargeTypeNewInput {
@@ -227,7 +227,7 @@ mod tests {
 
     #[test]
     fn test_update_non_existent_charge_type() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let update_input = SalesChargeTypeUpdateInput {
             id: Uuid::now_v7().into(),
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_delete_sales_charge_type() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a charge type first
         let input = SalesChargeTypeNewInput {
@@ -266,7 +266,7 @@ mod tests {
             .expr_as(Expr::col(SalesChargeTypes::Id).count(), Alias::new("count"))
             .and_where(Expr::col(SalesChargeTypes::Id).eq(created.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let count = service.db_adapter.query_one::<i64>(&check_query, vec![]).unwrap();
         assert_eq!(count, 0);
     }

@@ -302,16 +302,14 @@ impl Command for RemoveTaxFromItemCommand {
 mod tests {
     use super::*;
     use crate::core::{
-        commands::app_service::AppService,
-        commands::catalog::item_group_commands::CreateItemGroupCommand,
-        models::catalog::item_model::{ItemNature, ItemState},
-        models::catalog::item_group_model::ItemGroupNew,
+        commands::{app_service::AppService, catalog::item_group_commands::CreateItemGroupCommand, tests::setup_service},
+        models::catalog::{item_group_model::ItemGroupNew, item_model::{ItemNature, ItemState}},
         types::percentage::Percentage,
     };
 
     #[test]
     fn test_create_tax() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = CreateTaxCommand {
             tax: TaxNewInput {
@@ -330,7 +328,7 @@ mod tests {
 
     #[test]
     fn test_create_tax_with_items() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create test items
         let item1 = create_test_item(&mut service);
@@ -367,7 +365,7 @@ mod tests {
 
     #[test]
     fn test_create_tax_with_nonexistent_item() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = CreateTaxCommand {
             tax: TaxNewInput {
@@ -384,7 +382,7 @@ mod tests {
 
     #[test]
     fn test_update_tax() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // First create a tax
         let create_command = CreateTaxCommand {
@@ -418,7 +416,7 @@ mod tests {
 
     #[test]
     fn test_update_tax_does_not_exist() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = UpdateTaxCommand {
             tax: TaxUpdateInput {
@@ -435,7 +433,7 @@ mod tests {
 
     #[test]
     fn test_delete_tax() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // First create a tax
         let create_command = CreateTaxCommand {
@@ -457,7 +455,7 @@ mod tests {
 
     #[test]
     fn test_delete_tax_does_not_exist() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = DeleteTaxCommand {
             id: Uuid::now_v7().into(),
@@ -531,7 +529,7 @@ mod tests {
 
     #[test]
     fn test_assign_tax_to_item() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a tax and an item
         let tax = CreateTaxCommand {
@@ -561,7 +559,7 @@ mod tests {
 
     #[test]
     fn test_assign_tax_to_nonexistent_item() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create only a tax
         let tax = CreateTaxCommand {
@@ -589,7 +587,7 @@ mod tests {
 
     #[test]
     fn test_assign_nonexistent_tax_to_item() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create only an item
         let item = create_test_item(&mut service);
@@ -608,7 +606,7 @@ mod tests {
 
     #[test]
     fn test_assign_same_tax_twice() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a tax and an item
         let tax = CreateTaxCommand {
@@ -640,7 +638,7 @@ mod tests {
 
     #[test]
     fn test_remove_tax_from_item() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a tax and an item
         let tax = CreateTaxCommand {
@@ -678,7 +676,7 @@ mod tests {
 
     #[test]
     fn test_remove_nonexistent_tax_assignment() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = RemoveTaxFromItemCommand {
             item_id: Uuid::now_v7().into(),

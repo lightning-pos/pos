@@ -319,12 +319,13 @@ impl Command for RemoveTaxFromGroupCommand {
 mod tests {
     use super::*;
     use crate::core::commands::common::tax_commands::CreateTaxCommand;
+    use crate::core::commands::tests::setup_service;
     use crate::core::models::common::tax_model::TaxNewInput;
     use crate::core::types::percentage::Percentage;
 
     #[test]
     fn test_create_tax_group() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a tax first
         let tax_input = TaxNewInput {
@@ -359,7 +360,7 @@ mod tests {
 
     #[test]
     fn test_update_tax_group() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a tax group first
         let tax_group_input = TaxGroupNewInput {
@@ -396,7 +397,7 @@ mod tests {
 
     #[test]
     fn test_delete_tax_group() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a tax group first
         let tax_group_input = TaxGroupNewInput {
@@ -421,7 +422,7 @@ mod tests {
 
     #[test]
     fn test_assign_tax_to_group() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a tax
         let tax_input = TaxNewInput {
@@ -460,7 +461,7 @@ mod tests {
 
     #[test]
     fn test_remove_tax_from_group() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a tax
         let tax_input = TaxNewInput {

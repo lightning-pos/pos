@@ -383,6 +383,7 @@ impl Command for VoidSalesOrderCommand {
 #[cfg(test)]
 mod tests {
     use crate::core::commands::sales::sales_charge_type_commands::CreateSalesChargeTypeCommand;
+    use crate::core::commands::tests::setup_service;
     use crate::{
         core::{
             commands::{
@@ -474,7 +475,7 @@ mod tests {
 
     #[test]
     fn test_create_sales_order() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(&mut service);
         let user_id = create_test_user(&mut service);
@@ -602,7 +603,7 @@ mod tests {
 
     #[test]
     fn test_create_sales_order_with_charges() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(&mut service);
         let user_id = create_test_user(&mut service);
@@ -695,7 +696,7 @@ mod tests {
 
     #[test]
     fn test_void_sales_order() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(&mut service);
         let user_id = create_test_user(&mut service);
@@ -752,7 +753,7 @@ mod tests {
 
     #[test]
     fn test_void_already_cancelled_order() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(&mut service);
         let user_id = create_test_user(&mut service);
@@ -808,7 +809,7 @@ mod tests {
 
     #[test]
     fn test_void_non_existent_order() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let user_id = create_test_user(&mut service);
 
         let cmd = VoidSalesOrderCommand {

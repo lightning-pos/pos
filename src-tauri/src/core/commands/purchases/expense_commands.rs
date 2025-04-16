@@ -34,7 +34,7 @@ impl Command for CreateExpenseCommand {
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
-        
+
         let new_expense = Expense {
             id: new_id.into(),
             title: self.expense.title.clone(),
@@ -179,7 +179,7 @@ impl Command for DeleteExpenseCommand {
 mod tests {
     use super::*;
     use crate::core::{
-        commands::{purchases::purchase_category_commands::CreatePurchaseCategoryCommand, Command},
+        commands::{purchases::purchase_category_commands::CreatePurchaseCategoryCommand, tests::setup_service, Command},
         models::{
             finance::cost_center_model::CostCenter,
             purchases::purchase_category_model::{PurchaseCategory, PurchaseCategoryNew},
@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_create_expense() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a category first
         let category = create_test_category(&mut service);
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_update_expense() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a category first
         let category = create_test_category(&mut service);
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_delete_expense() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a category first
         let category = create_test_category(&mut service);
@@ -314,14 +314,14 @@ mod tests {
             .expr_as(Expr::col(Expenses::Id).count(), Alias::new("count"))
             .and_where(Expr::col(Expenses::Id).eq(expense.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let count = service.db_adapter.query_one::<i64>(&count_query, vec![]).unwrap();
         assert_eq!(count, 0);
     }
 
     #[test]
     fn test_update_expense_cost_center() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create a category
         let category = create_test_category(&mut service);

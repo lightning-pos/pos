@@ -34,7 +34,7 @@ impl Command for CreateCostCenterCommand {
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
-        
+
         let new_cost_center = CostCenter {
             id: new_id.into(),
             name: self.cost_center.name.clone(),
@@ -161,12 +161,14 @@ impl Command for DeleteCostCenterCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::commands::tests::setup_service;
+
     use super::*;
     use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 
     #[test]
     fn test_create_cost_center() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = CreateCostCenterCommand {
             cost_center: CostCenterNewInput {
@@ -189,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_create_cost_center_minimal() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let command = CreateCostCenterCommand {
             cost_center: CostCenterNewInput {
@@ -209,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_update_cost_center() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create cost center
         let create_command = CreateCostCenterCommand {
@@ -246,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_update_cost_center_remove_field() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create cost center
         let create_command = CreateCostCenterCommand {
@@ -280,7 +282,7 @@ mod tests {
 
     #[test]
     fn test_update_nonexistent_cost_center() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         let update_command = UpdateCostCenterCommand {
             cost_center: CostCenterUpdateInput {
@@ -298,7 +300,7 @@ mod tests {
 
     #[test]
     fn test_delete_cost_center() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Create cost center
         let create_command = CreateCostCenterCommand {
@@ -323,14 +325,14 @@ mod tests {
             .expr_as(Expr::col(CostCenters::Id).count(), Alias::new("count"))
             .and_where(Expr::col(CostCenters::Id).eq(cost_center.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let count = service.db_adapter.query_one::<i64>(&count_query, vec![]).unwrap();
         assert_eq!(count, 0);
     }
 
     #[test]
     fn test_delete_nonexistent_cost_center() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
 
         // Delete non-existent cost center
         let delete_command = DeleteCostCenterCommand {

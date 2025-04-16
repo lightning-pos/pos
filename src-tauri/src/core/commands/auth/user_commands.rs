@@ -187,11 +187,13 @@ impl Command for DeleteUserCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::commands::tests::setup_service;
+
     use super::*;
 
     #[test]
     fn test_add_user_command() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "newuser".to_string(),
@@ -210,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_update_user_command() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "updateuser".to_string(),
@@ -240,7 +242,7 @@ mod tests {
 
     #[test]
     fn test_add_user_command_duplicate_username() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "testuser".to_string(),
@@ -267,7 +269,7 @@ mod tests {
 
     #[test]
     fn test_update_user_command_non_existent_user() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let non_existent_id = Uuid::now_v7().into();
         let update_user_command = UpdateUserCommand {
             user: UserUpdateInput {
@@ -285,7 +287,7 @@ mod tests {
 
     #[test]
     fn test_update_user_command_partial_update() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "partialupdate".to_string(),
@@ -316,7 +318,7 @@ mod tests {
 
     #[test]
     fn test_delete_user_command() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "deleteuser".to_string(),
@@ -339,7 +341,7 @@ mod tests {
 
     #[test]
     fn test_delete_non_existent_user() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         let non_existent_id = Uuid::now_v7().into();
         let delete_user_command = DeleteUserCommand {
             id: non_existent_id,

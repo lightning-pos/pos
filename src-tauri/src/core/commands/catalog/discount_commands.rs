@@ -294,14 +294,8 @@ impl Command for ListDiscountsCommand {
 mod tests {
     use super::*;
     use crate::core::{
-        models::catalog::discount_model::{DiscountScope, DiscountType},
-        types::money::Money,
+        commands::tests::setup_service, models::catalog::discount_model::{DiscountScope, DiscountType}, types::money::Money
     };
-    // Assuming AppService::new(":memory:") works for setting up an in-memory SQLite DB
-
-    fn setup_service() -> AppService {
-        AppService::new(":memory:")
-    }
 
     fn create_basic_discount(service: &mut AppService) -> Discount {
         let new_discount_info = DiscountNewInput {

@@ -38,7 +38,7 @@ impl Command for CreatePaymentMethodCommand {
             .columns([PaymentMethods::Id])
             .and_where(Expr::col(PaymentMethods::Code).eq(&self.payment_method.code))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<DbUuid>(&check_query, vec![])?;
 
         if existing.is_some() {
@@ -47,7 +47,7 @@ impl Command for CreatePaymentMethodCommand {
 
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
-        
+
         let new_payment_method = PaymentMethod {
             id: new_id.into(),
             name: self.payment_method.name.clone(),
@@ -107,7 +107,7 @@ impl Command for UpdatePaymentMethodCommand {
             ])
             .and_where(Expr::col(PaymentMethods::Id).eq(self.payment_method.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<PaymentMethod>(&check_query, vec![])?;
 
         if existing.is_none() {
@@ -122,7 +122,7 @@ impl Command for UpdatePaymentMethodCommand {
                 .and_where(Expr::col(PaymentMethods::Code).eq(code))
                 .and_where(Expr::col(PaymentMethods::Id).ne(self.payment_method.id.to_string()))
                 .to_string(SqliteQueryBuilder);
-                
+
             let duplicate = service.db_adapter.query_optional::<DbUuid>(&duplicate_check_query, vec![])?;
 
             if duplicate.is_some() {
@@ -184,7 +184,7 @@ impl Command for DeletePaymentMethodCommand {
             .columns([PaymentMethods::Id])
             .and_where(Expr::col(PaymentMethods::Id).eq(self.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let existing = service.db_adapter.query_optional::<DbUuid>(&check_query, vec![])?;
 
         if existing.is_none() {
@@ -203,7 +203,7 @@ impl Command for DeletePaymentMethodCommand {
             .expr_as(Expr::col(SalesOrderPayments::Id).count(), Alias::new("count"))
             .and_where(Expr::col(SalesOrderPayments::PaymentMethodId).eq(self.id.to_string()))
             .to_string(SqliteQueryBuilder);
-            
+
         let payment_method_in_use = service.db_adapter.query_one::<i64>(&count_query, vec![])?;
 
         if payment_method_in_use > 0 {
@@ -228,6 +228,8 @@ impl Command for DeletePaymentMethodCommand {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::commands::tests::setup_service;
+
     use super::*;
     use sea_query::{Expr, Query, SqliteQueryBuilder};
 
@@ -242,13 +244,13 @@ mod tests {
             created_at TIMESTAMP NOT NULL,
             updated_at TIMESTAMP NOT NULL
         )";
-        
+
         service.db_adapter.execute(create_table_sql, vec![]).unwrap();
     }
 
     #[test]
     fn test_create_payment_method() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         setup_test_db(&mut service);
 
         let input = PaymentMethodNewInput {
@@ -271,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_create_payment_method_default_state() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         setup_test_db(&mut service);
 
         let input = PaymentMethodNewInput {
@@ -294,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_create_payment_method_duplicate_code() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         setup_test_db(&mut service);
 
         // Create first payment method
@@ -328,7 +330,7 @@ mod tests {
 
     #[test]
     fn test_update_payment_method() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         setup_test_db(&mut service);
 
         // Create payment method first
@@ -366,7 +368,7 @@ mod tests {
 
     #[test]
     fn test_update_payment_method_duplicate_code() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         setup_test_db(&mut service);
 
         // Create first payment method
@@ -414,7 +416,7 @@ mod tests {
 
     #[test]
     fn test_update_nonexistent_payment_method() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         setup_test_db(&mut service);
 
         let update_input = PaymentMethodUpdateInput {
@@ -435,7 +437,7 @@ mod tests {
 
     #[test]
     fn test_delete_payment_method() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         setup_test_db(&mut service);
 
         // Create payment method first
@@ -460,7 +462,7 @@ mod tests {
 
     #[test]
     fn test_delete_nonexistent_payment_method() {
-        let mut service = AppService::new(":memory:");
+        let mut service = setup_service();
         setup_test_db(&mut service);
 
         let delete_cmd = DeletePaymentMethodCommand {
