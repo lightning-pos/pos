@@ -1,4 +1,8 @@
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
+
+use sea_query::{SelectStatement, InsertStatement, UpdateStatement, DeleteStatement, SqliteQueryBuilder};
 
 use crate::{
     adapters::outgoing::database::{DatabaseAdapter, SqlParam},
@@ -32,38 +36,25 @@ fn convert_params(params: Vec<SqlParam>) -> Vec<libsql::Value> {
 }
 
 impl DatabaseAdapter for SqlxAdapter {
-    fn query_one<T>(&self, query: &str, params: Vec<SqlParam>) -> Result<T>
-    where
-        T: Send + Sync,
-    {
-        // Create a runtime to execute async code in a sync function
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| Error::DatabaseError(format!("Failed to create runtime: {}", e)))?;
-
-        // Convert SqlParam to libsql::Value
-        let libsql_params = convert_params(params);
+    async fn query_one<T>(&self, query: &SelectStatement) -> Result<T> {
+        // Convert the SelectStatement to SQL string
+        let sql = query.to_string(SqliteQueryBuilder);
 
         // Get a lock on the connection
         let conn = self.conn.lock()
             .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
 
         // Execute the query
-        let mut stmt = rt.block_on(async {
-            conn.prepare(query).await
-                .map_err(|e| Error::DatabaseError(format!("Failed to prepare statement: {}", e)))
-        })?;
+        let mut stmt = conn.prepare(&sql).await
+            .map_err(|e| Error::DatabaseError(format!("Failed to prepare statement: {}", e)))?;
 
         // Execute the statement
-        let mut rows = rt.block_on(async {
-            stmt.query(libsql_params).await
-                .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))
-        })?;
+        let mut rows = stmt.query(Vec::<libsql::Value>::new()).await
+            .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))?;
 
         // Get the first row
-        let row = rt.block_on(async {
-            rows.next().await
-                .map_err(|e| Error::DatabaseError(format!("Failed to get next row: {}", e)))
-        })?;
+        let row = rows.next().await
+            .map_err(|e| Error::DatabaseError(format!("Failed to get next row: {}", e)))?;
 
         // Check if we got a row
         match row {
@@ -76,38 +67,25 @@ impl DatabaseAdapter for SqlxAdapter {
         }
     }
 
-    fn query_optional<T>(&self, query: &str, params: Vec<SqlParam>) -> Result<Option<T>>
-    where
-        T: Send + Sync,
-    {
-        // Create a runtime to execute async code in a sync function
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| Error::DatabaseError(format!("Failed to create runtime: {}", e)))?;
-
-        // Convert SqlParam to libsql::Value
-        let libsql_params = convert_params(params);
+    async fn query_optional<T>(&self, query: &SelectStatement) -> Result<Option<T>> {
+        // Convert the SelectStatement to SQL string
+        let sql = query.to_string(SqliteQueryBuilder);
 
         // Get a lock on the connection
         let conn = self.conn.lock()
             .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
 
         // Execute the query
-        let mut stmt = rt.block_on(async {
-            conn.prepare(query).await
-                .map_err(|e| Error::DatabaseError(format!("Failed to prepare statement: {}", e)))
-        })?;
+        let mut stmt = conn.prepare(&sql).await
+            .map_err(|e| Error::DatabaseError(format!("Failed to prepare statement: {}", e)))?;
 
         // Execute the statement
-        let mut rows = rt.block_on(async {
-            stmt.query(libsql_params).await
-                .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))
-        })?;
+        let mut rows = stmt.query(Vec::<libsql::Value>::new()).await
+            .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))?;
 
         // Get the first row
-        let row = rt.block_on(async {
-            rows.next().await
-                .map_err(|e| Error::DatabaseError(format!("Failed to get next row: {}", e)))
-        })?;
+        let row = rows.next().await
+            .map_err(|e| Error::DatabaseError(format!("Failed to get next row: {}", e)))?;
 
         // Check if we got a row
         match row {
@@ -120,101 +98,134 @@ impl DatabaseAdapter for SqlxAdapter {
         }
     }
 
-    fn query_many<T>(&self, query: &str, params: Vec<SqlParam>) -> Result<Vec<T>>
-    where
-        T: Send + Sync,
-    {
-        // Create a runtime to execute async code in a sync function
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| Error::DatabaseError(format!("Failed to create runtime: {}", e)))?;
-
-        // Convert SqlParam to libsql::Value
-        let libsql_params = convert_params(params);
+    async fn query_many<T>(&self, query: &SelectStatement) -> Result<Vec<T>> {
+        // Convert the SelectStatement to SQL string
+        let sql = query.to_string(SqliteQueryBuilder);
 
         // Get a lock on the connection
         let conn = self.conn.lock()
             .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
 
         // Execute the query
-        let mut stmt = rt.block_on(async {
-            conn.prepare(query).await
-                .map_err(|e| Error::DatabaseError(format!("Failed to prepare statement: {}", e)))
-        })?;
+        let mut stmt = conn.prepare(&sql).await
+            .map_err(|e| Error::DatabaseError(format!("Failed to prepare statement: {}", e)))?;
 
         // Execute the statement
-        let _rows = rt.block_on(async {
-            stmt.query(libsql_params).await
-                .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))
-        })?;
+        let _rows = stmt.query(Vec::<libsql::Value>::new()).await
+            .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))?;
 
         // For now, we'll return a placeholder error
         // In a real implementation, we would collect all rows and deserialize them into Vec<T>
         Err(Error::DatabaseError("Deserialization not implemented yet".to_string()))
     }
 
-    fn execute(&self, query: &str, params: Vec<SqlParam>) -> Result<u64> {
-        // Create a runtime to execute async code in a sync function
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| Error::DatabaseError(format!("Failed to create runtime: {}", e)))?;
-
-        // Convert SqlParam to libsql::Value
-        let libsql_params = convert_params(params);
-
+    async fn execute(&self, query: &str) -> Result<u64> {
         // Get a lock on the connection
         let conn = self.conn.lock()
             .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
 
         // Execute the query
-        let mut stmt = rt.block_on(async {
-            conn.prepare(query).await
-                .map_err(|e| Error::DatabaseError(format!("Failed to prepare statement: {}", e)))
-        })?;
+        let mut stmt = conn.prepare(query).await
+            .map_err(|e| Error::DatabaseError(format!("Failed to prepare statement: {}", e)))?;
 
         // Execute the statement
-        let result = rt.block_on(async {
-            stmt.execute(libsql_params).await
-                .map_err(|e| Error::DatabaseError(format!("Failed to execute statement: {}", e)))
-        })?;
+        let result = stmt.execute(Vec::<libsql::Value>::new()).await
+            .map_err(|e| Error::DatabaseError(format!("Failed to execute statement: {}", e)))?;
 
         // Return the number of affected rows
         Ok(result as u64)
     }
 
-    fn transaction<F, R>(&self, f: F) -> Result<R>
-    where
-        F: FnOnce(&Self) -> Result<R> + Send + Sync,
-        R: Send + Sync,
-    {
-        // Create a runtime to execute async code in a sync function
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| Error::DatabaseError(format!("Failed to create runtime: {}", e)))?;
+    async fn insert_one<T>(&self, query: &InsertStatement) -> Result<T> {
+        // Convert the InsertStatement to SQL string
+        let sql = query.to_string(SqliteQueryBuilder);
 
+        // Execute the query
+        self.execute(&sql).await?;
+
+        // For now, we'll return a placeholder error
+        // In a real implementation, we would fetch the inserted row and deserialize it into T
+        Err(Error::DatabaseError("Deserialization not implemented yet".to_string()))
+    }
+
+    async fn insert_many(&self, query: &InsertStatement) -> Result<u64> {
+        // Convert the InsertStatement to SQL string
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query and return the number of affected rows
+        self.execute(&sql).await
+    }
+
+    async fn update_one<T>(&self, query: &UpdateStatement) -> Result<T> {
+        // Convert the UpdateStatement to SQL string
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        let affected = self.execute(&sql).await?;
+
+        if affected == 0 {
+            return Err(Error::NotFoundError);
+        }
+
+        // For now, we'll return a placeholder error
+        // In a real implementation, we would fetch the updated row and deserialize it into T
+        Err(Error::DatabaseError("Deserialization not implemented yet".to_string()))
+    }
+
+    async fn update_many(&self, query: &UpdateStatement) -> Result<u64> {
+        // Convert the UpdateStatement to SQL string
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query and return the number of affected rows
+        self.execute(&sql).await
+    }
+
+    async fn upsert<T>(&self, query: &InsertStatement) -> Result<T> {
+        // Convert the InsertStatement to SQL string with ON CONFLICT clause
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query
+        self.execute(&sql).await?;
+
+        // For now, we'll return a placeholder error
+        // In a real implementation, we would fetch the upserted row and deserialize it into T
+        Err(Error::DatabaseError("Deserialization not implemented yet".to_string()))
+    }
+
+    async fn delete(&self, query: &DeleteStatement) -> Result<u64> {
+        // Convert the DeleteStatement to SQL string
+        let sql = query.to_string(SqliteQueryBuilder);
+
+        // Execute the query and return the number of affected rows
+        self.execute(&sql).await
+    }
+
+    async fn transaction<F, R>(&self, f: F) -> Result<R>
+    where
+        F: FnOnce(&Self) -> Pin<Box<dyn Future<Output = Result<R>> + Send>> + Send,
+        R: Send,
+    {
         // Get a lock on the connection
         let conn = self.conn.lock()
             .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
 
         // Begin transaction
-        rt.block_on(async {
-            conn.execute("BEGIN TRANSACTION", Vec::<libsql::Value>::new()).await
-                .map_err(|e| Error::DatabaseError(format!("Failed to begin transaction: {}", e)))
-        })?;
+        conn.execute("BEGIN TRANSACTION", Vec::<libsql::Value>::new()).await
+            .map_err(|e| Error::DatabaseError(format!("Failed to begin transaction: {}", e)))?;
 
         // Execute the function
-        let result = f(self);
+        let future = f(self);
+        let result = future.await;
 
         // Commit or rollback transaction based on the result
         match &result {
             Ok(_) => {
-                rt.block_on(async {
-                    conn.execute("COMMIT", Vec::<libsql::Value>::new()).await
-                        .map_err(|e| Error::DatabaseError(format!("Failed to commit transaction: {}", e)))
-                })?;
+                conn.execute("COMMIT", Vec::<libsql::Value>::new()).await
+                    .map_err(|e| Error::DatabaseError(format!("Failed to commit transaction: {}", e)))?;
             },
             Err(_) => {
-                rt.block_on(async {
-                    conn.execute("ROLLBACK", Vec::<libsql::Value>::new()).await
-                        .map_err(|e| Error::DatabaseError(format!("Failed to rollback transaction: {}", e)))
-                })?;
+                conn.execute("ROLLBACK", Vec::<libsql::Value>::new()).await
+                    .map_err(|e| Error::DatabaseError(format!("Failed to rollback transaction: {}", e)))?;
             },
         }
 

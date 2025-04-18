@@ -33,7 +33,7 @@ pub fn analytics_overview(days: Option<i32>, context: &AppState) -> FieldResult<
         .and_where(Expr::col(SalesOrders::CreatedAt).gte(start_date.naive_utc().to_string()))
         .to_string(SqliteQueryBuilder);
 
-    let total_sales_result = service.db_adapter.query_optional::<BigDecimal>(&total_sales_query, vec![])?;
+    let total_sales_result = service.db_adapter.query_optional::<BigDecimal>(&total_sales_query)?;
     let total_sales = total_sales_result.unwrap_or_default();
 
     // Get total orders with date filter
