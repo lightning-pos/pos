@@ -1,4 +1,4 @@
-use sea_query::{Alias, Expr, Order, Query, SqliteQueryBuilder};
+use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 use juniper::FieldResult;
 
 use crate::{
@@ -49,7 +49,7 @@ pub fn cost_centers(
 
 pub fn cost_center(id: DbUuid, context: &AppState) -> FieldResult<CostCenter> {
     let service = context.service.lock().unwrap();
-    
+
     // Build the query with SeaQuery
     let query = Query::select()
         .from(CostCenters::Table)
@@ -64,16 +64,16 @@ pub fn cost_center(id: DbUuid, context: &AppState) -> FieldResult<CostCenter> {
         ])
         .and_where(Expr::col(CostCenters::Id).eq(id.to_string()))
         .to_string(SqliteQueryBuilder);
-    
+
     // Execute the query
     let result = service.db_adapter.query_one::<CostCenter>(&query, vec![])?;
-    
+
     Ok(result)
 }
 
 pub fn all_cost_centers(context: &AppState) -> FieldResult<Vec<CostCenter>> {
     let service = context.service.lock().unwrap();
-    
+
     // Build the query with SeaQuery
     let query = Query::select()
         .from(CostCenters::Table)
@@ -88,24 +88,24 @@ pub fn all_cost_centers(context: &AppState) -> FieldResult<Vec<CostCenter>> {
         ])
         .and_where(Expr::col(CostCenters::State).eq(CostCenterState::Active.to_string()))
         .to_string(SqliteQueryBuilder);
-    
+
     // Execute the query
     let result = service.db_adapter.query_many::<CostCenter>(&query, vec![])?;
-    
+
     Ok(result)
 }
 
 pub fn total_cost_centers(context: &AppState) -> FieldResult<i32> {
     let service = context.service.lock().unwrap();
-    
+
     // Build the count query with SeaQuery
     let query = Query::select()
         .from(CostCenters::Table)
         .expr_as(Expr::col(CostCenters::Id).count(), Alias::new("count"))
         .to_string(SqliteQueryBuilder);
-    
+
     // Execute the query
     let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
-    
+
     Ok(result as i32)
 }

@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
@@ -106,9 +106,6 @@ impl Command for UpdateExpenseCommand {
             .and_where(Expr::col(Expenses::Id).eq(expense_id.to_string()))
             .to_string(SqliteQueryBuilder);
 
-        let current_expense = service.db_adapter.query_one::<Expense>(&get_query, vec![])?;
-
-        // Build the update query with SeaQuery
         let mut update_query = Query::update();
         let query = update_query.table(Expenses::Table);
 
@@ -185,7 +182,7 @@ mod tests {
             purchases::purchase_category_model::{PurchaseCategory, PurchaseCategoryNew},
         },
     };
-    use sea_query::{Expr, Query, SqliteQueryBuilder};
+    use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 
     fn create_test_category(service: &mut AppService) -> PurchaseCategory {
         let command = CreatePurchaseCategoryCommand {

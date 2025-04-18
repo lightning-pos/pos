@@ -1,4 +1,4 @@
-use sea_query::{Alias, Expr, Order, Query, SqliteQueryBuilder};
+use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 use juniper::FieldResult;
 
 use crate::{
@@ -49,7 +49,7 @@ pub fn payment_methods(
 
 pub fn payment_method(id: DbUuid, context: &AppState) -> FieldResult<PaymentMethod> {
     let service = context.service.lock().unwrap();
-    
+
     // Build the query with SeaQuery
     let query = Query::select()
         .from(PaymentMethods::Table)
@@ -64,16 +64,16 @@ pub fn payment_method(id: DbUuid, context: &AppState) -> FieldResult<PaymentMeth
         ])
         .and_where(Expr::col(PaymentMethods::Id).eq(id.to_string()))
         .to_string(SqliteQueryBuilder);
-    
+
     // Execute the query
     let result = service.db_adapter.query_one::<PaymentMethod>(&query, vec![])?;
-    
+
     Ok(result)
 }
 
 pub fn all_payment_methods(context: &AppState) -> FieldResult<Vec<PaymentMethod>> {
     let service = context.service.lock().unwrap();
-    
+
     // Build the query with SeaQuery
     let query = Query::select()
         .from(PaymentMethods::Table)
@@ -88,24 +88,24 @@ pub fn all_payment_methods(context: &AppState) -> FieldResult<Vec<PaymentMethod>
         ])
         .and_where(Expr::col(PaymentMethods::State).eq(PaymentMethodState::Active.to_string()))
         .to_string(SqliteQueryBuilder);
-    
+
     // Execute the query
     let result = service.db_adapter.query_many::<PaymentMethod>(&query, vec![])?;
-    
+
     Ok(result)
 }
 
 pub fn total_payment_methods(context: &AppState) -> FieldResult<i32> {
     let service = context.service.lock().unwrap();
-    
+
     // Build the count query with SeaQuery
     let query = Query::select()
         .from(PaymentMethods::Table)
         .expr_as(Expr::col(PaymentMethods::Id).count(), Alias::new("count"))
         .to_string(SqliteQueryBuilder);
-    
+
     // Execute the query
     let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
-    
+
     Ok(result as i32)
 }

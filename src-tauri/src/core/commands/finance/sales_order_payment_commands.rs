@@ -150,8 +150,6 @@ impl Command for UpdateSalesOrderPaymentCommand {
                 return Err(Error::NotFoundError);
             }
 
-            let payment = payment.unwrap();
-
             // Create the changeset
             let changeset = SalesOrderPaymentUpdateChangeset {
                 id: self.payment.id,

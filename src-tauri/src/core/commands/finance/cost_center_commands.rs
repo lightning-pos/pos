@@ -98,8 +98,6 @@ impl Command for UpdateCostCenterCommand {
             .and_where(Expr::col(CostCenters::Id).eq(cost_center_id.to_string()))
             .to_string(SqliteQueryBuilder);
 
-        let current_cost_center = service.db_adapter.query_one::<CostCenter>(&get_query, vec![])?;
-
         // Build the update query with SeaQuery
         let mut update_query = Query::update();
         let query = update_query.table(CostCenters::Table);

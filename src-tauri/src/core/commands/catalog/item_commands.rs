@@ -8,12 +8,11 @@ use crate::{
         commands::{app_service::AppService, Command},
         models::{
             catalog::{
-                item_group_model::{ItemCategories, ItemGroup, ItemGroupState},
-                item_model::{Item, ItemNature, ItemState, Items, NewItem, UpdateItem},
+                item_group_model::{ItemCategories, ItemGroup},
+                item_model::{Item, Items, NewItem, UpdateItem},
             },
-            common::tax_model::{ItemTax, ItemTaxes, Tax, Taxes},
-        },
-        types::{db_uuid::DbUuid, money::Money, percentage::Percentage},
+            common::tax_model::{ItemTaxes, Tax, Taxes},
+        }, types::db_uuid::DbUuid,
     },
     error::{Error, Result},
 };
@@ -245,13 +244,11 @@ impl Command for DeleteItemCommand {
     type Output = i32;
 
     fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        // Build delete query with SeaQuery
         let delete_query = Query::delete()
             .from_table(Items::Table)
             .and_where(Expr::col(Items::Id).eq(self.id.to_string()))
             .to_string(SqliteQueryBuilder);
 
-        // Execute the delete query
         let affected_rows = service.db_adapter.execute(&delete_query, vec![])?;
 
         if affected_rows == 0 {
@@ -264,7 +261,7 @@ impl Command for DeleteItemCommand {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::commands::tests::setup_service;
+    use crate::core::{commands::tests::setup_service, models::{catalog::{item_group_model::ItemGroupState, item_model::{ItemNature, ItemState}}, common::tax_model::ItemTax}, types::{money::Money, percentage::Percentage}};
 
     use super::*;
 

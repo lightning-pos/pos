@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
@@ -163,7 +163,7 @@ mod tests {
     use crate::core::commands::tests::setup_service;
 
     use super::*;
-    use sea_query::{Expr, Query, SqliteQueryBuilder};
+    use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 
     #[test]
     fn test_create_supplier() {

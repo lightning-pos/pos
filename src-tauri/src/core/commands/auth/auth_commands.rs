@@ -53,7 +53,7 @@ mod tests {
     use crate::{
         core::{
             commands::{
-                app_service::AppService, auth::{
+                auth::{
                     auth_commands::{LoginCommand, LogoutCommand},
                     user_commands::AddUserCommand,
                 }, tests::setup_service, Command

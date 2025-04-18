@@ -2,7 +2,6 @@ use crate::{
     adapters::outgoing::database::{DatabaseAdapter, SqlxAdapter},
     core::types::db_uuid::DbUuid,
 };
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
 pub struct AppService<DB: DatabaseAdapter = SqlxAdapter> {
     pub db_adapter: DB,

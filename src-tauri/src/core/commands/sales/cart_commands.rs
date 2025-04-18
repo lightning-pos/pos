@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
@@ -152,7 +152,7 @@ mod tests {
         models::sales::customer_model::CustomerNewInput,
     };
     use rand::Rng;
-    use sea_query::{Expr, Query, SqliteQueryBuilder};
+    use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
 
     fn create_test_customer(service: &mut AppService) -> DbUuid {
         let random_suffix = rand::thread_rng().gen_range(1000..9999).to_string();

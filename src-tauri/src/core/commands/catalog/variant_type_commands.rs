@@ -93,7 +93,6 @@ impl Command for UpdateVariantTypeCommand {
             if existing_type.is_none() {
                 return Err(Error::NotFoundError);
             }
-            let existing_type = existing_type.unwrap();
 
             let now = Utc::now().naive_utc();
 

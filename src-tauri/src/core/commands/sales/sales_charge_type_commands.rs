@@ -164,7 +164,7 @@ impl Command for DeleteSalesChargeTypeCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{core::commands::tests::setup_service, error::Error};
+    use crate::core::commands::tests::setup_service;
     use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     #[test]

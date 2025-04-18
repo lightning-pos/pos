@@ -231,7 +231,6 @@ mod tests {
     use crate::core::commands::tests::setup_service;
 
     use super::*;
-    use sea_query::{Expr, Query, SqliteQueryBuilder};
 
     fn setup_test_db(service: &mut AppService) {
         // Create payment_methods table for testing
