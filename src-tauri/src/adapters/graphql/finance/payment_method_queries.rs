@@ -1,4 +1,4 @@
-use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+use sea_query::{Alias, Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -10,12 +10,12 @@ use crate::{
     AppState,
 };
 
-pub fn payment_methods(
+pub async fn payment_methods(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<PaymentMethod>> {
-    let service = context.service.lock().unwrap();
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
@@ -39,19 +39,18 @@ pub fn payment_methods(
         query.offset(off as u64);
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
     // Execute the query
-    let result = service.db_adapter.query_many::<PaymentMethod>(&sql, vec![])?;
+    let result = service.db_adapter.query_many::<PaymentMethod>(&query).await?;
 
     Ok(result)
 }
 
-pub fn payment_method(id: DbUuid, context: &AppState) -> FieldResult<PaymentMethod> {
-    let service = context.service.lock().unwrap();
+pub async fn payment_method(id: DbUuid, context: &AppState) -> FieldResult<PaymentMethod> {
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(PaymentMethods::Table)
         .columns([
             PaymentMethods::Id,
@@ -62,20 +61,20 @@ pub fn payment_method(id: DbUuid, context: &AppState) -> FieldResult<PaymentMeth
             PaymentMethods::CreatedAt,
             PaymentMethods::UpdatedAt,
         ])
-        .and_where(Expr::col(PaymentMethods::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
+        .and_where(Expr::col(PaymentMethods::Id).eq(id.to_string()));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<PaymentMethod>(&query, vec![])?;
+    let result = service.db_adapter.query_one::<PaymentMethod>(&query).await?;
 
     Ok(result)
 }
 
-pub fn all_payment_methods(context: &AppState) -> FieldResult<Vec<PaymentMethod>> {
-    let service = context.service.lock().unwrap();
+pub async fn all_payment_methods(context: &AppState) -> FieldResult<Vec<PaymentMethod>> {
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(PaymentMethods::Table)
         .columns([
             PaymentMethods::Id,
@@ -86,26 +85,25 @@ pub fn all_payment_methods(context: &AppState) -> FieldResult<Vec<PaymentMethod>
             PaymentMethods::CreatedAt,
             PaymentMethods::UpdatedAt,
         ])
-        .and_where(Expr::col(PaymentMethods::State).eq(PaymentMethodState::Active.to_string()))
-        .to_string(SqliteQueryBuilder);
+        .and_where(Expr::col(PaymentMethods::State).eq(PaymentMethodState::Active.to_string()));
 
     // Execute the query
-    let result = service.db_adapter.query_many::<PaymentMethod>(&query, vec![])?;
+    let result = service.db_adapter.query_many::<PaymentMethod>(&query).await?;
 
     Ok(result)
 }
 
-pub fn total_payment_methods(context: &AppState) -> FieldResult<i32> {
-    let service = context.service.lock().unwrap();
+pub async fn total_payment_methods(context: &AppState) -> FieldResult<i32> {
+    let service = context.service.lock().await;
 
     // Build the count query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(PaymentMethods::Table)
-        .expr_as(Expr::col(PaymentMethods::Id).count(), Alias::new("count"))
-        .to_string(SqliteQueryBuilder);
+        .expr_as(Expr::col(PaymentMethods::Id).count(), Alias::new("count"));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
+    let result = service.db_adapter.query_one::<i64>(&query).await?;
 
     Ok(result as i32)
 }

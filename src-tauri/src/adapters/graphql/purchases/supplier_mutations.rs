@@ -13,20 +13,20 @@ use crate::{
 };
 use juniper::FieldResult;
 
-pub fn create_supplier(supplier: SupplierNewInput, context: &AppState) -> FieldResult<Supplier> {
-    let mut service = context.service.lock().unwrap();
-    let res = CreateSupplierCommand { supplier }.exec(&mut service)?;
+pub async fn create_supplier(supplier: SupplierNewInput, context: &AppState) -> FieldResult<Supplier> {
+    let mut service = context.service.lock().await;
+    let res = CreateSupplierCommand { supplier }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn update_supplier(supplier: SupplierUpdateInput, context: &AppState) -> FieldResult<Supplier> {
-    let mut service = context.service.lock().unwrap();
-    let res = UpdateSupplierCommand { supplier }.exec(&mut service)?;
+pub async fn update_supplier(supplier: SupplierUpdateInput, context: &AppState) -> FieldResult<Supplier> {
+    let mut service = context.service.lock().await;
+    let res = UpdateSupplierCommand { supplier }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn delete_supplier(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let res = DeleteSupplierCommand { id }.exec(&mut service)?;
+pub async fn delete_supplier(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+    let mut service = context.service.lock().await;
+    let res = DeleteSupplierCommand { id }.exec(&mut service).await?;
     Ok(res)
 }

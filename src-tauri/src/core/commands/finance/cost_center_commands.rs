@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use uuid::Uuid;
 
 use crate::{
@@ -31,7 +31,7 @@ pub struct DeleteCostCenterCommand {
 impl Command for CreateCostCenterCommand {
     type Output = CostCenter;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
 
@@ -46,7 +46,8 @@ impl Command for CreateCostCenterCommand {
         };
 
         // Build the insert query with SeaQuery
-        let query = Query::insert()
+        let mut insert_query = Query::insert();
+        let insert_stmt = insert_query
             .into_table(CostCenters::Table)
             .columns([
                 CostCenters::Id,
@@ -65,11 +66,10 @@ impl Command for CreateCostCenterCommand {
                 self.cost_center.state.unwrap_or(CostCenterState::Active).to_string().into(),
                 now.to_string().into(),
                 now.to_string().into(),
-            ])
-            .to_string(SqliteQueryBuilder);
+            ]);
 
         // Execute the query
-        service.db_adapter.execute(&query, vec![])?;
+        service.db_adapter.insert_many(&insert_stmt).await?;
 
         // Return the newly created cost center
         Ok(new_cost_center)
@@ -79,12 +79,13 @@ impl Command for CreateCostCenterCommand {
 impl Command for UpdateCostCenterCommand {
     type Output = CostCenter;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let cost_center_id = self.cost_center.id;
 
         // First, get the current cost center
-        let get_query = Query::select()
+        let mut select_query = Query::select();
+        let get_stmt = select_query
             .from(CostCenters::Table)
             .columns([
                 CostCenters::Id,
@@ -95,46 +96,43 @@ impl Command for UpdateCostCenterCommand {
                 CostCenters::CreatedAt,
                 CostCenters::UpdatedAt,
             ])
-            .and_where(Expr::col(CostCenters::Id).eq(cost_center_id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(CostCenters::Id).eq(cost_center_id.to_string()));
 
         // Build the update query with SeaQuery
         let mut update_query = Query::update();
-        let query = update_query.table(CostCenters::Table);
+        let update_stmt = update_query.table(CostCenters::Table);
 
         // Only set fields that are provided in the update input
         if let Some(name) = &self.cost_center.name {
-            query.value(CostCenters::Name, name.clone());
+            update_stmt.value(CostCenters::Name, name.clone());
         }
 
         if let Some(code) = &self.cost_center.code {
-            query.value(CostCenters::Code, code.clone());
+            update_stmt.value(CostCenters::Code, code.clone());
         }
 
         if let Some(description) = &self.cost_center.description {
             match description {
-                Some(desc) => query.value(CostCenters::Description, desc.clone()),
-                None => query.value(CostCenters::Description, sea_query::Value::String(None)),
+                Some(desc) => update_stmt.value(CostCenters::Description, desc.clone()),
+                None => update_stmt.value(CostCenters::Description, sea_query::Value::String(None)),
             };
         }
 
         if let Some(state) = &self.cost_center.state {
-            query.value(CostCenters::State, state.to_string());
+            update_stmt.value(CostCenters::State, state.to_string());
         }
 
         // Always update the updated_at timestamp
-        query.value(CostCenters::UpdatedAt, now.to_string());
+        update_stmt.value(CostCenters::UpdatedAt, now.to_string());
 
         // Add the WHERE clause
-        query.and_where(Expr::col(CostCenters::Id).eq(cost_center_id.to_string()));
+        update_stmt.and_where(Expr::col(CostCenters::Id).eq(cost_center_id.to_string()));
 
-        let sql = query.to_string(SqliteQueryBuilder);
-
-        // Execute the query
-        service.db_adapter.execute(&sql, vec![])?;
+        // Execute the update query
+        service.db_adapter.update_many(&update_stmt).await?;
 
         // Get the updated cost center
-        let updated_cost_center = service.db_adapter.query_one::<CostCenter>(&get_query, vec![])?;
+        let updated_cost_center = service.db_adapter.query_one::<CostCenter>(&get_stmt).await?;
 
         Ok(updated_cost_center)
     }
@@ -143,15 +141,15 @@ impl Command for UpdateCostCenterCommand {
 impl Command for DeleteCostCenterCommand {
     type Output = i32;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Build the delete query with SeaQuery
-        let query = Query::delete()
+        let mut delete_query = Query::delete();
+        let delete_stmt = delete_query
             .from_table(CostCenters::Table)
-            .and_where(Expr::col(CostCenters::Id).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(CostCenters::Id).eq(self.id.to_string()));
 
         // Execute the query
-        let affected_rows = service.db_adapter.execute(&query, vec![])?;
+        let affected_rows = service.db_adapter.delete(&delete_stmt).await?;
 
         Ok(affected_rows as i32)
     }
@@ -162,10 +160,10 @@ mod tests {
     use crate::core::commands::tests::setup_service;
 
     use super::*;
-    use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+    use sea_query::{Expr, Func, Query};
 
-    #[test]
-    fn test_create_cost_center() {
+    #[tokio::test]
+    async fn test_create_cost_center() {
         let mut service = setup_service();
 
         let command = CreateCostCenterCommand {
@@ -177,7 +175,7 @@ mod tests {
             },
         };
 
-        let cost_center = command.exec(&mut service).unwrap();
+        let cost_center = command.exec(&mut service).await.unwrap();
         assert_eq!(cost_center.name, "Operations");
         assert_eq!(cost_center.code, "OPS");
         assert_eq!(
@@ -187,8 +185,8 @@ mod tests {
         assert_eq!(cost_center.state, CostCenterState::Active);
     }
 
-    #[test]
-    fn test_create_cost_center_minimal() {
+    #[tokio::test]
+    async fn test_create_cost_center_minimal() {
         let mut service = setup_service();
 
         let command = CreateCostCenterCommand {
@@ -200,15 +198,15 @@ mod tests {
             },
         };
 
-        let cost_center = command.exec(&mut service).unwrap();
+        let cost_center = command.exec(&mut service).await.unwrap();
         assert_eq!(cost_center.name, "IT");
         assert_eq!(cost_center.code, "IT");
         assert_eq!(cost_center.description, None);
         assert_eq!(cost_center.state, CostCenterState::Active); // Default
     }
 
-    #[test]
-    fn test_update_cost_center() {
+    #[tokio::test]
+    async fn test_update_cost_center() {
         let mut service = setup_service();
 
         // Create cost center
@@ -221,7 +219,7 @@ mod tests {
             },
         };
 
-        let cost_center = create_command.exec(&mut service).unwrap();
+        let cost_center = create_command.exec(&mut service).await.unwrap();
 
         // Update cost center
         let update_command = UpdateCostCenterCommand {
@@ -234,7 +232,7 @@ mod tests {
             },
         };
 
-        let updated_cost_center = update_command.exec(&mut service).unwrap();
+        let updated_cost_center = update_command.exec(&mut service).await.unwrap();
         assert_eq!(updated_cost_center.name, "Sales & Marketing");
         assert_eq!(updated_cost_center.code, "S&M");
         assert_eq!(
@@ -244,8 +242,8 @@ mod tests {
         assert_eq!(updated_cost_center.state, CostCenterState::Active); // Unchanged
     }
 
-    #[test]
-    fn test_update_cost_center_remove_field() {
+    #[tokio::test]
+    async fn test_update_cost_center_remove_field() {
         let mut service = setup_service();
 
         // Create cost center
@@ -258,7 +256,7 @@ mod tests {
             },
         };
 
-        let cost_center = create_command.exec(&mut service).unwrap();
+        let cost_center = create_command.exec(&mut service).await.unwrap();
 
         // Update cost center - remove description
         let update_command = UpdateCostCenterCommand {
@@ -271,15 +269,15 @@ mod tests {
             },
         };
 
-        let updated_cost_center = update_command.exec(&mut service).unwrap();
+        let updated_cost_center = update_command.exec(&mut service).await.unwrap();
         assert_eq!(updated_cost_center.name, "Marketing"); // Unchanged
         assert_eq!(updated_cost_center.code, "MKT"); // Unchanged
         assert_eq!(updated_cost_center.description, None); // Removed
         assert_eq!(updated_cost_center.state, CostCenterState::Active); // Unchanged
     }
 
-    #[test]
-    fn test_update_nonexistent_cost_center() {
+    #[tokio::test]
+    async fn test_update_nonexistent_cost_center() {
         let mut service = setup_service();
 
         let update_command = UpdateCostCenterCommand {
@@ -292,12 +290,12 @@ mod tests {
             },
         };
 
-        let result = update_command.exec(&mut service);
+        let result = update_command.exec(&mut service).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_delete_cost_center() {
+    #[tokio::test]
+    async fn test_delete_cost_center() {
         let mut service = setup_service();
 
         // Create cost center
@@ -310,33 +308,33 @@ mod tests {
             },
         };
 
-        let cost_center = create_command.exec(&mut service).unwrap();
+        let cost_center = create_command.exec(&mut service).await.unwrap();
 
         // Delete cost center
         let delete_command = DeleteCostCenterCommand { id: cost_center.id };
-        let result = delete_command.exec(&mut service).unwrap();
+        let result = delete_command.exec(&mut service).await.unwrap();
         assert_eq!(result, 1);
 
         // Verify cost center no longer exists
-        let count_query = Query::select()
+        let mut count_query_builder = Query::select();
+        let count_stmt = count_query_builder
             .from(CostCenters::Table)
-            .expr_as(Expr::col(CostCenters::Id).count(), Alias::new("count"))
-            .and_where(Expr::col(CostCenters::Id).eq(cost_center.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .expr(Func::count(Expr::col(CostCenters::Id)))
+            .and_where(Expr::col(CostCenters::Id).eq(cost_center.id.to_string()));
 
-        let count = service.db_adapter.query_one::<i64>(&count_query, vec![]).unwrap();
+        let count: i64 = service.db_adapter.query_one(&count_stmt).await.unwrap();
         assert_eq!(count, 0);
     }
 
-    #[test]
-    fn test_delete_nonexistent_cost_center() {
+    #[tokio::test]
+    async fn test_delete_nonexistent_cost_center() {
         let mut service = setup_service();
 
         // Delete non-existent cost center
         let delete_command = DeleteCostCenterCommand {
             id: Uuid::now_v7().into(),
         };
-        let result = delete_command.exec(&mut service).unwrap();
+        let result = delete_command.exec(&mut service).await.unwrap();
         assert_eq!(result, 0); // No rows affected
     }
 }

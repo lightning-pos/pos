@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -36,17 +36,17 @@ impl TaxGroup {
         self.updated_at
     }
 
-    pub fn taxes(&self, context: &AppState) -> FieldResult<Vec<Tax>> {
-        let service = context.service.lock().unwrap();
+    pub async fn taxes(&self, context: &AppState) -> FieldResult<Vec<Tax>> {
+        let service = context.service.lock().await;
 
         // First, get the tax IDs for this tax group
-        let tax_ids_query = Query::select()
+        let mut tax_ids_query_builder = Query::select();
+        let tax_ids_query = tax_ids_query_builder
             .from(TaxGroupTaxes::Table)
             .column(TaxGroupTaxes::TaxId)
-            .and_where(Expr::col(TaxGroupTaxes::TaxGroupId).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let tax_ids = service.db_adapter.query_many::<DbUuid>(&tax_ids_query, vec![])?;
+            .and_where(Expr::col(TaxGroupTaxes::TaxGroupId).eq(self.id.to_string()));
+
+        let tax_ids = service.db_adapter.query_many::<DbUuid>(&tax_ids_query).await?;
 
         // If no tax IDs found, return empty vector
         if tax_ids.is_empty() {
@@ -55,9 +55,10 @@ impl TaxGroup {
 
         // Convert tax IDs to strings for the IN clause
         let tax_id_strings: Vec<String> = tax_ids.iter().map(|id| id.to_string()).collect();
-        
+
         // Then get the taxes with those IDs
-        let taxes_query = Query::select()
+        let mut taxes_query_builder = Query::select();
+        let taxes_query = taxes_query_builder
             .from(Taxes::Table)
             .columns([
                 Taxes::Id,
@@ -67,10 +68,9 @@ impl TaxGroup {
                 Taxes::CreatedAt,
                 Taxes::UpdatedAt,
             ])
-            .and_where(Expr::col(Taxes::Id).is_in(tax_id_strings))
-            .to_string(SqliteQueryBuilder);
-            
-        let result = service.db_adapter.query_many::<Tax>(&taxes_query, vec![])?;
+            .and_where(Expr::col(Taxes::Id).is_in(tax_id_strings));
+
+        let result = service.db_adapter.query_many::<Tax>(&taxes_query).await?;
 
         Ok(result)
     }

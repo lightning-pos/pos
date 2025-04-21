@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -55,9 +55,9 @@ impl Expense {
         self.updated_at
     }
 
-    pub fn category(&self, context: &AppState) -> FieldResult<PurchaseCategory> {
-        let service = context.service.lock().unwrap();
-        
+    pub async fn category(&self, context: &AppState) -> FieldResult<PurchaseCategory> {
+        let service = context.service.lock().await;
+
         let query = Query::select()
             .from(PurchaseCategories::Table)
             .columns([
@@ -68,17 +68,16 @@ impl Expense {
                 PurchaseCategories::CreatedAt,
                 PurchaseCategories::UpdatedAt,
             ])
-            .and_where(Expr::col(PurchaseCategories::Id).eq(self.category_id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let category = service.db_adapter.query_one::<PurchaseCategory>(&query, vec![])?;
+            .and_where(Expr::col(PurchaseCategories::Id).eq(self.category_id.to_string()));
+
+        let category = service.db_adapter.query_one::<PurchaseCategory>(&query).await?;
 
         Ok(category)
     }
 
-    pub fn cost_center(&self, context: &AppState) -> FieldResult<CostCenter> {
-        let service = context.service.lock().unwrap();
-        
+    pub async fn cost_center(&self, context: &AppState) -> FieldResult<CostCenter> {
+        let service = context.service.lock().await;
+
         let query = Query::select()
             .from(CostCenters::Table)
             .columns([
@@ -90,10 +89,9 @@ impl Expense {
                 CostCenters::CreatedAt,
                 CostCenters::UpdatedAt,
             ])
-            .and_where(Expr::col(CostCenters::Id).eq(self.cost_center_id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let cost_center = service.db_adapter.query_one::<CostCenter>(&query, vec![])?;
+            .and_where(Expr::col(CostCenters::Id).eq(self.cost_center_id.to_string()));
+
+        let cost_center = service.db_adapter.query_one::<CostCenter>(&query).await?;
 
         Ok(cost_center)
     }

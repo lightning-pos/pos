@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -122,11 +122,12 @@ impl SalesOrder {
     }
 
     // Relationships
-    pub fn customer(&self, context: &AppState) -> FieldResult<Option<Customer>> {
+    pub async fn customer(&self, context: &AppState) -> FieldResult<Option<Customer>> {
         if let Some(customer_id) = self.customer_id {
-            let service = context.service.lock().unwrap();
-            
-            let query = Query::select()
+            let service = context.service.lock().await;
+
+            let mut query = Query::select();
+            let query = query
                 .from(Customers::Table)
                 .columns([
                     Customers::Id,
@@ -137,21 +138,21 @@ impl SalesOrder {
                     Customers::CreatedAt,
                     Customers::UpdatedAt,
                 ])
-                .and_where(Expr::col(Customers::Id).eq(customer_id.to_string()))
-                .to_string(SqliteQueryBuilder);
-                
-            let customer = service.db_adapter.query_one::<Customer>(&query, vec![])?;
-            
+                .and_where(Expr::col(Customers::Id).eq(customer_id.to_string()));
+
+            let customer = service.db_adapter.query_one::<Customer>(&query).await?;
+
             Ok(Some(customer))
         } else {
             Ok(None)
         }
     }
 
-    pub fn cost_center(&self, context: &AppState) -> FieldResult<CostCenter> {
-        let service = context.service.lock().unwrap();
-        
-        let query = Query::select()
+    pub async fn cost_center(&self, context: &AppState) -> FieldResult<CostCenter> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
             .from(CostCenters::Table)
             .columns([
                 CostCenters::Id,
@@ -162,18 +163,18 @@ impl SalesOrder {
                 CostCenters::CreatedAt,
                 CostCenters::UpdatedAt,
             ])
-            .and_where(Expr::col(CostCenters::Id).eq(self.cost_center_id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let cost_center = service.db_adapter.query_one::<CostCenter>(&query, vec![])?;
-        
+            .and_where(Expr::col(CostCenters::Id).eq(self.cost_center_id.to_string()));
+
+        let cost_center = service.db_adapter.query_one::<CostCenter>(&query).await?;
+
         Ok(cost_center)
     }
 
-    pub fn items(&self, context: &AppState) -> FieldResult<Vec<SalesOrderItem>> {
-        let service = context.service.lock().unwrap();
-        
-        let query = Query::select()
+    pub async fn items(&self, context: &AppState) -> FieldResult<Vec<SalesOrderItem>> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
             .from(SalesOrderItems::Table)
             .columns([
                 SalesOrderItems::Id,
@@ -190,18 +191,18 @@ impl SalesOrder {
                 SalesOrderItems::CreatedAt,
                 SalesOrderItems::UpdatedAt,
             ])
-            .and_where(Expr::col(SalesOrderItems::OrderId).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let items = service.db_adapter.query_many::<SalesOrderItem>(&query, vec![])?;
-        
+            .and_where(Expr::col(SalesOrderItems::OrderId).eq(self.id.to_string()));
+
+        let items = service.db_adapter.query_many::<SalesOrderItem>(&query).await?;
+
         Ok(items)
     }
 
-    pub fn charges(&self, context: &AppState) -> FieldResult<Vec<SalesOrderCharge>> {
-        let service = context.service.lock().unwrap();
-        
-        let query = Query::select()
+    pub async fn charges(&self, context: &AppState) -> FieldResult<Vec<SalesOrderCharge>> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
             .from(SalesOrderCharges::Table)
             .columns([
                 SalesOrderCharges::Id,
@@ -214,25 +215,24 @@ impl SalesOrder {
                 SalesOrderCharges::CreatedAt,
                 SalesOrderCharges::UpdatedAt,
             ])
-            .and_where(Expr::col(SalesOrderCharges::OrderId).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let charges = service.db_adapter.query_many::<SalesOrderCharge>(&query, vec![])?;
-        
+            .and_where(Expr::col(SalesOrderCharges::OrderId).eq(self.id.to_string()));
+
+        let charges = service.db_adapter.query_many::<SalesOrderCharge>(&query).await?;
+
         Ok(charges)
     }
 
-    pub fn payments(&self, context: &AppState) -> FieldResult<Vec<SalesOrderPayment>> {
-        let mut service = context.service.lock().unwrap();
+    pub async fn payments(&self, context: &AppState) -> FieldResult<Vec<SalesOrderPayment>> {
+        let mut service = context.service.lock().await;
         let cmd = GetSalesOrderPaymentsCommand { order_id: self.id };
-        let payments = cmd.exec(&mut service)?;
+        let payments = cmd.exec(&mut service).await?;
         Ok(payments)
     }
 
-    pub fn total_paid_amount(&self, context: &AppState) -> FieldResult<Money> {
-        let mut service = context.service.lock().unwrap();
+    pub async fn total_paid_amount(&self, context: &AppState) -> FieldResult<Money> {
+        let mut service = context.service.lock().await;
         let cmd = GetSalesOrderPaymentsCommand { order_id: self.id };
-        let payments = cmd.exec(&mut service)?;
+        let payments = cmd.exec(&mut service).await?;
 
         let total: Money = payments
             .iter()

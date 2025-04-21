@@ -1,4 +1,4 @@
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -10,13 +10,13 @@ use crate::{
     AppState,
 };
 
-pub fn purchase_categories(
+pub async fn purchase_categories(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<PurchaseCategory>> {
     println!("yoyo inside purchase_categories");
-    let service = context.service.lock().unwrap();
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
@@ -39,21 +39,19 @@ pub fn purchase_categories(
         query.offset(off as u64);
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
-    // Execute the query
-    let result = service.db_adapter.query_many::<PurchaseCategory>(&sql, vec![])?;
+    let result = service.db_adapter.query_many::<PurchaseCategory>(&query).await?;
 
     println!("yoyo result: {:?}", result);
 
     Ok(result)
 }
 
-pub fn purchase_category(id: DbUuid, context: &AppState) -> FieldResult<PurchaseCategory> {
-    let service = context.service.lock().unwrap();
-    
+pub async fn purchase_category(id: DbUuid, context: &AppState) -> FieldResult<PurchaseCategory> {
+    let service = context.service.lock().await;
+
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(PurchaseCategories::Table)
         .columns([
             PurchaseCategories::Id,
@@ -63,20 +61,20 @@ pub fn purchase_category(id: DbUuid, context: &AppState) -> FieldResult<Purchase
             PurchaseCategories::CreatedAt,
             PurchaseCategories::UpdatedAt,
         ])
-        .and_where(Expr::col(PurchaseCategories::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
-    
+        .and_where(Expr::col(PurchaseCategories::Id).eq(id.to_string()));
+
     // Execute the query
-    let result = service.db_adapter.query_one::<PurchaseCategory>(&query, vec![])?;
-    
+    let result = service.db_adapter.query_one::<PurchaseCategory>(&query).await?;
+
     Ok(result)
 }
 
-pub fn all_purchase_categories(context: &AppState) -> FieldResult<Vec<PurchaseCategory>> {
-    let service = context.service.lock().unwrap();
-    
+pub async fn all_purchase_categories(context: &AppState) -> FieldResult<Vec<PurchaseCategory>> {
+    let service = context.service.lock().await;
+
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(PurchaseCategories::Table)
         .columns([
             PurchaseCategories::Id,
@@ -86,11 +84,10 @@ pub fn all_purchase_categories(context: &AppState) -> FieldResult<Vec<PurchaseCa
             PurchaseCategories::CreatedAt,
             PurchaseCategories::UpdatedAt,
         ])
-        .and_where(Expr::col(PurchaseCategories::State).eq(PurchaseCategoryState::Active.to_string()))
-        .to_string(SqliteQueryBuilder);
-    
+        .and_where(Expr::col(PurchaseCategories::State).eq(PurchaseCategoryState::Active.to_string()));
+
     // Execute the query
-    let result = service.db_adapter.query_many::<PurchaseCategory>(&query, vec![])?;
-    
+    let result = service.db_adapter.query_many::<PurchaseCategory>(&query).await?;
+
     Ok(result)
 }

@@ -1,4 +1,4 @@
-use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+use sea_query::{Alias, Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -10,13 +10,13 @@ use crate::{
     AppState,
 };
 
-pub fn suppliers(
+pub async fn suppliers(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<Supplier>> {
-    let service = context.service.lock().unwrap();
-    
+    let service = context.service.lock().await;
+
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
     let query = query_builder
@@ -38,34 +38,32 @@ pub fn suppliers(
         query.offset(off as u64);
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
     // Execute the query
-    let result = service.db_adapter.query_many::<Supplier>(&sql, vec![])?;
-    
+    let result = service.db_adapter.query_many::<Supplier>(&query).await?;
+
     Ok(result)
 }
 
-pub fn total_suppliers(context: &AppState) -> FieldResult<i32> {
-    let service = context.service.lock().unwrap();
-    
+pub async fn total_suppliers(context: &AppState) -> FieldResult<i32> {
+    let service = context.service.lock().await;
+
     // Build the count query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(Suppliers::Table)
-        .expr_as(Expr::col(Suppliers::Id).count(), Alias::new("count"))
-        .to_string(SqliteQueryBuilder);
-    
+        .expr_as(Expr::col(Suppliers::Id).count(), Alias::new("count"));
+
     // Execute the query
-    let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
-    
+    let result = service.db_adapter.query_one::<i64>(&query).await?;
+
     Ok(result as i32)
 }
 
-pub fn supplier(id: DbUuid, context: &AppState) -> FieldResult<Supplier> {
-    let service = context.service.lock().unwrap();
-    
-    // Build the query with SeaQuery
-    let query = Query::select()
+pub async fn supplier(id: DbUuid, context: &AppState) -> FieldResult<Supplier> {
+    let service = context.service.lock().await;
+
+    let mut query = Query::select();
+    let query = query
         .from(Suppliers::Table)
         .columns([
             Suppliers::Id,
@@ -75,11 +73,10 @@ pub fn supplier(id: DbUuid, context: &AppState) -> FieldResult<Supplier> {
             Suppliers::CreatedAt,
             Suppliers::UpdatedAt,
         ])
-        .and_where(Expr::col(Suppliers::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
-    
+        .and_where(Expr::col(Suppliers::Id).eq(id.to_string()));
+
     // Execute the query
-    let result = service.db_adapter.query_one::<Supplier>(&query, vec![])?;
-    
+    let result = service.db_adapter.query_one::<Supplier>(&query).await?;
+
     Ok(result)
 }

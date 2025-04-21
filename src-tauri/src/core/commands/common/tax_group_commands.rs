@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Func, Iden, Query};
 use uuid::Uuid;
 
 use crate::{
@@ -42,276 +42,273 @@ pub struct RemoveTaxFromGroupCommand {
 impl Command for CreateTaxGroupCommand {
     type Output = TaxGroup;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            // Verify all taxes exist if tax_ids are provided
-            if let Some(tax_ids) = &self.tax_group.tax_ids {
-                for tax_id in tax_ids {
-                    let tax_query = Query::select()
-                        .from(Taxes::Table)
-                        .columns([Taxes::Id])
-                        .and_where(Expr::col(Taxes::Id).eq(tax_id.to_string()))
-                        .to_string(SqliteQueryBuilder);
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Verify all taxes exist if tax_ids are provided
+        if let Some(tax_ids) = &self.tax_group.tax_ids {
+            for tax_id in tax_ids {
+                let mut query_builder = Query::select();
+                let tax_query = query_builder
+                    .from(Taxes::Table)
+                    .columns([Taxes::Id])
+                    .and_where(Expr::col(Taxes::Id).eq(tax_id.to_string()));
 
-                    let tax = db.query_optional::<Tax>(&tax_query, vec![])?;
-                    if tax.is_none() {
-                        return Err(Error::NotFoundError);
-                    }
+                let tax = service.db_adapter.query_optional::<Tax>(&tax_query).await?;
+                if tax.is_none() {
+                    return Err(Error::NotFoundError);
                 }
             }
+        }
 
-            let now = Utc::now().naive_utc();
-            let new_tax_group = TaxGroup {
-                id: Uuid::now_v7().into(),
-                name: self.tax_group.name.clone(),
-                description: self.tax_group.description.clone(),
-                created_at: now,
-                updated_at: now,
-            };
+        let now = Utc::now().naive_utc();
+        let new_tax_group = TaxGroup {
+            id: Uuid::now_v7().into(),
+            name: self.tax_group.name.clone(),
+            description: self.tax_group.description.clone(),
+            created_at: now,
+            updated_at: now,
+        };
 
-            // Insert the tax group
-            let tax_group_query = Query::insert()
-                .into_table(TaxGroups::Table)
-                .columns([
-                    TaxGroups::Id,
-                    TaxGroups::Name,
-                    TaxGroups::Description,
-                    TaxGroups::CreatedAt,
-                    TaxGroups::UpdatedAt,
-                ])
-                .values_panic([
-                    new_tax_group.id.to_string().into(),
-                    new_tax_group.name.clone().into(),
-                    match &new_tax_group.description {
-                        Some(desc) => desc.clone().into(),
-                        None => sea_query::Value::String(None).into(),
-                    },
-                    new_tax_group.created_at.to_string().into(),
-                    new_tax_group.updated_at.to_string().into(),
-                ])
-                .to_string(SqliteQueryBuilder);
+        // Insert the tax group
+        let mut insert_query = Query::insert();
+        let tax_group_stmt = insert_query
+            .into_table(TaxGroups::Table)
+            .columns([
+                TaxGroups::Id,
+                TaxGroups::Name,
+                TaxGroups::Description,
+                TaxGroups::CreatedAt,
+                TaxGroups::UpdatedAt,
+            ])
+            .values_panic([
+                new_tax_group.id.to_string().into(),
+                new_tax_group.name.clone().into(),
+                match &new_tax_group.description {
+                    Some(desc) => desc.clone().into(),
+                    None => sea_query::Value::String(None).into(),
+                },
+                new_tax_group.created_at.to_string().into(),
+                new_tax_group.updated_at.to_string().into(),
+            ]);
 
-            db.execute(&tax_group_query, vec![])?;
+        service.db_adapter.insert_many(&tax_group_stmt).await?;
 
-            // If tax_ids are provided, assign them to the tax group
-            if let Some(tax_ids) = &self.tax_group.tax_ids {
-                for tax_id in tax_ids {
-                    let tax_group_tax = TaxGroupTax {
-                        tax_group_id: new_tax_group.id,
-                        tax_id: *tax_id,
-                    };
+        // If tax_ids are provided, assign them to the tax group
+        if let Some(tax_ids) = &self.tax_group.tax_ids {
+            for tax_id in tax_ids {
+                let tax_group_tax = TaxGroupTax {
+                    tax_group_id: new_tax_group.id,
+                    tax_id: *tax_id,
+                };
 
-                    let tax_group_tax_query = Query::insert()
-                        .into_table(TaxGroupTaxes::Table)
-                        .columns([
-                            TaxGroupTaxes::TaxGroupId,
-                            TaxGroupTaxes::TaxId,
-                        ])
-                        .values_panic([
-                            tax_group_tax.tax_group_id.to_string().into(),
-                            tax_group_tax.tax_id.to_string().into(),
-                        ])
-                        .to_string(SqliteQueryBuilder);
+                let mut insert_query = Query::insert();
+                let tax_group_tax_stmt = insert_query
+                    .into_table(TaxGroupTaxes::Table)
+                    .columns([
+                        TaxGroupTaxes::TaxGroupId,
+                        TaxGroupTaxes::TaxId,
+                    ])
+                    .values_panic([
+                        tax_group_tax.tax_group_id.to_string().into(),
+                        tax_group_tax.tax_id.to_string().into(),
+                    ]);
 
-                    db.execute(&tax_group_tax_query, vec![])?;
-                }
+                service.db_adapter.insert_many(&tax_group_tax_stmt).await?;
             }
+        }
 
-            Ok(new_tax_group)
-        })
+        Ok(new_tax_group)
     }
 }
 
 impl Command for UpdateTaxGroupCommand {
     type Output = TaxGroup;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            // Check if the tax group exists
-            let query = Query::select()
-                .from(TaxGroups::Table)
-                .columns([
-                    TaxGroups::Id,
-                    TaxGroups::Name,
-                    TaxGroups::Description,
-                    TaxGroups::CreatedAt,
-                    TaxGroups::UpdatedAt,
-                ])
-                .and_where(Expr::col(TaxGroups::Id).eq(self.tax_group.id.to_string()))
-                .to_string(SqliteQueryBuilder);
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Check if the tax group exists
+        let mut query_builder = Query::select();
+        let select_stmt = query_builder
+            .from(TaxGroups::Table)
+            .columns([
+                TaxGroups::Id,
+                TaxGroups::Name,
+                TaxGroups::Description,
+                TaxGroups::CreatedAt,
+                TaxGroups::UpdatedAt,
+            ])
+            .and_where(Expr::col(TaxGroups::Id).eq(self.tax_group.id.to_string()));
 
-            let tax_group = db.query_optional::<TaxGroup>(&query, vec![])?;
-            if tax_group.is_none() {
-                return Err(Error::NotFoundError);
-            }
-            let tax_group = tax_group.unwrap();
+        let tax_group = service.db_adapter.query_optional::<TaxGroup>(&select_stmt).await?;
+        if tax_group.is_none() {
+            return Err(Error::NotFoundError);
+        }
+        let tax_group = tax_group.unwrap();
 
-            let now = Utc::now().naive_utc();
+        let now = Utc::now().naive_utc();
 
-            // Build update query
-            let mut update_query = Query::update();
-            let update = update_query
-                .table(TaxGroups::Table)
-                .and_where(Expr::col(TaxGroups::Id).eq(self.tax_group.id.to_string()))
-                .value(TaxGroups::UpdatedAt, now.to_string());
+        // Build update query
+        let mut update_query = Query::update();
+        let update_stmt = update_query
+            .table(TaxGroups::Table)
+            .and_where(Expr::col(TaxGroups::Id).eq(self.tax_group.id.to_string()))
+            .value(TaxGroups::UpdatedAt, now.to_string());
 
-            if let Some(name) = &self.tax_group.name {
-                update.value(TaxGroups::Name, name.clone());
-            }
+        if let Some(name) = &self.tax_group.name {
+            update_stmt.value(TaxGroups::Name, name.clone());
+        }
 
-            if let Some(description) = &self.tax_group.description {
-                match description {
-                    Some(desc) => update.value(TaxGroups::Description, desc.clone()),
-                    None => update.value(TaxGroups::Description, sea_query::Value::String(None)),
-                };
-            }
-
-            let sql = update.to_string(SqliteQueryBuilder);
-            db.execute(&sql, vec![])?;
-
-            // Return the updated tax group
-            let updated_tax_group = TaxGroup {
-                id: tax_group.id,
-                name: self.tax_group.name.clone().unwrap_or(tax_group.name),
-                description: match &self.tax_group.description {
-                    Some(Some(desc)) => Some(desc.clone()),
-                    Some(None) => None,
-                    None => tax_group.description,
-                },
-                created_at: tax_group.created_at,
-                updated_at: now,
+        if let Some(description) = &self.tax_group.description {
+            match description {
+                Some(desc) => update_stmt.value(TaxGroups::Description, desc.clone()),
+                None => update_stmt.value(TaxGroups::Description, sea_query::Value::String(None)),
             };
+        }
 
-            Ok(updated_tax_group)
-        })
+        service.db_adapter.update_many(&update_stmt).await?;
+
+        // Return the updated tax group
+        let updated_tax_group = TaxGroup {
+            id: tax_group.id,
+            name: self.tax_group.name.clone().unwrap_or(tax_group.name),
+            description: match &self.tax_group.description {
+                Some(Some(desc)) => Some(desc.clone()),
+                Some(None) => None,
+                None => tax_group.description,
+            },
+            created_at: tax_group.created_at,
+            updated_at: now,
+        };
+
+        Ok(updated_tax_group)
     }
 }
 
 impl Command for DeleteTaxGroupCommand {
     type Output = i32;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            // Check if the tax group is used in any sales order charges
-            let exists_query = format!(
-                "SELECT COUNT(*) FROM sales_order_charges WHERE tax_group_id = '{}'",
-                self.id.to_string()
-            );
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Check if the tax group is used in any sales order charges
+        // Define a temporary Iden for the sales_order_charges table
+        #[derive(Iden)]
+        enum SalesOrderCharges {
+            Table,
+            TaxGroupId,
+        }
 
-            let count: i64 = db.query_one(&exists_query, vec![])?;
+        let mut count_query_builder = Query::select();
+        let count_query = count_query_builder
+            .expr(Func::count(Expr::col(SalesOrderCharges::TaxGroupId)))
+            .from(SalesOrderCharges::Table)
+            .and_where(Expr::col(SalesOrderCharges::TaxGroupId).eq(self.id.to_string()));
 
-            if count > 0 {
-                return Err(Error::HasChildrenError);
-            }
+        let count: i64 = service.db_adapter.query_one(&count_query).await?;
 
-            // Delete all tax group tax associations
-            let delete_associations_query = Query::delete()
-                .from_table(TaxGroupTaxes::Table)
-                .and_where(Expr::col(TaxGroupTaxes::TaxGroupId).eq(self.id.to_string()))
-                .to_string(SqliteQueryBuilder);
+        if count > 0 {
+            return Err(Error::HasChildrenError);
+        }
 
-            db.execute(&delete_associations_query, vec![])?;
+        // Delete all tax group tax associations
+        let mut delete_assoc_query = Query::delete();
+        let delete_associations_stmt = delete_assoc_query
+            .from_table(TaxGroupTaxes::Table)
+            .and_where(Expr::col(TaxGroupTaxes::TaxGroupId).eq(self.id.to_string()));
 
-            // Delete the tax group
-            let delete_group_query = Query::delete()
-                .from_table(TaxGroups::Table)
-                .and_where(Expr::col(TaxGroups::Id).eq(self.id.to_string()))
-                .to_string(SqliteQueryBuilder);
+        service.db_adapter.delete(&delete_associations_stmt).await?;
 
-            let deleted_count = db.execute(&delete_group_query, vec![])?;
+        // Delete the tax group
+        let mut delete_group_query = Query::delete();
+        let delete_group_stmt = delete_group_query
+            .from_table(TaxGroups::Table)
+            .and_where(Expr::col(TaxGroups::Id).eq(self.id.to_string()));
 
-            Ok(deleted_count as i32)
-        })
+        let deleted_count = service.db_adapter.delete(&delete_group_stmt).await?;
+
+        Ok(deleted_count as i32)
     }
 }
 
 impl Command for AssignTaxToGroupCommand {
     type Output = i32;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            // Verify the tax group exists
-            let tax_group_query = Query::select()
-                .from(TaxGroups::Table)
-                .columns([TaxGroups::Id])
-                .and_where(Expr::col(TaxGroups::Id).eq(self.tax_group_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Verify the tax group exists
+        let mut tax_group_query_builder = Query::select();
+        let tax_group_stmt = tax_group_query_builder
+            .from(TaxGroups::Table)
+            .columns([TaxGroups::Id])
+            .and_where(Expr::col(TaxGroups::Id).eq(self.tax_group_id.to_string()));
 
-            let tax_group = db.query_optional::<TaxGroup>(&tax_group_query, vec![])?;
-            if tax_group.is_none() {
-                return Err(Error::NotFoundError);
-            }
+        let tax_group = service.db_adapter.query_optional::<TaxGroup>(&tax_group_stmt).await?;
+        if tax_group.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-            // Verify the tax exists
-            let tax_query = Query::select()
-                .from(Taxes::Table)
-                .columns([Taxes::Id])
-                .and_where(Expr::col(Taxes::Id).eq(self.tax_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+        // Verify the tax exists
+        let mut tax_query_builder = Query::select();
+        let tax_stmt = tax_query_builder
+            .from(Taxes::Table)
+            .columns([Taxes::Id])
+            .and_where(Expr::col(Taxes::Id).eq(self.tax_id.to_string()));
 
-            let tax = db.query_optional::<Tax>(&tax_query, vec![])?;
-            if tax.is_none() {
-                return Err(Error::NotFoundError);
-            }
+        let tax = service.db_adapter.query_optional::<Tax>(&tax_stmt).await?;
+        if tax.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-            // Check if the association already exists
-            let exists_query = Query::select()
-                .from(TaxGroupTaxes::Table)
-                .expr(Expr::count(Expr::col(TaxGroupTaxes::TaxGroupId)))
-                .and_where(Expr::col(TaxGroupTaxes::TaxGroupId).eq(self.tax_group_id.to_string()))
-                .and_where(Expr::col(TaxGroupTaxes::TaxId).eq(self.tax_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+        // Check if the association already exists
+        let mut exists_query_builder = Query::select();
+        let exists_stmt = exists_query_builder
+            .from(TaxGroupTaxes::Table)
+            .expr(Func::count(Expr::col(TaxGroupTaxes::TaxGroupId)))
+            .and_where(Expr::col(TaxGroupTaxes::TaxGroupId).eq(self.tax_group_id.to_string()))
+            .and_where(Expr::col(TaxGroupTaxes::TaxId).eq(self.tax_id.to_string()));
 
-            let count: i64 = db.query_one(&exists_query, vec![])?;
+        let count: i64 = service.db_adapter.query_one(&exists_stmt).await?;
 
-            if count > 0 {
-                return Ok(0); // Association already exists
-            }
+        if count > 0 {
+            return Ok(0); // Association already exists
+        }
 
-            // Create the association
-            let tax_group_tax = TaxGroupTax {
-                tax_group_id: self.tax_group_id,
-                tax_id: self.tax_id,
-            };
+        // Create the association
+        let tax_group_tax = TaxGroupTax {
+            tax_group_id: self.tax_group_id,
+            tax_id: self.tax_id,
+        };
 
-            let insert_query = Query::insert()
-                .into_table(TaxGroupTaxes::Table)
-                .columns([
-                    TaxGroupTaxes::TaxGroupId,
-                    TaxGroupTaxes::TaxId,
-                ])
-                .values_panic([
-                    tax_group_tax.tax_group_id.to_string().into(),
-                    tax_group_tax.tax_id.to_string().into(),
-                ])
-                .to_string(SqliteQueryBuilder);
+        let mut insert_query_builder = Query::insert();
+        let insert_stmt = insert_query_builder
+            .into_table(TaxGroupTaxes::Table)
+            .columns([
+                TaxGroupTaxes::TaxGroupId,
+                TaxGroupTaxes::TaxId,
+            ])
+            .values_panic([
+                tax_group_tax.tax_group_id.to_string().into(),
+                tax_group_tax.tax_id.to_string().into(),
+            ]);
 
-            let rows_affected = db.execute(&insert_query, vec![])?;
+        let rows_affected = service.db_adapter.insert_many(&insert_stmt).await?;
 
-            Ok(rows_affected as i32)
-        })
+        Ok(rows_affected as i32)
     }
 }
 
 impl Command for RemoveTaxFromGroupCommand {
     type Output = i32;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            let query = Query::delete()
-                .from_table(TaxGroupTaxes::Table)
-                .and_where(Expr::col(TaxGroupTaxes::TaxGroupId).eq(self.tax_group_id.to_string()))
-                .and_where(Expr::col(TaxGroupTaxes::TaxId).eq(self.tax_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        let mut delete_query = Query::delete();
+        let delete_stmt = delete_query
+            .from_table(TaxGroupTaxes::Table)
+            .and_where(Expr::col(TaxGroupTaxes::TaxGroupId).eq(self.tax_group_id.to_string()))
+            .and_where(Expr::col(TaxGroupTaxes::TaxId).eq(self.tax_id.to_string()));
 
-            let result = db.execute(&query, vec![])?;
+        let result = service.db_adapter.delete(&delete_stmt).await?;
 
-            if result == 0 {
-                return Err(Error::NotFoundError);
-            }
+        if result == 0 {
+            return Err(Error::NotFoundError);
+        }
 
-            Ok(result as i32)
-        })
+        Ok(result as i32)
     }
 }
 
@@ -323,8 +320,8 @@ mod tests {
     use crate::core::models::common::tax_model::TaxNewInput;
     use crate::core::types::percentage::Percentage;
 
-    #[test]
-    fn test_create_tax_group() {
+    #[tokio::test]
+    async fn test_create_tax_group() {
         let mut service = setup_service();
 
         // Create a tax first
@@ -336,6 +333,7 @@ mod tests {
         };
         let tax = CreateTaxCommand { tax: tax_input }
             .exec(&mut service)
+            .await
             .unwrap();
 
         // Now create a tax group
@@ -349,6 +347,7 @@ mod tests {
             tax_group: tax_group_input,
         }
         .exec(&mut service)
+        .await
         .unwrap();
 
         assert_eq!(tax_group.name, "GST 18%");
@@ -358,8 +357,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_update_tax_group() {
+    #[tokio::test]
+    async fn test_update_tax_group() {
         let mut service = setup_service();
 
         // Create a tax group first
@@ -373,6 +372,7 @@ mod tests {
             tax_group: tax_group_input,
         }
         .exec(&mut service)
+        .await
         .unwrap();
 
         // Update the tax group
@@ -386,6 +386,7 @@ mod tests {
             tax_group: update_input,
         }
         .exec(&mut service)
+        .await
         .unwrap();
 
         assert_eq!(updated_tax_group.name, "GST 18% (Updated)");
@@ -395,8 +396,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_delete_tax_group() {
+    #[tokio::test]
+    async fn test_delete_tax_group() {
         let mut service = setup_service();
 
         // Create a tax group first
@@ -410,18 +411,20 @@ mod tests {
             tax_group: tax_group_input,
         }
         .exec(&mut service)
+        .await
         .unwrap();
 
         // Delete the tax group
         let result = DeleteTaxGroupCommand { id: tax_group.id }
             .exec(&mut service)
+            .await
             .unwrap();
 
         assert_eq!(result, 1); // 1 row affected
     }
 
-    #[test]
-    fn test_assign_tax_to_group() {
+    #[tokio::test]
+    async fn test_assign_tax_to_group() {
         let mut service = setup_service();
 
         // Create a tax
@@ -433,6 +436,7 @@ mod tests {
         };
         let tax = CreateTaxCommand { tax: tax_input }
             .exec(&mut service)
+            .await
             .unwrap();
 
         // Create a tax group
@@ -446,6 +450,7 @@ mod tests {
             tax_group: tax_group_input,
         }
         .exec(&mut service)
+        .await
         .unwrap();
 
         // Assign the tax to the group
@@ -454,13 +459,14 @@ mod tests {
             tax_id: tax.id,
         }
         .exec(&mut service)
+        .await
         .unwrap();
 
         assert_eq!(result, 1); // 1 row affected
     }
 
-    #[test]
-    fn test_remove_tax_from_group() {
+    #[tokio::test]
+    async fn test_remove_tax_from_group() {
         let mut service = setup_service();
 
         // Create a tax
@@ -472,6 +478,7 @@ mod tests {
         };
         let tax = CreateTaxCommand { tax: tax_input }
             .exec(&mut service)
+            .await
             .unwrap();
 
         // Create a tax group with the tax
@@ -485,6 +492,7 @@ mod tests {
             tax_group: tax_group_input,
         }
         .exec(&mut service)
+        .await
         .unwrap();
 
         // Remove the tax from the group
@@ -493,6 +501,7 @@ mod tests {
             tax_id: tax.id,
         }
         .exec(&mut service)
+        .await
         .unwrap();
 
         assert_eq!(result, 1); // 1 row affected

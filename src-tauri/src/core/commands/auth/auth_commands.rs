@@ -1,8 +1,10 @@
+use sea_query::{Expr, Query};
+
 use crate::{
-    adapters::outgoing::database::{DatabaseAdapter, SqlParam},
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
-        models::auth::user_model::User,
+        models::auth::user_model::{User, Users},
     },
     error::{Error, Result},
 };
@@ -17,15 +19,25 @@ pub struct LogoutCommand;
 impl Command for LoginCommand {
     type Output = ();
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        // Build the SQL query
-        let query = "SELECT * FROM users WHERE username = ?";
-
-        // Set up the parameters
-        let params = vec![SqlParam::String(self.username.clone())];
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Build the query using sea-query
+        let mut query_builder = Query::select();
+        let query = query_builder
+            .from(Users::Table)
+            .columns([
+                Users::Id,
+                Users::Username,
+                Users::PinHash,
+                Users::FullName,
+                Users::State,
+                Users::LastLoginAt,
+                Users::CreatedAt,
+                Users::UpdatedAt,
+            ])
+            .and_where(Expr::col(Users::Username).eq(self.username.clone()));
 
         // Execute the query using the database adapter
-        let user = service.db_adapter.query_optional::<User>(query, params)?;
+        let user = service.db_adapter.query_optional::<User>(&query).await?;
 
         match user {
             Some(user) => {
@@ -40,7 +52,7 @@ impl Command for LoginCommand {
 impl Command for LogoutCommand {
     type Output = ();
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         service.state.current_user = None;
         Ok(())
     }
@@ -63,8 +75,8 @@ mod tests {
         error::Error,
     };
 
-    #[test]
-    fn test_login_command() {
+    #[tokio::test]
+    async fn test_login_command() {
         let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
@@ -74,7 +86,7 @@ mod tests {
             },
         };
 
-        let result = add_user_command.exec(&mut service);
+        let result = add_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         let user = result.unwrap();
 
@@ -83,7 +95,7 @@ mod tests {
             password: "password".to_string(),
         };
 
-        let result = login_command.exec(&mut service);
+        let result = login_command.exec(&mut service).await;
         assert!(result.is_ok());
         assert!(service.state.current_user.is_some());
         assert_eq!(service.state.current_user.unwrap(), user.id);
@@ -93,17 +105,17 @@ mod tests {
             username: "nonexistent".to_string(),
             password: "password".to_string(),
         };
-        let result = invalid_login.exec(&mut service);
+        let result = invalid_login.exec(&mut service).await;
         assert!(matches!(result, Err(Error::NotFoundError)));
     }
 
-    #[test]
-    fn test_logout_command() {
+    #[tokio::test]
+    async fn test_logout_command() {
         let mut service = setup_service();
         service.state.current_user = Some(Uuid::now_v7().into());
 
         let logout_command = LogoutCommand;
-        let result = logout_command.exec(&mut service);
+        let result = logout_command.exec(&mut service).await;
 
         assert!(result.is_ok());
         assert_eq!(service.state.current_user, None);

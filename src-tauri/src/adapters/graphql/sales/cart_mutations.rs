@@ -11,20 +11,20 @@ use crate::{
 };
 use juniper::FieldResult;
 
-pub fn create_cart(cart: CartNewInput, context: &AppState) -> FieldResult<Cart> {
-    let mut service = context.service.lock().unwrap();
-    let res = CreateCartCommand { cart }.exec(&mut service)?;
+pub async fn create_cart(cart: CartNewInput, context: &AppState) -> FieldResult<Cart> {
+    let mut service = context.service.lock().await;
+    let res = CreateCartCommand { cart }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn update_cart(cart: CartUpdateInput, context: &AppState) -> FieldResult<Cart> {
-    let mut service = context.service.lock().unwrap();
-    let res = UpdateCartCommand { cart }.exec(&mut service)?;
+pub async fn update_cart(cart: CartUpdateInput, context: &AppState) -> FieldResult<Cart> {
+    let mut service = context.service.lock().await;
+    let res = UpdateCartCommand { cart }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn delete_cart(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let res = DeleteCartCommand { id }.exec(&mut service)?;
+pub async fn delete_cart(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+    let mut service = context.service.lock().await;
+    let res = DeleteCartCommand { id }.exec(&mut service).await?;
     Ok(res)
 }

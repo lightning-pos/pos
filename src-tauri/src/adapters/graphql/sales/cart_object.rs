@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -37,11 +37,12 @@ impl Cart {
     }
 
     // Relationships
-    pub fn customer(&self, context: &AppState) -> FieldResult<Option<Customer>> {
+    pub async fn customer(&self, context: &AppState) -> FieldResult<Option<Customer>> {
         if let Some(customer_id) = self.customer_id {
-            let service = context.service.lock().unwrap();
+            let service = context.service.lock().await;
 
-            let query = Query::select()
+            let mut query = Query::select();
+            let query = query
                 .from(Customers::Table)
                 .columns([
                     Customers::Id,
@@ -52,10 +53,9 @@ impl Cart {
                     Customers::CreatedAt,
                     Customers::UpdatedAt,
                 ])
-                .and_where(Expr::col(Customers::Id).eq(customer_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+                .and_where(Expr::col(Customers::Id).eq(customer_id.to_string()));
 
-            let customer = service.db_adapter.query_one::<Customer>(&query, vec![])?;
+            let customer = service.db_adapter.query_one::<Customer>(&query).await?;
 
             Ok(Some(customer))
         } else {

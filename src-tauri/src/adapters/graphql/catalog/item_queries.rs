@@ -1,4 +1,4 @@
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -10,12 +10,12 @@ use crate::{
     AppState,
 };
 
-pub fn items(
+pub async fn items(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<Item>> {
-    let service = context.service.lock().unwrap();
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
@@ -41,19 +41,18 @@ pub fn items(
         query.offset(off as u64);
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
     // Execute the query
-    let result = service.db_adapter.query_many::<Item>(&sql, vec![])?;
-    
+    let result = service.db_adapter.query_many::<Item>(&query).await?;
+
     Ok(result)
 }
 
-pub fn item(id: DbUuid, context: &AppState) -> FieldResult<Item> {
-    let service = context.service.lock().unwrap();
-    
+pub async fn item(id: DbUuid, context: &AppState) -> FieldResult<Item> {
+    let service = context.service.lock().await;
+
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query_builder = Query::select();
+    let query = query_builder
         .from(Items::Table)
         .columns([
             Items::Id,
@@ -66,11 +65,10 @@ pub fn item(id: DbUuid, context: &AppState) -> FieldResult<Item> {
             Items::CreatedAt,
             Items::UpdatedAt,
         ])
-        .and_where(Expr::col(Items::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
-    
+        .and_where(Expr::col(Items::Id).eq(id.to_string()));
+
     // Execute the query
-    let result = service.db_adapter.query_one::<Item>(&query, vec![])?;
-    
+    let result = service.db_adapter.query_one::<Item>(&query).await?;
+
     Ok(result)
 }

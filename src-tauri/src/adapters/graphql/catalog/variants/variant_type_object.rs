@@ -30,12 +30,12 @@ impl VariantType {
         self.updated_at
     }
 
-    pub fn values(&self, context: &AppState) -> FieldResult<Vec<VariantValue>> {
-        let mut service = context.service.lock().unwrap();
+    pub async fn values(&self, context: &AppState) -> FieldResult<Vec<VariantValue>> {
+        let mut service = context.service.lock().await;
         let command = ListVariantValuesCommand {
             variant_type_id: Some(self.id),
         };
-        let values = command.exec(&mut service)?;
+        let values = command.exec(&mut service).await?;
         Ok(values)
     }
 }

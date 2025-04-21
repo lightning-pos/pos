@@ -16,26 +16,26 @@ use crate::{
 };
 use juniper::FieldResult;
 
-pub fn create_sales_charge_type(
+pub async fn create_sales_charge_type(
     charge_type: SalesChargeTypeNewInput,
     context: &AppState,
 ) -> FieldResult<SalesChargeType> {
-    let mut service = context.service.lock().unwrap();
-    let res = CreateSalesChargeTypeCommand { charge_type }.exec(&mut service)?;
-    Ok(res)
+    let mut service = context.service.lock().await;
+    let result = CreateSalesChargeTypeCommand { charge_type }.exec(&mut service).await?;
+    Ok(result)
 }
 
-pub fn update_sales_charge_type(
+pub async fn update_sales_charge_type(
     charge_type: SalesChargeTypeUpdateInput,
     context: &AppState,
 ) -> FieldResult<SalesChargeType> {
-    let mut service = context.service.lock().unwrap();
-    let res = UpdateSalesChargeTypeCommand { charge_type }.exec(&mut service)?;
-    Ok(res)
+    let mut service = context.service.lock().await;
+    let result = UpdateSalesChargeTypeCommand { charge_type }.exec(&mut service).await?;
+    Ok(result)
 }
 
-pub fn delete_sales_charge_type(id: DbUuid, context: &AppState) -> FieldResult<bool> {
-    let mut service = context.service.lock().unwrap();
-    let res = DeleteSalesChargeTypeCommand { id }.exec(&mut service)?;
-    Ok(res)
+pub async fn delete_sales_charge_type(id: DbUuid, context: &AppState) -> FieldResult<bool> {
+    let mut service = context.service.lock().await;
+    let result = DeleteSalesChargeTypeCommand { id }.exec(&mut service).await?;
+    Ok(result)
 }

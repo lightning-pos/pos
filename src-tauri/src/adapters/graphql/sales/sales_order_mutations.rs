@@ -18,27 +18,27 @@ fn get_current_user_id(_context: &AppState) -> DbUuid {
     Uuid::nil().into() // Using Nil UUID as a placeholder
 }
 
-pub fn create_sales_order(
+pub async fn create_sales_order(
     sales_order: SalesOrderNewInput,
     context: &AppState,
 ) -> FieldResult<SalesOrder> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
     let current_user_id = get_current_user_id(context);
     let res = CreateSalesOrderCommand {
         sales_order,
         created_by_user_id: current_user_id,
     }
-    .exec(&mut service)?;
+    .exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn void_sales_order(id: DbUuid, context: &AppState) -> FieldResult<SalesOrder> {
-    let mut service = context.service.lock().unwrap();
+pub async fn void_sales_order(id: DbUuid, context: &AppState) -> FieldResult<SalesOrder> {
+    let mut service = context.service.lock().await;
     let current_user_id = get_current_user_id(context);
     let res = VoidSalesOrderCommand {
         id,
         updated_by_user_id: current_user_id,
     }
-    .exec(&mut service)?;
+    .exec(&mut service).await?;
     Ok(res)
 }

@@ -8,24 +8,24 @@ use crate::core::models::catalog::variant_value_model::VariantValue;
 use crate::core::types::db_uuid::DbUuid;
 use crate::AppState;
 
-pub fn get_variant_value(id: DbUuid, context: &AppState) -> FieldResult<VariantValue> {
-    let mut service = context.service.lock().unwrap();
+pub async fn get_variant_value(id: DbUuid, context: &AppState) -> FieldResult<VariantValue> {
+    let mut service = context.service.lock().await;
 
     let command = GetVariantValueCommand { id };
-    let variant_value = command.exec(&mut service)?;
+    let variant_value = command.exec(&mut service).await?;
     Ok(variant_value)
 }
 
-pub fn get_variant_values(
+pub async fn get_variant_values(
     variant_type_id: Option<DbUuid>,
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<VariantValue>> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
 
     let command = ListVariantValuesCommand { variant_type_id };
-    let variant_values = command.exec(&mut service)?;
+    let variant_values = command.exec(&mut service).await?;
 
     // Apply pagination in memory
     let offset_val = offset.unwrap_or(0) as usize;

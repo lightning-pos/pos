@@ -15,22 +15,22 @@ use crate::{
 };
 
 /// Create a new discount
-pub fn create_discount(discount: DiscountNewInput, context: &AppState) -> FieldResult<Discount> {
-    let mut service = context.service.lock().unwrap();
-    let result = CreateDiscountCommand { discount }.exec(&mut service)?;
+pub async fn create_discount(discount: DiscountNewInput, context: &AppState) -> FieldResult<Discount> {
+    let mut service = context.service.lock().await;
+    let result = CreateDiscountCommand { discount }.exec(&mut service).await?;
     Ok(result)
 }
 
 /// Update an existing discount
-pub fn update_discount(discount: DiscountUpdateInput, context: &AppState) -> FieldResult<Discount> {
-    let mut service = context.service.lock().unwrap();
-    let result = UpdateDiscountCommand { discount }.exec(&mut service)?;
+pub async fn update_discount(discount: DiscountUpdateInput, context: &AppState) -> FieldResult<Discount> {
+    let mut service = context.service.lock().await;
+    let result = UpdateDiscountCommand { discount }.exec(&mut service).await?;
     Ok(result)
 }
 
 /// Delete a discount by its ID
-pub fn delete_discount(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let result = DeleteDiscountCommand { id }.exec(&mut service)?;
+pub async fn delete_discount(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+    let mut service = context.service.lock().await;
+    let result = DeleteDiscountCommand { id }.exec(&mut service).await?;
     Ok(result as i32)
 }

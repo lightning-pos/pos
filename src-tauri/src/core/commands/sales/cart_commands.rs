@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use uuid::Uuid;
 
 use crate::{
@@ -29,7 +29,7 @@ pub struct DeleteCartCommand {
 impl Command for CreateCartCommand {
     type Output = Cart;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
 
@@ -42,7 +42,8 @@ impl Command for CreateCartCommand {
         };
 
         // Build the insert query with SeaQuery
-        let query = Query::insert()
+        let mut insert_query = Query::insert();
+        let insert_stmt = insert_query
             .into_table(Carts::Table)
             .columns([
                 Carts::Id,
@@ -57,11 +58,10 @@ impl Command for CreateCartCommand {
                 self.cart.cart_data.clone().into(),
                 now.to_string().into(),
                 now.to_string().into(),
-            ])
-            .to_string(SqliteQueryBuilder);
+            ]);
 
         // Execute the query
-        service.db_adapter.execute(&query, vec![])?;
+        service.db_adapter.insert_one(&insert_stmt).await?;
 
         // Return the newly created cart
         Ok(new_cart)
@@ -71,12 +71,13 @@ impl Command for CreateCartCommand {
 impl Command for UpdateCartCommand {
     type Output = Cart;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let cart_id = self.cart.id;
 
         // First, check if the cart exists
-        let check_query = Query::select()
+        let mut check_query = Query::select();
+        let check_stmt = check_query
             .from(Carts::Table)
             .columns([
                 Carts::Id,
@@ -85,10 +86,9 @@ impl Command for UpdateCartCommand {
                 Carts::CreatedAt,
                 Carts::UpdatedAt,
             ])
-            .and_where(Expr::col(Carts::Id).eq(cart_id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Carts::Id).eq(cart_id.to_string()));
 
-        let existing = service.db_adapter.query_optional::<Cart>(&check_query, vec![])?;
+        let existing = service.db_adapter.query_optional::<Cart>(&check_stmt).await?;
 
         if existing.is_none() {
             return Err(Error::NotFoundError);
@@ -96,26 +96,24 @@ impl Command for UpdateCartCommand {
 
         // Build the update query with SeaQuery
         let mut update_query = Query::update();
-        let query = update_query.table(Carts::Table);
+        let mut update_stmt = update_query.table(Carts::Table);
 
         // Only set fields that are provided in the update input
         if let Some(cart_data) = &self.cart.cart_data {
-            query.value(Carts::CartData, cart_data.clone());
+            update_stmt = update_stmt.value(Carts::CartData, cart_data.clone());
         }
 
         // Always update the updated_at timestamp
-        query.value(Carts::UpdatedAt, now.to_string());
+        update_stmt = update_stmt.value(Carts::UpdatedAt, now.to_string());
 
         // Add the WHERE clause
-        query.and_where(Expr::col(Carts::Id).eq(cart_id.to_string()));
-
-        let sql = query.to_string(SqliteQueryBuilder);
+        update_stmt = update_stmt.and_where(Expr::col(Carts::Id).eq(cart_id.to_string()));
 
         // Execute the query
-        service.db_adapter.execute(&sql, vec![])?;
+        service.db_adapter.update_many(&update_stmt).await?;
 
         // Get the updated cart
-        let updated_cart = service.db_adapter.query_one::<Cart>(&check_query, vec![])?;
+        let updated_cart = service.db_adapter.query_one::<Cart>(&check_stmt).await?;
 
         Ok(updated_cart)
     }
@@ -124,15 +122,15 @@ impl Command for UpdateCartCommand {
 impl Command for DeleteCartCommand {
     type Output = i32;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Build the delete query with SeaQuery
-        let query = Query::delete()
+        let mut delete_query = Query::delete();
+        let delete_stmt = delete_query
             .from_table(Carts::Table)
-            .and_where(Expr::col(Carts::Id).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Carts::Id).eq(self.id.to_string()));
 
         // Execute the query
-        let affected_rows = service.db_adapter.execute(&query, vec![])?;
+        let affected_rows = service.db_adapter.delete(&delete_stmt).await?;
 
         if affected_rows == 0 {
             return Err(Error::NotFoundError);
@@ -152,9 +150,10 @@ mod tests {
         models::sales::customer_model::CustomerNewInput,
     };
     use rand::Rng;
-    use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+    use sea_query::{Alias, Expr, Query};
+    use tokio;
 
-    fn create_test_customer(service: &mut AppService) -> DbUuid {
+    async fn create_test_customer(service: &mut AppService) -> DbUuid {
         let random_suffix = rand::thread_rng().gen_range(1000..9999).to_string();
         let command = CreateCustomerCommand {
             customer: CustomerNewInput {
@@ -164,13 +163,13 @@ mod tests {
                 address: None,
             },
         };
-        command.exec(service).unwrap().id
+        command.exec(service).await.unwrap().id
     }
 
-    #[test]
-    fn test_create_cart_with_customer() {
+    #[tokio::test]
+    async fn test_create_cart_with_customer() {
         let mut app_service = setup_service();
-        let customer_id = Some(create_test_customer(&mut app_service));
+        let customer_id = Some(create_test_customer(&mut app_service).await);
         let cart_data = r#"{"items": []}"#.to_string();
 
         let command = CreateCartCommand {
@@ -180,7 +179,7 @@ mod tests {
             },
         };
 
-        let result = command.exec(&mut app_service).unwrap();
+        let result = command.exec(&mut app_service).await.unwrap();
 
         assert_eq!(result.customer_id, customer_id);
         assert_eq!(result.cart_data, cart_data);
@@ -188,8 +187,8 @@ mod tests {
         assert_eq!(result.created_at, result.updated_at);
     }
 
-    #[test]
-    fn test_create_cart_without_customer() {
+    #[tokio::test]
+    async fn test_create_cart_without_customer() {
         let mut app_service = setup_service();
         let cart_data = r#"{"items": []}"#.to_string();
 
@@ -200,7 +199,7 @@ mod tests {
             },
         };
 
-        let result = command.exec(&mut app_service).unwrap();
+        let result = command.exec(&mut app_service).await.unwrap();
 
         assert_eq!(result.customer_id, None);
         assert_eq!(result.cart_data, cart_data);
@@ -208,8 +207,8 @@ mod tests {
         assert_eq!(result.created_at, result.updated_at);
     }
 
-    #[test]
-    fn test_update_cart() {
+    #[tokio::test]
+    async fn test_update_cart() {
         let mut app_service = setup_service();
 
         // First create a cart without customer
@@ -220,7 +219,7 @@ mod tests {
                 cart_data: initial_cart_data,
             },
         };
-        let created_cart = create_command.exec(&mut app_service).unwrap();
+        let created_cart = create_command.exec(&mut app_service).await.unwrap();
 
         // Then update it
         let updated_cart_data = r#"{"items": [{"id": "123", "quantity": 1}]}"#.to_string();
@@ -231,15 +230,15 @@ mod tests {
             },
         };
 
-        let result = update_command.exec(&mut app_service).unwrap();
+        let result = update_command.exec(&mut app_service).await.unwrap();
 
         assert_eq!(result.id, created_cart.id);
         assert_eq!(result.cart_data, updated_cart_data);
         assert!(result.updated_at > result.created_at);
     }
 
-    #[test]
-    fn test_update_cart_does_not_exist() {
+    #[tokio::test]
+    async fn test_update_cart_does_not_exist() {
         let mut app_service = setup_service();
 
         let nonexistent_id = Uuid::now_v7().into();
@@ -250,12 +249,12 @@ mod tests {
             },
         };
 
-        let result = command.exec(&mut app_service);
+        let result = command.exec(&mut app_service).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_delete_cart() {
+    #[tokio::test]
+    async fn test_delete_cart() {
         let mut app_service = setup_service();
 
         // First create a cart
@@ -265,35 +264,35 @@ mod tests {
                 cart_data: "{}".to_string(),
             },
         };
-        let created_cart = create_command.exec(&mut app_service).unwrap();
+        let created_cart = create_command.exec(&mut app_service).await.unwrap();
 
         // Then delete it
         let delete_command = DeleteCartCommand {
             id: created_cart.id,
         };
 
-        let result = delete_command.exec(&mut app_service).unwrap();
+        let result = delete_command.exec(&mut app_service).await.unwrap();
         assert_eq!(result, 1); // Should return 1 for successful deletion
 
         // Verify deletion by checking if cart exists
-        let check_query = Query::select()
+        let mut check_query = Query::select();
+        let count_stmt = check_query
             .from(Carts::Table)
             .expr_as(Expr::col(Carts::Id).count(), Alias::new("count"))
-            .and_where(Expr::col(Carts::Id).eq(created_cart.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Carts::Id).eq(created_cart.id.to_string()));
 
-        let count = app_service.db_adapter.query_one::<i64>(&check_query, vec![]).unwrap();
+        let count = app_service.db_adapter.query_one::<i64>(&count_stmt).await.unwrap();
         assert_eq!(count, 0);
     }
 
-    #[test]
-    fn test_delete_cart_does_not_exist() {
+    #[tokio::test]
+    async fn test_delete_cart_does_not_exist() {
         let mut app_service = setup_service();
 
         let nonexistent_id = Uuid::now_v7().into();
         let command = DeleteCartCommand { id: nonexistent_id };
 
-        let result = command.exec(&mut app_service);
+        let result = command.exec(&mut app_service).await;
         assert!(matches!(result.unwrap_err(), Error::NotFoundError));
     }
 }

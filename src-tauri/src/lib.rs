@@ -4,7 +4,7 @@ pub mod error;
 pub mod schema;
 
 use core::commands::app_service::AppService;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 pub struct AppState {
     pub service: Mutex<AppService>,

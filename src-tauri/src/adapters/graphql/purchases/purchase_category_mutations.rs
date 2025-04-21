@@ -17,13 +17,13 @@ use crate::{
     AppState,
 };
 
-pub fn create_purchase_category(
+pub async fn create_purchase_category(
     name: String,
     description: Option<String>,
     state: Option<PurchaseCategoryState>,
     context: &AppState,
 ) -> FieldResult<PurchaseCategory> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
     let command = CreatePurchaseCategoryCommand {
         category: PurchaseCategoryNew {
             name,
@@ -31,18 +31,18 @@ pub fn create_purchase_category(
             state,
         },
     };
-    let result = command.exec(&mut service)?;
+    let result = command.exec(&mut service).await?;
     Ok(result)
 }
 
-pub fn update_purchase_category(
+pub async fn update_purchase_category(
     id: DbUuid,
     name: Option<String>,
     description: Option<Option<String>>,
     state: Option<PurchaseCategoryState>,
     context: &AppState,
 ) -> FieldResult<PurchaseCategory> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
     let command = UpdatePurchaseCategoryCommand {
         category: PurchaseCategoryUpdate {
             id,
@@ -52,14 +52,14 @@ pub fn update_purchase_category(
             updated_at: None,
         },
     };
-    let result = command.exec(&mut service)?;
+    let result = command.exec(&mut service).await?;
     Ok(result)
 }
 
-pub fn delete_purchase_category(id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
-    let mut service = context.service.lock().unwrap();
+pub async fn delete_purchase_category(id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
+    let mut service = context.service.lock().await;
     let command = DeletePurchaseCategoryCommand { id };
-    let _ = command.exec(&mut service)?;
+    let _ = command.exec(&mut service).await?;
     // Return the id of the deleted category
     Ok(id)
 }

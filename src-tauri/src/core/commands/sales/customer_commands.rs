@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use uuid::Uuid;
 
 use crate::{
@@ -31,7 +31,7 @@ pub struct DeleteCustomerCommand {
 impl Command for CreateCustomerCommand {
     type Output = Customer;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let new_id = Uuid::now_v7();
 
@@ -46,7 +46,8 @@ impl Command for CreateCustomerCommand {
         };
 
         // Build the insert query with SeaQuery
-        let query = Query::insert()
+        let mut insert_query = Query::insert();
+        let insert_stmt = insert_query
             .into_table(Customers::Table)
             .columns([
                 Customers::Id,
@@ -65,11 +66,10 @@ impl Command for CreateCustomerCommand {
                 self.customer.address.clone().into(),
                 now.to_string().into(),
                 now.to_string().into(),
-            ])
-            .to_string(SqliteQueryBuilder);
+            ]);
 
         // Execute the query
-        service.db_adapter.execute(&query, vec![])?;
+        service.db_adapter.insert_one(&insert_stmt).await?;
 
         // Return the newly created customer
         Ok(new_customer)
@@ -79,12 +79,13 @@ impl Command for CreateCustomerCommand {
 impl Command for UpdateCustomerCommand {
     type Output = Customer;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let customer_id = self.customer.id;
 
         // First, check if the customer exists
-        let check_query = Query::select()
+        let mut select_query = Query::select();
+        let select_stmt = select_query
             .from(Customers::Table)
             .columns([
                 Customers::Id,
@@ -95,10 +96,9 @@ impl Command for UpdateCustomerCommand {
                 Customers::CreatedAt,
                 Customers::UpdatedAt,
             ])
-            .and_where(Expr::col(Customers::Id).eq(customer_id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Customers::Id).eq(customer_id.to_string()));
 
-        let existing = service.db_adapter.query_optional::<Customer>(&check_query, vec![])?;
+        let existing = service.db_adapter.query_optional::<Customer>(&select_stmt).await?;
 
         if existing.is_none() {
             return Err(Error::NotFoundError);
@@ -106,47 +106,45 @@ impl Command for UpdateCustomerCommand {
 
         // Build the update query with SeaQuery
         let mut update_query = Query::update();
-        let query = update_query.table(Customers::Table);
+        let update_stmt = update_query.table(Customers::Table);
 
         // Only set fields that are provided in the update input
         if let Some(full_name) = &self.customer.full_name {
-            query.value(Customers::FullName, full_name.clone());
+            update_stmt.value(Customers::FullName, full_name.clone());
         }
 
         if let Some(email) = &self.customer.email {
             match email {
-                Some(e) => query.value(Customers::Email, e.clone()),
-                None => query.value(Customers::Email, sea_query::Value::String(None)),
+                Some(e) => update_stmt.value(Customers::Email, e.clone()),
+                None => update_stmt.value(Customers::Email, sea_query::Value::String(None)),
             };
         }
 
         if let Some(phone) = &self.customer.phone {
             match phone {
-                Some(p) => query.value(Customers::Phone, p.clone()),
-                None => query.value(Customers::Phone, sea_query::Value::String(None)),
+                Some(p) => update_stmt.value(Customers::Phone, p.clone()),
+                None => update_stmt.value(Customers::Phone, sea_query::Value::String(None)),
             };
         }
 
         if let Some(address) = &self.customer.address {
             match address {
-                Some(a) => query.value(Customers::Address, a.clone()),
-                None => query.value(Customers::Address, sea_query::Value::String(None)),
+                Some(a) => update_stmt.value(Customers::Address, a.clone()),
+                None => update_stmt.value(Customers::Address, sea_query::Value::String(None)),
             };
         }
 
         // Always update the updated_at timestamp
-        query.value(Customers::UpdatedAt, now.to_string());
+        update_stmt.value(Customers::UpdatedAt, now.to_string());
 
         // Add the WHERE clause
-        query.and_where(Expr::col(Customers::Id).eq(customer_id.to_string()));
-
-        let sql = query.to_string(SqliteQueryBuilder);
+        update_stmt.and_where(Expr::col(Customers::Id).eq(customer_id.to_string()));
 
         // Execute the query
-        service.db_adapter.execute(&sql, vec![])?;
+        service.db_adapter.update_one(&update_stmt).await?;
 
         // Get the updated customer
-        let updated_customer = service.db_adapter.query_one::<Customer>(&check_query, vec![])?;
+        let updated_customer = service.db_adapter.query_one::<Customer>(&select_stmt).await?;
 
         Ok(updated_customer)
     }
@@ -155,15 +153,15 @@ impl Command for UpdateCustomerCommand {
 impl Command for DeleteCustomerCommand {
     type Output = i32;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Build the delete query with SeaQuery
-        let query = Query::delete()
+        let mut delete_query = Query::delete();
+        let delete_stmt = delete_query
             .from_table(Customers::Table)
-            .and_where(Expr::col(Customers::Id).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Customers::Id).eq(self.id.to_string()));
 
         // Execute the query
-        let affected_rows = service.db_adapter.execute(&query, vec![])?;
+        let affected_rows = service.db_adapter.delete(&delete_stmt).await?;
 
         if affected_rows == 0 {
             return Err(Error::NotFoundError);
@@ -179,10 +177,11 @@ mod tests {
 
     use super::*;
     use uuid::Uuid;
-    use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+    use sea_query::{Alias, Expr, Query};
+    use tokio;
 
-    #[test]
-    fn test_create_customer() {
+    #[tokio::test]
+    async fn test_create_customer() {
         let mut app_service = setup_service();
         let new_customer = CustomerNewInput {
             full_name: String::from("John Doe"),
@@ -193,7 +192,7 @@ mod tests {
         let command = CreateCustomerCommand {
             customer: new_customer,
         };
-        let result = command.exec(&mut app_service);
+        let result = command.exec(&mut app_service).await;
 
         assert!(result.is_ok());
         let customer = result.unwrap();
@@ -201,8 +200,8 @@ mod tests {
         assert_eq!(customer.email, Some("john@example.com".to_string()));
     }
 
-    #[test]
-    fn test_update_customer() {
+    #[tokio::test]
+    async fn test_update_customer() {
         let mut app_service = setup_service();
         let new_customer = CustomerNewInput {
             full_name: String::from("John Doe"),
@@ -214,7 +213,7 @@ mod tests {
         let create_command = CreateCustomerCommand {
             customer: new_customer,
         };
-        let customer = create_command.exec(&mut app_service).unwrap();
+        let customer = create_command.exec(&mut app_service).await.unwrap();
 
         let updated_customer = CustomerUpdateInput {
             id: customer.id,
@@ -227,7 +226,7 @@ mod tests {
         let update_command = UpdateCustomerCommand {
             customer: updated_customer,
         };
-        let result = update_command.exec(&mut app_service);
+        let result = update_command.exec(&mut app_service).await;
         assert!(result.is_ok());
         let updated = result.unwrap();
         assert_eq!(updated.full_name, "John Smith");
@@ -235,8 +234,8 @@ mod tests {
         assert_eq!(updated.address, Some("456 Oak Ave".to_string()));
     }
 
-    #[test]
-    fn test_update_customer_does_not_exist() {
+    #[tokio::test]
+    async fn test_update_customer_does_not_exist() {
         let mut app_service = setup_service();
         let customer = CustomerUpdateInput {
             id: Uuid::now_v7().into(),
@@ -247,12 +246,12 @@ mod tests {
         };
 
         let command = UpdateCustomerCommand { customer };
-        let result = command.exec(&mut app_service);
+        let result = command.exec(&mut app_service).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_delete_customer() {
+    #[tokio::test]
+    async fn test_delete_customer() {
         let mut app_service = setup_service();
         let new_customer = CustomerNewInput {
             full_name: String::from("John Doe"),
@@ -264,30 +263,30 @@ mod tests {
         let create_command = CreateCustomerCommand {
             customer: new_customer,
         };
-        let customer = create_command.exec(&mut app_service).unwrap();
+        let customer = create_command.exec(&mut app_service).await.unwrap();
 
         let delete_command = DeleteCustomerCommand { id: customer.id };
-        let result = delete_command.exec(&mut app_service);
+        let result = delete_command.exec(&mut app_service).await;
         assert!(result.is_ok());
 
         // Verify customer no longer exists
-        let count_query = Query::select()
+        let mut count_query = Query::select();
+        let count_stmt = count_query
             .from(Customers::Table)
             .expr_as(Expr::col(Customers::Id).count(), Alias::new("count"))
-            .and_where(Expr::col(Customers::Id).eq(customer.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Customers::Id).eq(customer.id.to_string()));
 
-        let count = app_service.db_adapter.query_one::<i64>(&count_query, vec![]).unwrap();
+        let count = app_service.db_adapter.query_one::<i64>(&count_stmt).await.unwrap();
         assert_eq!(count, 0);
     }
 
-    #[test]
-    fn test_delete_customer_does_not_exist() {
+    #[tokio::test]
+    async fn test_delete_customer_does_not_exist() {
         let mut app_service = setup_service();
         let command = DeleteCustomerCommand {
             id: Uuid::now_v7().into(),
         };
-        let result = command.exec(&mut app_service);
+        let result = command.exec(&mut app_service).await;
         assert!(result.is_err());
     }
 }

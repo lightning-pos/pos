@@ -18,5 +18,5 @@ use crate::error::Result;
 
 pub trait Command {
     type Output;
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output>;
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output>;
 }

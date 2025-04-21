@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Func, Query, QueryStatementWriter, SqliteQueryBuilder};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -52,10 +52,11 @@ impl Item {
         self.updated_at
     }
 
-    pub fn category(&self, context: &AppState) -> FieldResult<ItemGroup> {
-        let service = context.service.lock().unwrap();
-        
-        let query = Query::select()
+    pub async fn category(&self, context: &AppState) -> FieldResult<ItemGroup> {
+        let service = context.service.lock().await;
+
+        let mut query_builder = Query::select();
+        let query = query_builder
             .from(ItemCategories::Table)
             .columns([
                 ItemCategories::Id,
@@ -65,25 +66,22 @@ impl Item {
                 ItemCategories::CreatedAt,
                 ItemCategories::UpdatedAt,
             ])
-            .and_where(Expr::col(ItemCategories::Id).eq(self.category_id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let result = service.db_adapter.query_one::<ItemGroup>(&query, vec![])?;
-        
+            .and_where(Expr::col(ItemCategories::Id).eq(self.category_id.to_string()));
+        let result = service.db_adapter.query_one::<ItemGroup>(&query).await?;
         Ok(result)
     }
 
-    pub fn taxes(&self, context: &AppState) -> FieldResult<Vec<Tax>> {
-        let service = context.service.lock().unwrap();
+    pub async fn taxes(&self, context: &AppState) -> FieldResult<Vec<Tax>> {
+        let service = context.service.lock().await;
 
         // First, get the tax IDs for this item
-        let tax_ids_query = Query::select()
+        let mut tax_ids_query_builder = Query::select();
+        let tax_ids_query = tax_ids_query_builder
             .from(ItemTaxes::Table)
             .column(ItemTaxes::TaxId)
-            .and_where(Expr::col(ItemTaxes::ItemId).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let tax_ids = service.db_adapter.query_many::<DbUuid>(&tax_ids_query, vec![])?;
+            .and_where(Expr::col(ItemTaxes::ItemId).eq(self.id.to_string()));
+
+        let tax_ids = service.db_adapter.query_many::<DbUuid>(&tax_ids_query).await?;
 
         // If no tax IDs found, return empty vector
         if tax_ids.is_empty() {
@@ -92,9 +90,10 @@ impl Item {
 
         // Convert tax IDs to strings for the IN clause
         let tax_id_strings: Vec<String> = tax_ids.iter().map(|id| id.to_string()).collect();
-        
+
         // Then get the taxes with those IDs
-        let taxes_query = Query::select()
+        let mut taxes_query_builder = Query::select();
+        let taxes_query = taxes_query_builder
             .from(Taxes::Table)
             .columns([
                 Taxes::Id,
@@ -104,18 +103,18 @@ impl Item {
                 Taxes::CreatedAt,
                 Taxes::UpdatedAt,
             ])
-            .and_where(Expr::col(Taxes::Id).is_in(tax_id_strings))
-            .to_string(SqliteQueryBuilder);
-            
-        let taxes = service.db_adapter.query_many::<Tax>(&taxes_query, vec![])?;
+            .and_where(Expr::col(Taxes::Id).is_in(tax_id_strings));
+
+        let taxes = service.db_adapter.query_many::<Tax>(&taxes_query).await?;
 
         Ok(taxes)
     }
 
-    pub fn variants(&self, context: &AppState) -> FieldResult<Vec<ItemVariant>> {
-        let service = context.service.lock().unwrap();
-        
-        let query = Query::select()
+    pub async fn variants(&self, context: &AppState) -> FieldResult<Vec<ItemVariant>> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
             .from(ItemVariants::Table)
             .columns([
                 ItemVariants::Id,
@@ -126,33 +125,33 @@ impl Item {
                 ItemVariants::CreatedAt,
                 ItemVariants::UpdatedAt,
             ])
-            .and_where(Expr::col(ItemVariants::ItemId).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let variants = service.db_adapter.query_many::<ItemVariant>(&query, vec![])?;
-        
+            .and_where(Expr::col(ItemVariants::ItemId).eq(self.id.to_string()));
+
+        let variants = service.db_adapter.query_many::<ItemVariant>(&query).await?;
+
         Ok(variants)
     }
 
-    pub fn has_variants(&self, context: &AppState) -> FieldResult<bool> {
-        let service = context.service.lock().unwrap();
-        
+    pub async fn has_variants(&self, context: &AppState) -> FieldResult<bool> {
+        let service = context.service.lock().await;
+
         // Count query to check if variants exist
-        let count_query = Query::select()
+        let mut count_query_builder = Query::select();
+        let count_query = count_query_builder
             .from(ItemVariants::Table)
-            .expr(Expr::col(ItemVariants::Id).count())
-            .and_where(Expr::col(ItemVariants::ItemId).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let count = service.db_adapter.query_one::<i64>(&count_query, vec![])?;
-        
+            .expr(Func::count(Expr::col(ItemVariants::Id)))
+            .and_where(Expr::col(ItemVariants::ItemId).eq(self.id.to_string()));
+
+        let count = service.db_adapter.query_one::<i64>(&count_query).await?;
+
         Ok(count > 0)
     }
 
-    pub fn default_variant(&self, context: &AppState) -> FieldResult<Option<ItemVariant>> {
-        let service = context.service.lock().unwrap();
-        
-        let query = Query::select()
+    pub async fn default_variant(&self, context: &AppState) -> FieldResult<Option<ItemVariant>> {
+        let service = context.service.lock().await;
+
+        let mut query_builder = Query::select();
+        let query = query_builder
             .from(ItemVariants::Table)
             .columns([
                 ItemVariants::Id,
@@ -164,11 +163,16 @@ impl Item {
                 ItemVariants::UpdatedAt,
             ])
             .and_where(Expr::col(ItemVariants::ItemId).eq(self.id.to_string()))
-            .and_where(Expr::col(ItemVariants::IsDefault).eq(true))
-            .to_string(SqliteQueryBuilder);
-            
-        let default_variant = service.db_adapter.query_optional::<ItemVariant>(&query, vec![])?;
-        
+            .and_where(Expr::col(ItemVariants::IsDefault).eq(true));
+        let sql = query.to_string(SqliteQueryBuilder);
+
+
+        // let sql = format!("SELECT * FROM item_variants WHERE item_id = '{}' AND is_default = 1", self.id);
+
+        let default_variant = service.db_adapter.query_optional_sql::<ItemVariant>(sql).await?;
+
         Ok(default_variant)
     }
 }
+
+pub fn assert_send<T: Send>(_: &T ) {}

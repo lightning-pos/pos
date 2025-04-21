@@ -27,7 +27,7 @@ pub struct DeleteLocationCommand {
 impl Command for CreateLocationCommand {
     type Output = Location;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let now = Utc::now().naive_utc();
         let is_active = self.location.is_active.unwrap_or(true);
 
@@ -70,7 +70,7 @@ impl Command for CreateLocationCommand {
             ])
             .to_string(SqliteQueryBuilder);
 
-        service.db_adapter.execute(&query, vec![])?;
+        service.db_adapter.execute(&query).await?;
 
         Ok(new_location)
     }
@@ -79,9 +79,10 @@ impl Command for CreateLocationCommand {
 impl Command for UpdateLocationCommand {
     type Output = Location;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // First, get the existing location
-        let query = Query::select()
+        let mut query_builder = Query::select();
+        let query = query_builder
             .from(Locations::Table)
             .columns([
                 Locations::Id,
@@ -92,10 +93,9 @@ impl Command for UpdateLocationCommand {
                 Locations::CreatedAt,
                 Locations::UpdatedAt,
             ])
-            .and_where(Expr::col(Locations::Id).eq(self.location.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Locations::Id).eq(self.location.id.to_string()));
 
-        let existing_location = service.db_adapter.query_optional::<Location>(&query, vec![])?;
+        let existing_location = service.db_adapter.query_optional::<Location>(&query).await?;
         if existing_location.is_none() {
             return Err(crate::error::Error::NotFoundError);
         }
@@ -133,7 +133,7 @@ impl Command for UpdateLocationCommand {
         }
 
         let sql = update.to_string(SqliteQueryBuilder);
-        service.db_adapter.execute(&sql, vec![])?;
+        service.db_adapter.execute(&sql).await?;
 
         // Return the updated location
         let updated_location = Location {
@@ -161,13 +161,13 @@ impl Command for UpdateLocationCommand {
 impl Command for DeleteLocationCommand {
     type Output = ();
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let query = Query::delete()
             .from_table(Locations::Table)
             .and_where(Expr::col(Locations::Id).eq(self.id.to_string()))
             .to_string(SqliteQueryBuilder);
 
-        service.db_adapter.execute(&query, vec![])?;
+        service.db_adapter.execute(&query).await?;
 
         Ok(())
     }

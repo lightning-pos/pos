@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use uuid::Uuid;
 
 use crate::{
@@ -39,284 +39,93 @@ pub struct GetSalesOrderPaymentsCommand {
 impl Command for CreateSalesOrderPaymentCommand {
     type Output = SalesOrderPayment;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            let now = Utc::now().naive_utc();
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        let now = Utc::now().naive_utc();
 
-            // Check if the order exists and is in Completed state
-            let check_query = Query::select()
-                .from(SalesOrders::Table)
-                .column(SalesOrders::Id)
-                .and_where(Expr::col(SalesOrders::Id).eq(self.payment.order_id.to_string()))
-                .and_where(Expr::col(SalesOrders::OrderState).eq(SalesOrderState::Completed.to_string()))
-                .to_string(SqliteQueryBuilder);
+        // Check if the order exists and is in Completed state
+        let mut select_query = Query::select();
+        let check_stmt = select_query
+            .from(SalesOrders::Table)
+            .column(SalesOrders::Id)
+            .and_where(Expr::col(SalesOrders::Id).eq(self.payment.order_id.to_string()))
+            .and_where(Expr::col(SalesOrders::OrderState).eq(SalesOrderState::Completed.to_string()));
 
-            let order = db.query_optional::<SalesOrder>(&check_query, vec![])?;
-            if order.is_none() {
-                return Err(Error::NotFoundError);
-            }
+        let order = service.db_adapter.query_optional::<SalesOrder>(&check_stmt).await?;
+        if order.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-            // Create a new payment ID
-            let payment_id: DbUuid = Uuid::now_v7().into();
+        // Create a new payment ID
+        let payment_id: DbUuid = Uuid::now_v7().into();
 
-            // Create the payment
-            let new_payment = SalesOrderPayment {
-                id: payment_id,
-                order_id: self.payment.order_id,
-                payment_method_id: self.payment.payment_method_id,
-                payment_date: self.payment.payment_date,
-                amount: self.payment.amount,
-                reference_number: self.payment.reference_number.clone(),
-                notes: self.payment.notes.clone(),
-                state: self
-                    .payment
-                    .state
-                    .unwrap_or(SalesOrderPaymentState::Completed),
-                created_at: now,
-                updated_at: now,
-            };
+        // Create the payment
+        let new_payment = SalesOrderPayment {
+            id: payment_id,
+            order_id: self.payment.order_id,
+            payment_method_id: self.payment.payment_method_id,
+            payment_date: self.payment.payment_date,
+            amount: self.payment.amount,
+            reference_number: self.payment.reference_number.clone(),
+            notes: self.payment.notes.clone(),
+            state: self
+                .payment
+                .state
+                .unwrap_or(SalesOrderPaymentState::Completed),
+            created_at: now,
+            updated_at: now,
+        };
 
-            // Build the insert query
-            let insert_query = Query::insert()
-                .into_table(SalesOrderPayments::Table)
-                .columns([
-                    SalesOrderPayments::Id,
-                    SalesOrderPayments::OrderId,
-                    SalesOrderPayments::PaymentMethodId,
-                    SalesOrderPayments::PaymentDate,
-                    SalesOrderPayments::Amount,
-                    SalesOrderPayments::ReferenceNumber,
-                    SalesOrderPayments::Notes,
-                    SalesOrderPayments::State,
-                    SalesOrderPayments::CreatedAt,
-                    SalesOrderPayments::UpdatedAt,
-                ])
-                .values_panic([
-                    payment_id.to_string().into(),
-                    self.payment.order_id.to_string().into(),
-                    self.payment.payment_method_id.to_string().into(),
-                    self.payment.payment_date.to_string().into(),
-                    self.payment.amount.to_string().into(),
-                    match &self.payment.reference_number {
-                        Some(ref_num) => ref_num.clone().into(),
-                        None => sea_query::Value::String(None).into(),
-                    },
-                    match &self.payment.notes {
-                        Some(notes) => notes.clone().into(),
-                        None => sea_query::Value::String(None).into(),
-                    },
-                    new_payment.state.to_string().into(),
-                    now.to_string().into(),
-                    now.to_string().into(),
-                ])
-                .to_string(SqliteQueryBuilder);
+        // Build the insert query
+        let mut insert_query = Query::insert();
+        let insert_stmt = insert_query
+            .into_table(SalesOrderPayments::Table)
+            .columns([
+                SalesOrderPayments::Id,
+                SalesOrderPayments::OrderId,
+                SalesOrderPayments::PaymentMethodId,
+                SalesOrderPayments::PaymentDate,
+                SalesOrderPayments::Amount,
+                SalesOrderPayments::ReferenceNumber,
+                SalesOrderPayments::Notes,
+                SalesOrderPayments::State,
+                SalesOrderPayments::CreatedAt,
+                SalesOrderPayments::UpdatedAt,
+            ])
+            .values_panic([
+                payment_id.to_string().into(),
+                self.payment.order_id.to_string().into(),
+                self.payment.payment_method_id.to_string().into(),
+                self.payment.payment_date.to_string().into(),
+                self.payment.amount.to_string().into(),
+                match &self.payment.reference_number {
+                    Some(ref_num) => ref_num.clone().into(),
+                    None => sea_query::Value::String(None).into(),
+                },
+                match &self.payment.notes {
+                    Some(notes) => notes.clone().into(),
+                    None => sea_query::Value::String(None).into(),
+                },
+                new_payment.state.to_string().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ]);
 
-            // Execute the insert query
-            db.execute(&insert_query, vec![])?;
+        // Execute the insert query
+        service.db_adapter.insert_many(&insert_stmt).await?;
 
-            Ok(new_payment)
-        })
+        Ok(new_payment)
     }
 }
 
 impl Command for UpdateSalesOrderPaymentCommand {
     type Output = SalesOrderPayment;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            let now = Utc::now().naive_utc();
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        let now = Utc::now().naive_utc();
 
-            // Check if the payment exists and is in Completed state
-            let check_query = Query::select()
-                .from(SalesOrderPayments::Table)
-                .columns([
-                    SalesOrderPayments::Id,
-                    SalesOrderPayments::OrderId,
-                    SalesOrderPayments::PaymentMethodId,
-                    SalesOrderPayments::PaymentDate,
-                    SalesOrderPayments::Amount,
-                    SalesOrderPayments::ReferenceNumber,
-                    SalesOrderPayments::Notes,
-                    SalesOrderPayments::State,
-                    SalesOrderPayments::CreatedAt,
-                    SalesOrderPayments::UpdatedAt,
-                ])
-                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.payment.id.to_string()))
-                .and_where(Expr::col(SalesOrderPayments::State).eq(SalesOrderPaymentState::Completed.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            let payment = db.query_optional::<SalesOrderPayment>(&check_query, vec![])?;
-            if payment.is_none() {
-                return Err(Error::NotFoundError);
-            }
-
-            // Create the changeset
-            let changeset = SalesOrderPaymentUpdateChangeset {
-                id: self.payment.id,
-                payment_method_id: self.payment.payment_method_id,
-                payment_date: self.payment.payment_date,
-                amount: self.payment.amount,
-                reference_number: self.payment.reference_number.clone(),
-                notes: self.payment.notes.clone(),
-                state: self.payment.state,
-                updated_at: now,
-            };
-
-            // Build the update query
-            let mut update_query = Query::update();
-            update_query.table(SalesOrderPayments::Table)
-                .value(SalesOrderPayments::UpdatedAt, now.to_string());
-
-            // Add optional fields if they exist
-            if let Some(payment_method_id) = &changeset.payment_method_id {
-                update_query.value(SalesOrderPayments::PaymentMethodId, payment_method_id.to_string());
-            }
-
-            if let Some(payment_date) = &changeset.payment_date {
-                update_query.value(SalesOrderPayments::PaymentDate, payment_date.to_string());
-            }
-
-            if let Some(amount) = &changeset.amount {
-                update_query.value(SalesOrderPayments::Amount, amount.to_string());
-            }
-
-            if let Some(reference_number) = &changeset.reference_number {
-                match reference_number {
-                    Some(ref_num) => update_query.value(SalesOrderPayments::ReferenceNumber, ref_num.clone()),
-                    None => update_query.value(SalesOrderPayments::ReferenceNumber, sea_query::Value::String(None)),
-                };
-            }
-
-            if let Some(notes) = &changeset.notes {
-                match notes {
-                    Some(note_text) => update_query.value(SalesOrderPayments::Notes, note_text.clone()),
-                    None => update_query.value(SalesOrderPayments::Notes, sea_query::Value::String(None)),
-                };
-            }
-
-            if let Some(state) = &changeset.state {
-                update_query.value(SalesOrderPayments::State, state.to_string());
-            }
-
-            // Add WHERE condition
-            update_query.and_where(Expr::col(SalesOrderPayments::Id).eq(self.payment.id.to_string()));
-
-            // Generate the SQL query
-            let sql = update_query.to_string(SqliteQueryBuilder);
-
-            // Execute the update
-            db.execute(&sql, vec![])?;
-
-            // Retrieve the updated payment
-            let select_query = Query::select()
-                .from(SalesOrderPayments::Table)
-                .columns([
-                    SalesOrderPayments::Id,
-                    SalesOrderPayments::OrderId,
-                    SalesOrderPayments::PaymentMethodId,
-                    SalesOrderPayments::PaymentDate,
-                    SalesOrderPayments::Amount,
-                    SalesOrderPayments::ReferenceNumber,
-                    SalesOrderPayments::Notes,
-                    SalesOrderPayments::State,
-                    SalesOrderPayments::CreatedAt,
-                    SalesOrderPayments::UpdatedAt,
-                ])
-                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.payment.id.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            let updated_payment = db.query_one::<SalesOrderPayment>(&select_query, vec![])?;
-
-            Ok(updated_payment)
-        })
-    }
-}
-
-impl Command for VoidSalesOrderPaymentCommand {
-    type Output = SalesOrderPayment;
-
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            let now = Utc::now().naive_utc();
-
-            // Check if the payment exists and is in Completed state
-            let check_query = Query::select()
-                .from(SalesOrderPayments::Table)
-                .columns([
-                    SalesOrderPayments::Id,
-                    SalesOrderPayments::OrderId,
-                    SalesOrderPayments::PaymentMethodId,
-                    SalesOrderPayments::PaymentDate,
-                    SalesOrderPayments::Amount,
-                    SalesOrderPayments::ReferenceNumber,
-                    SalesOrderPayments::Notes,
-                    SalesOrderPayments::State,
-                    SalesOrderPayments::CreatedAt,
-                    SalesOrderPayments::UpdatedAt,
-                ])
-                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.id.to_string()))
-                .and_where(Expr::col(SalesOrderPayments::State).eq(SalesOrderPaymentState::Completed.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            let payment = db.query_optional::<SalesOrderPayment>(&check_query, vec![])?;
-            if payment.is_none() {
-                return Err(Error::NotFoundError);
-            }
-
-            // Build the update query
-            let update_query = Query::update()
-                .table(SalesOrderPayments::Table)
-                .value(SalesOrderPayments::State, SalesOrderPaymentState::Voided.to_string())
-                .value(SalesOrderPayments::UpdatedAt, now.to_string())
-                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.id.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            // Execute the update
-            db.execute(&update_query, vec![])?;
-
-            // Retrieve the updated payment
-            let select_query = Query::select()
-                .from(SalesOrderPayments::Table)
-                .columns([
-                    SalesOrderPayments::Id,
-                    SalesOrderPayments::OrderId,
-                    SalesOrderPayments::PaymentMethodId,
-                    SalesOrderPayments::PaymentDate,
-                    SalesOrderPayments::Amount,
-                    SalesOrderPayments::ReferenceNumber,
-                    SalesOrderPayments::Notes,
-                    SalesOrderPayments::State,
-                    SalesOrderPayments::CreatedAt,
-                    SalesOrderPayments::UpdatedAt,
-                ])
-                .and_where(Expr::col(SalesOrderPayments::Id).eq(self.id.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            let updated_payment = db.query_one::<SalesOrderPayment>(&select_query, vec![])?;
-
-            Ok(updated_payment)
-        })
-    }
-}
-
-impl Command for GetSalesOrderPaymentsCommand {
-    type Output = Vec<SalesOrderPayment>;
-
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        // Check if the order exists
-        let check_query = Query::select()
-            .from(SalesOrders::Table)
-            .column(SalesOrders::Id)
-            .and_where(Expr::col(SalesOrders::Id).eq(self.order_id.to_string()))
-            .to_string(SqliteQueryBuilder);
-
-        let order = service.db_adapter.query_optional::<SalesOrder>(&check_query, vec![])?;
-        if order.is_none() {
-            return Err(Error::NotFoundError);
-        }
-
-        // Get all payments for the order
-        let select_query = Query::select()
+        // Check if the payment exists and is in Completed state
+        let mut select_query = Query::select();
+        let check_stmt = select_query
             .from(SalesOrderPayments::Table)
             .columns([
                 SalesOrderPayments::Id,
@@ -330,10 +139,192 @@ impl Command for GetSalesOrderPaymentsCommand {
                 SalesOrderPayments::CreatedAt,
                 SalesOrderPayments::UpdatedAt,
             ])
-            .and_where(Expr::col(SalesOrderPayments::OrderId).eq(self.order_id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(SalesOrderPayments::Id).eq(self.payment.id.to_string()))
+            .and_where(Expr::col(SalesOrderPayments::State).eq(SalesOrderPaymentState::Completed.to_string()));
 
-        let payments = service.db_adapter.query_many::<SalesOrderPayment>(&select_query, vec![])?;
+        let payment = service.db_adapter.query_optional::<SalesOrderPayment>(&check_stmt).await?;
+        if payment.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        // Create the changeset
+        let changeset = SalesOrderPaymentUpdateChangeset {
+            id: self.payment.id,
+            payment_method_id: self.payment.payment_method_id,
+            payment_date: self.payment.payment_date,
+            amount: self.payment.amount,
+            reference_number: self.payment.reference_number.clone(),
+            notes: self.payment.notes.clone(),
+            state: self.payment.state,
+            updated_at: now,
+        };
+
+        // Build the update query
+        let mut update_query = Query::update();
+        let update_stmt = update_query.table(SalesOrderPayments::Table)
+            .value(SalesOrderPayments::UpdatedAt, now.to_string());
+
+        // Add optional fields if they exist
+        if let Some(payment_method_id) = &changeset.payment_method_id {
+            update_stmt.value(SalesOrderPayments::PaymentMethodId, payment_method_id.to_string());
+        }
+
+        if let Some(payment_date) = &changeset.payment_date {
+            update_stmt.value(SalesOrderPayments::PaymentDate, payment_date.to_string());
+        }
+
+        if let Some(amount) = &changeset.amount {
+            update_stmt.value(SalesOrderPayments::Amount, amount.to_string());
+        }
+
+        if let Some(reference_number) = &changeset.reference_number {
+            match reference_number {
+                Some(ref_num) => update_stmt.value(SalesOrderPayments::ReferenceNumber, ref_num.clone()),
+                None => update_stmt.value(SalesOrderPayments::ReferenceNumber, sea_query::Value::String(None)),
+            };
+        }
+
+        if let Some(notes) = &changeset.notes {
+            match notes {
+                Some(note_text) => update_stmt.value(SalesOrderPayments::Notes, note_text.clone()),
+                None => update_stmt.value(SalesOrderPayments::Notes, sea_query::Value::String(None)),
+            };
+        }
+
+        if let Some(state) = &changeset.state {
+            update_stmt.value(SalesOrderPayments::State, state.to_string());
+        }
+
+        // Add WHERE condition
+        update_stmt.and_where(Expr::col(SalesOrderPayments::Id).eq(self.payment.id.to_string()));
+
+        // Execute the update
+        service.db_adapter.update_many(&update_stmt).await?;
+
+        // Retrieve the updated payment
+        let mut select_query = Query::select();
+        let select_stmt = select_query
+            .from(SalesOrderPayments::Table)
+            .columns([
+                SalesOrderPayments::Id,
+                SalesOrderPayments::OrderId,
+                SalesOrderPayments::PaymentMethodId,
+                SalesOrderPayments::PaymentDate,
+                SalesOrderPayments::Amount,
+                SalesOrderPayments::ReferenceNumber,
+                SalesOrderPayments::Notes,
+                SalesOrderPayments::State,
+                SalesOrderPayments::CreatedAt,
+                SalesOrderPayments::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderPayments::Id).eq(self.payment.id.to_string()));
+
+        let updated_payment = service.db_adapter.query_one::<SalesOrderPayment>(&select_stmt).await?;
+
+        Ok(updated_payment)
+    }
+}
+
+impl Command for VoidSalesOrderPaymentCommand {
+    type Output = SalesOrderPayment;
+
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        let now = Utc::now().naive_utc();
+
+        // Check if the payment exists and is in Completed state
+        let mut select_query = Query::select();
+        let check_stmt = select_query
+            .from(SalesOrderPayments::Table)
+            .columns([
+                SalesOrderPayments::Id,
+                SalesOrderPayments::OrderId,
+                SalesOrderPayments::PaymentMethodId,
+                SalesOrderPayments::PaymentDate,
+                SalesOrderPayments::Amount,
+                SalesOrderPayments::ReferenceNumber,
+                SalesOrderPayments::Notes,
+                SalesOrderPayments::State,
+                SalesOrderPayments::CreatedAt,
+                SalesOrderPayments::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderPayments::Id).eq(self.id.to_string()))
+            .and_where(Expr::col(SalesOrderPayments::State).eq(SalesOrderPaymentState::Completed.to_string()));
+
+        let payment = service.db_adapter.query_optional::<SalesOrderPayment>(&check_stmt).await?;
+        if payment.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        // Build the update query
+        let mut update_query = Query::update();
+        let update_stmt = update_query
+            .table(SalesOrderPayments::Table)
+            .value(SalesOrderPayments::State, SalesOrderPaymentState::Voided.to_string())
+            .value(SalesOrderPayments::UpdatedAt, now.to_string())
+            .and_where(Expr::col(SalesOrderPayments::Id).eq(self.id.to_string()));
+
+        // Execute the update
+        service.db_adapter.update_many(&update_stmt).await?;
+
+        // Retrieve the updated payment
+        let mut select_query = Query::select();
+        let select_stmt = select_query
+            .from(SalesOrderPayments::Table)
+            .columns([
+                SalesOrderPayments::Id,
+                SalesOrderPayments::OrderId,
+                SalesOrderPayments::PaymentMethodId,
+                SalesOrderPayments::PaymentDate,
+                SalesOrderPayments::Amount,
+                SalesOrderPayments::ReferenceNumber,
+                SalesOrderPayments::Notes,
+                SalesOrderPayments::State,
+                SalesOrderPayments::CreatedAt,
+                SalesOrderPayments::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderPayments::Id).eq(self.id.to_string()));
+
+        let updated_payment = service.db_adapter.query_one::<SalesOrderPayment>(&select_stmt).await?;
+
+        Ok(updated_payment)
+    }
+}
+
+impl Command for GetSalesOrderPaymentsCommand {
+    type Output = Vec<SalesOrderPayment>;
+
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Check if the order exists
+        let mut check_query_builder = Query::select();
+        let check_stmt = check_query_builder
+            .from(SalesOrders::Table)
+            .column(SalesOrders::Id)
+            .and_where(Expr::col(SalesOrders::Id).eq(self.order_id.to_string()));
+
+        let order = service.db_adapter.query_optional::<SalesOrder>(&check_stmt).await?;
+        if order.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        // Get all payments for the order
+        let mut select_query_builder = Query::select();
+        let select_stmt = select_query_builder
+            .from(SalesOrderPayments::Table)
+            .columns([
+                SalesOrderPayments::Id,
+                SalesOrderPayments::OrderId,
+                SalesOrderPayments::PaymentMethodId,
+                SalesOrderPayments::PaymentDate,
+                SalesOrderPayments::Amount,
+                SalesOrderPayments::ReferenceNumber,
+                SalesOrderPayments::Notes,
+                SalesOrderPayments::State,
+                SalesOrderPayments::CreatedAt,
+                SalesOrderPayments::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesOrderPayments::OrderId).eq(self.order_id.to_string()));
+
+        let payments = service.db_adapter.query_many::<SalesOrderPayment>(&select_stmt).await?;
 
         Ok(payments)
     }
@@ -363,9 +354,9 @@ mod tests {
         },
     };
     use rand::Rng;
-    use sea_query::{Expr, Query, SqliteQueryBuilder};
+    use sea_query::{Expr, Query};
 
-    fn create_test_payment_method(
+    async fn create_test_payment_method(
         service: &mut AppService,
     ) -> crate::core::models::finance::payment_method_model::PaymentMethod {
         let command = CreatePaymentMethodCommand {
@@ -376,10 +367,10 @@ mod tests {
                 state: Some(PaymentMethodState::Active),
             },
         };
-        command.exec(service).unwrap()
+        command.exec(service).await.unwrap()
     }
 
-    fn create_test_cost_center(
+    async fn create_test_cost_center(
         service: &mut AppService,
     ) -> crate::core::models::finance::cost_center_model::CostCenter {
         use crate::core::{
@@ -395,10 +386,10 @@ mod tests {
                 state: Some(CostCenterState::Active),
             },
         };
-        command.exec(service).unwrap()
+        command.exec(service).await.unwrap()
     }
 
-    fn create_test_user(service: &mut AppService) -> DbUuid {
+    async fn create_test_user(service: &mut AppService) -> DbUuid {
         let random_suffix = rand::thread_rng().gen_range(1000..9999).to_string();
         let command = AddUserCommand {
             user: UserNewInput {
@@ -407,10 +398,10 @@ mod tests {
                 full_name: format!("Test User {}", random_suffix),
             },
         };
-        command.exec(service).unwrap().id
+        command.exec(service).await.unwrap().id
     }
 
-    fn create_test_channel(service: &mut AppService) -> Channel {
+    async fn create_test_channel(service: &mut AppService) -> Channel {
         let command = CreateChannelCommand {
             channel: ChannelNewInput {
                 name: format!("Test Channel {}", rand::thread_rng().gen_range(1..999)),
@@ -418,10 +409,10 @@ mod tests {
                 is_active: Some(true),
             },
         };
-        command.exec(service).unwrap()
+        command.exec(service).await.unwrap()
     }
 
-    fn create_test_location(service: &mut AppService) -> Location {
+    async fn create_test_location(service: &mut AppService) -> Location {
         let command = CreateLocationCommand {
             location: LocationNewInput {
                 name: format!("Test Location {}", rand::thread_rng().gen_range(1..999)),
@@ -430,15 +421,15 @@ mod tests {
                 is_active: Some(true),
             },
         };
-        command.exec(service).unwrap()
+        command.exec(service).await.unwrap()
     }
 
-    fn create_test_sales_order(service: &mut AppService) -> SalesOrder {
+    async fn create_test_sales_order(service: &mut AppService) -> SalesOrder {
         let now = Utc::now().naive_utc();
-        let cost_center = create_test_cost_center(service);
-        let user_id = create_test_user(service);
-        let channel = create_test_channel(service);
-        let location = create_test_location(service);
+        let cost_center = create_test_cost_center(service).await;
+        let user_id = create_test_user(service).await;
+        let channel = create_test_channel(service).await;
+        let location = create_test_location(service).await;
 
         let input = SalesOrderNewInput {
             customer_id: None, // No customer needed for this test
@@ -475,15 +466,15 @@ mod tests {
             sales_order: input,
             created_by_user_id: user_id,
         };
-        cmd.exec(service).unwrap()
+        cmd.exec(service).await.unwrap()
     }
 
-    #[test]
-    fn test_create_sales_order_payment() {
+    #[tokio::test]
+    async fn test_create_sales_order_payment() {
         let mut service = setup_service();
         let now = Utc::now().naive_utc();
-        let order = create_test_sales_order(&mut service);
-        let payment_method = create_test_payment_method(&mut service);
+        let order = create_test_sales_order(&mut service).await;
+        let payment_method = create_test_payment_method(&mut service).await;
 
         let input = SalesOrderPaymentNewInput {
             order_id: order.id,
@@ -496,7 +487,7 @@ mod tests {
         };
 
         let cmd = CreateSalesOrderPaymentCommand { payment: input };
-        let result = cmd.exec(&mut service).unwrap();
+        let result = cmd.exec(&mut service).await.unwrap();
 
         assert_eq!(result.order_id, order.id);
         assert_eq!(result.payment_method_id, payment_method.id);
@@ -504,12 +495,12 @@ mod tests {
         assert_eq!(result.state, SalesOrderPaymentState::Completed);
     }
 
-    #[test]
-    fn test_create_multiple_payments_for_order() {
+    #[tokio::test]
+    async fn test_create_multiple_payments_for_order() {
         let mut service = setup_service();
         let now = Utc::now().naive_utc();
-        let order = create_test_sales_order(&mut service);
-        let payment_method = create_test_payment_method(&mut service);
+        let order = create_test_sales_order(&mut service).await;
+        let payment_method = create_test_payment_method(&mut service).await;
 
         // First payment
         let input1 = SalesOrderPaymentNewInput {
@@ -523,7 +514,7 @@ mod tests {
         };
 
         let cmd1 = CreateSalesOrderPaymentCommand { payment: input1 };
-        let result1 = cmd1.exec(&mut service).unwrap();
+        let result1 = cmd1.exec(&mut service).await.unwrap();
 
         // Second payment
         let input2 = SalesOrderPaymentNewInput {
@@ -537,7 +528,7 @@ mod tests {
         };
 
         let cmd2 = CreateSalesOrderPaymentCommand { payment: input2 };
-        let result2 = cmd2.exec(&mut service).unwrap();
+        let result2 = cmd2.exec(&mut service).await.unwrap();
 
         assert_eq!(result1.order_id, order.id);
         assert_eq!(result1.amount, 500.into());
@@ -546,7 +537,8 @@ mod tests {
         assert_eq!(result2.amount, 490.into());
 
         // Query the database to ensure both payments exist
-        let select_query = Query::select()
+        let mut select_query_builder = Query::select();
+        let select_stmt = select_query_builder
             .from(SalesOrderPayments::Table)
             .columns([
                 SalesOrderPayments::Id,
@@ -560,22 +552,21 @@ mod tests {
                 SalesOrderPayments::CreatedAt,
                 SalesOrderPayments::UpdatedAt,
             ])
-            .and_where(Expr::col(SalesOrderPayments::OrderId).eq(order.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(SalesOrderPayments::OrderId).eq(order.id.to_string()));
 
-        let payments = service.db_adapter.query_many::<SalesOrderPayment>(&select_query, vec![]).unwrap();
+        let payments = service.db_adapter.query_many::<SalesOrderPayment>(&select_stmt).await.unwrap();
 
         assert_eq!(payments.len(), 2);
         assert!(payments.iter().any(|p| p.id == result1.id));
         assert!(payments.iter().any(|p| p.id == result2.id));
     }
 
-    #[test]
-    fn test_update_sales_order_payment() {
+    #[tokio::test]
+    async fn test_update_sales_order_payment() {
         let mut service = setup_service();
         let now = Utc::now().naive_utc();
-        let order = create_test_sales_order(&mut service);
-        let payment_method = create_test_payment_method(&mut service);
+        let order = create_test_sales_order(&mut service).await;
+        let payment_method = create_test_payment_method(&mut service).await;
 
         // Create a payment
         let input = SalesOrderPaymentNewInput {
@@ -589,7 +580,7 @@ mod tests {
         };
 
         let cmd = CreateSalesOrderPaymentCommand { payment: input };
-        let payment = cmd.exec(&mut service).unwrap();
+        let payment = cmd.exec(&mut service).await.unwrap();
 
         // Update the payment
         let update_input = SalesOrderPaymentUpdateInput {
@@ -605,7 +596,7 @@ mod tests {
         let update_cmd = UpdateSalesOrderPaymentCommand {
             payment: update_input,
         };
-        let updated_payment = update_cmd.exec(&mut service).unwrap();
+        let updated_payment = update_cmd.exec(&mut service).await.unwrap();
 
         assert_eq!(updated_payment.id, payment.id);
         assert_eq!(updated_payment.amount, 600.into());
@@ -616,12 +607,12 @@ mod tests {
         assert_eq!(updated_payment.notes, Some("First payment".to_string())); // Unchanged
     }
 
-    #[test]
-    fn test_void_sales_order_payment() {
+    #[tokio::test]
+    async fn test_void_sales_order_payment() {
         let mut service = setup_service();
         let now = Utc::now().naive_utc();
-        let order = create_test_sales_order(&mut service);
-        let payment_method = create_test_payment_method(&mut service);
+        let order = create_test_sales_order(&mut service).await;
+        let payment_method = create_test_payment_method(&mut service).await;
 
         let input = SalesOrderPaymentNewInput {
             order_id: order.id,
@@ -634,21 +625,21 @@ mod tests {
         };
 
         let cmd = CreateSalesOrderPaymentCommand { payment: input };
-        let payment = cmd.exec(&mut service).unwrap();
+        let payment = cmd.exec(&mut service).await.unwrap();
 
         let void_cmd = VoidSalesOrderPaymentCommand { id: payment.id };
-        let voided_payment = void_cmd.exec(&mut service).unwrap();
+        let voided_payment = void_cmd.exec(&mut service).await.unwrap();
 
         assert_eq!(voided_payment.id, payment.id);
         assert_eq!(voided_payment.state, SalesOrderPaymentState::Voided);
     }
 
-    #[test]
-    fn test_void_already_voided_payment() {
+    #[tokio::test]
+    async fn test_void_already_voided_payment() {
         let mut service = setup_service();
         let now = Utc::now().naive_utc();
-        let order = create_test_sales_order(&mut service);
-        let payment_method = create_test_payment_method(&mut service);
+        let order = create_test_sales_order(&mut service).await;
+        let payment_method = create_test_payment_method(&mut service).await;
 
         let input = SalesOrderPaymentNewInput {
             order_id: order.id,
@@ -661,26 +652,26 @@ mod tests {
         };
 
         let cmd = CreateSalesOrderPaymentCommand { payment: input };
-        let payment = cmd.exec(&mut service).unwrap();
+        let payment = cmd.exec(&mut service).await.unwrap();
         let void_cmd = VoidSalesOrderPaymentCommand { id: payment.id };
-        let _ = void_cmd.exec(&mut service).unwrap(); // First void
-        let result = void_cmd.exec(&mut service); // Second void
+        let _ = void_cmd.exec(&mut service).await.unwrap(); // First void
+        let result = void_cmd.exec(&mut service).await; // Second void
                                                   // Expect NotFoundError because the payment is no longer in Completed state
         assert!(matches!(result, Err(Error::NotFoundError)));
     }
 
-    #[test]
-    fn test_void_non_existent_payment() {
+    #[tokio::test]
+    async fn test_void_non_existent_payment() {
         let mut service = setup_service();
         let id = Uuid::now_v7().into();
 
         let void_cmd = VoidSalesOrderPaymentCommand { id };
-        let result = void_cmd.exec(&mut service);
+        let result = void_cmd.exec(&mut service).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_update_non_existent_payment() {
+    #[tokio::test]
+    async fn test_update_non_existent_payment() {
         let mut service = setup_service();
         let id = Uuid::now_v7().into();
 
@@ -697,16 +688,16 @@ mod tests {
         let update_cmd = UpdateSalesOrderPaymentCommand {
             payment: update_input,
         };
-        let result = update_cmd.exec(&mut service);
+        let result = update_cmd.exec(&mut service).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_get_sales_order_payments() {
+    #[tokio::test]
+    async fn test_get_sales_order_payments() {
         let mut service = setup_service();
         let now = Utc::now().naive_utc();
-        let order = create_test_sales_order(&mut service);
-        let payment_method = create_test_payment_method(&mut service);
+        let order = create_test_sales_order(&mut service).await;
+        let payment_method = create_test_payment_method(&mut service).await;
 
         // Create two payments
         let input1 = SalesOrderPaymentNewInput {
@@ -732,25 +723,25 @@ mod tests {
         let cmd1 = CreateSalesOrderPaymentCommand { payment: input1 };
         let cmd2 = CreateSalesOrderPaymentCommand { payment: input2 };
 
-        let _result1 = cmd1.exec(&mut service).unwrap();
-        let _result2 = cmd2.exec(&mut service).unwrap();
+        let _result1 = cmd1.exec(&mut service).await.unwrap();
+        let _result2 = cmd2.exec(&mut service).await.unwrap();
 
         // Get all payments for the order
         let get_cmd = GetSalesOrderPaymentsCommand { order_id: order.id };
-        let payments = get_cmd.exec(&mut service).unwrap();
+        let payments = get_cmd.exec(&mut service).await.unwrap();
 
         assert_eq!(payments.len(), 2);
         assert!(payments.iter().any(|p| p.amount == 500.into()));
         assert!(payments.iter().any(|p| p.amount == 490.into()));
     }
 
-    #[test]
-    fn test_get_payments_for_nonexistent_order() {
+    #[tokio::test]
+    async fn test_get_payments_for_nonexistent_order() {
         let mut service = setup_service();
         let id = Uuid::now_v7().into();
 
         let get_cmd = GetSalesOrderPaymentsCommand { order_id: id };
-        let result = get_cmd.exec(&mut service);
+        let result = get_cmd.exec(&mut service).await;
 
         assert!(result.is_err());
     }

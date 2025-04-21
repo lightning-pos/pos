@@ -1,4 +1,4 @@
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -10,16 +10,14 @@ use crate::{
     AppState,
 };
 
-pub fn users(
+pub async fn users(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<User>> {
-    let service = context.service.lock().unwrap();
-    
     // Build the query with SeaQuery
-    let mut query_builder = Query::select();
-    let query = query_builder
+    let mut query = Query::select();
+    let stmt = query
         .from(Users::Table)
         .columns([
             Users::Id,
@@ -31,28 +29,26 @@ pub fn users(
             Users::CreatedAt,
             Users::UpdatedAt,
         ]);
-    
+
     // Apply pagination if parameters are provided
     if let Some(limit) = first {
-        query.limit(limit as u64);
+        stmt.limit(limit as u64);
     }
     if let Some(off) = offset {
-        query.offset(off as u64);
+        stmt.offset(off as u64);
     }
-    
-    let sql = query.to_string(SqliteQueryBuilder);
-    
+
     // Execute the query
-    let result = service.db_adapter.query_many::<User>(&sql, vec![])?;
-    
+    let service = context.service.lock().await;
+    let result = service.db_adapter.query_many::<User>(&stmt).await?;
+
     Ok(result)
 }
 
-pub fn user(id: DbUuid, context: &AppState) -> FieldResult<User> {
-    let service = context.service.lock().unwrap();
-    
+pub async fn user(id: DbUuid, context: &AppState) -> FieldResult<User> {
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let stmt = query
         .from(Users::Table)
         .columns([
             Users::Id,
@@ -64,11 +60,11 @@ pub fn user(id: DbUuid, context: &AppState) -> FieldResult<User> {
             Users::CreatedAt,
             Users::UpdatedAt,
         ])
-        .and_where(Expr::col(Users::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
-    
+        .and_where(Expr::col(Users::Id).eq(id.to_string()));
+
     // Execute the query
-    let result = service.db_adapter.query_one::<User>(&query, vec![])?;
-    
+    let service = context.service.lock().await;
+    let result = service.db_adapter.query_one::<User>(&stmt).await?;
+
     Ok(result)
 }

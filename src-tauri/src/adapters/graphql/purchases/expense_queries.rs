@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sea_query::{Alias, Expr, Order, Query, SqliteQueryBuilder};
+use sea_query::{Alias, Expr, Order, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
     AppState,
 };
 
-pub fn expenses(
+pub async fn expenses(
     first: Option<i32>,
     offset: Option<i32>,
     cost_center_id: Option<DbUuid>,
@@ -19,8 +19,8 @@ pub fn expenses(
     end_date: Option<String>,
     context: &AppState,
 ) -> FieldResult<Vec<Expense>> {
-    let service = context.service.lock().unwrap();
-    
+    let service = context.service.lock().await;
+
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
     let mut query = query_builder
@@ -70,22 +70,20 @@ pub fn expenses(
         query = query.offset(off as u64);
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
     // Execute the query
-    let result = service.db_adapter.query_many::<Expense>(&sql, vec![])?;
+    let result = service.db_adapter.query_many::<Expense>(&query).await?;
 
     Ok(result)
 }
 
-pub fn total_expenses(
+pub async fn total_expenses(
     cost_center_id: Option<DbUuid>,
     start_date: Option<String>,
     end_date: Option<String>,
     context: &AppState,
 ) -> FieldResult<i32> {
-    let service = context.service.lock().unwrap();
-    
+    let service = context.service.lock().await;
+
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
     let mut query = query_builder
@@ -114,19 +112,18 @@ pub fn total_expenses(
         }
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
     // Execute the query
-    let result = service.db_adapter.query_one::<i64>(&sql, vec![])?;
+    let result = service.db_adapter.query_one::<i64>(&query).await?;
 
     Ok(result as i32)
 }
 
-pub fn expense(id: DbUuid, context: &AppState) -> FieldResult<Expense> {
-    let service = context.service.lock().unwrap();
-    
+pub async fn expense(id: DbUuid, context: &AppState) -> FieldResult<Expense> {
+    let service = context.service.lock().await;
+
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(Expenses::Table)
         .columns([
             Expenses::Id,
@@ -139,23 +136,22 @@ pub fn expense(id: DbUuid, context: &AppState) -> FieldResult<Expense> {
             Expenses::CreatedAt,
             Expenses::UpdatedAt,
         ])
-        .and_where(Expr::col(Expenses::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
-    
+        .and_where(Expr::col(Expenses::Id).eq(id.to_string()));
+
     // Execute the query
-    let result = service.db_adapter.query_one::<Expense>(&query, vec![])?;
-    
+    let result = service.db_adapter.query_one::<Expense>(&query).await?;
+
     Ok(result)
 }
 
-pub fn expenses_by_category(
+pub async fn expenses_by_category(
     category_id: DbUuid,
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<Expense>> {
-    let service = context.service.lock().unwrap();
-    
+    let service = context.service.lock().await;
+
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
     let mut query = query_builder
@@ -182,10 +178,8 @@ pub fn expenses_by_category(
         query = query.offset(off as u64);
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
     // Execute the query
-    let result = service.db_adapter.query_many::<Expense>(&sql, vec![])?;
-    
+    let result = service.db_adapter.query_many::<Expense>(&query).await?;
+
     Ok(result)
 }

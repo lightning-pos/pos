@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -36,10 +36,11 @@ impl VariantValue {
         self.updated_at
     }
 
-    pub fn variant_type(&self, context: &AppState) -> FieldResult<VariantType> {
-        let service = context.service.lock().unwrap();
-        
-        let query = Query::select()
+    pub async fn variant_type(&self, context: &AppState) -> FieldResult<VariantType> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
             .from(VariantTypes::Table)
             .columns([
                 VariantTypes::Id,
@@ -48,11 +49,10 @@ impl VariantValue {
                 VariantTypes::CreatedAt,
                 VariantTypes::UpdatedAt,
             ])
-            .and_where(Expr::col(VariantTypes::Id).eq(self.variant_type_id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let variant_type = service.db_adapter.query_one::<VariantType>(&query, vec![])?;
-        
+            .and_where(Expr::col(VariantTypes::Id).eq(self.variant_type_id.to_string()));
+
+        let variant_type = service.db_adapter.query_one::<VariantType>(&query).await?;
+
         Ok(variant_type)
     }
 }

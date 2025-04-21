@@ -16,14 +16,14 @@ use crate::{
     AppState,
 };
 
-pub fn create_cost_center(
+pub async fn create_cost_center(
     name: String,
     code: String,
     description: Option<String>,
     state: Option<CostCenterState>,
     context: &AppState,
 ) -> FieldResult<CostCenter> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
     let command = CreateCostCenterCommand {
         cost_center: CostCenterNewInput {
             name,
@@ -32,11 +32,11 @@ pub fn create_cost_center(
             state,
         },
     };
-    let result = command.exec(&mut service)?;
+    let result = command.exec(&mut service).await?;
     Ok(result)
 }
 
-pub fn update_cost_center(
+pub async fn update_cost_center(
     id: DbUuid,
     name: Option<String>,
     code: Option<String>,
@@ -44,7 +44,7 @@ pub fn update_cost_center(
     state: Option<CostCenterState>,
     context: &AppState,
 ) -> FieldResult<CostCenter> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
     let command = UpdateCostCenterCommand {
         cost_center: CostCenterUpdateInput {
             id,
@@ -54,14 +54,14 @@ pub fn update_cost_center(
             state,
         },
     };
-    let result = command.exec(&mut service)?;
+    let result = command.exec(&mut service).await?;
     Ok(result)
 }
 
-pub fn delete_cost_center(id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
-    let mut service = context.service.lock().unwrap();
+pub async fn delete_cost_center(id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
+    let mut service = context.service.lock().await;
     let command = DeleteCostCenterCommand { id };
-    let _ = command.exec(&mut service)?;
+    let _ = command.exec(&mut service).await?;
     // Return the id of the deleted cost center
     Ok(id)
 }

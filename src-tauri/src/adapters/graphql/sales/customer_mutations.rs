@@ -11,20 +11,20 @@ use crate::{
 };
 use juniper::FieldResult;
 
-pub fn create_customer(customer: CustomerNewInput, context: &AppState) -> FieldResult<Customer> {
-    let mut service = context.service.lock().unwrap();
-    let res = CreateCustomerCommand { customer }.exec(&mut service)?;
+pub async fn create_customer(customer: CustomerNewInput, context: &AppState) -> FieldResult<Customer> {
+    let mut service = context.service.lock().await;
+    let res = CreateCustomerCommand { customer }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn update_customer(customer: CustomerUpdateInput, context: &AppState) -> FieldResult<Customer> {
-    let mut service = context.service.lock().unwrap();
-    let res = UpdateCustomerCommand { customer }.exec(&mut service)?;
+pub async fn update_customer(customer: CustomerUpdateInput, context: &AppState) -> FieldResult<Customer> {
+    let mut service = context.service.lock().await;
+    let res = UpdateCustomerCommand { customer }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn delete_customer(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let res = DeleteCustomerCommand { id }.exec(&mut service)?;
+pub async fn delete_customer(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+    let mut service = context.service.lock().await;
+    let res = DeleteCustomerCommand { id }.exec(&mut service).await?;
     Ok(res)
 }

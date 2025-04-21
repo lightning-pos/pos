@@ -1,4 +1,4 @@
-use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+use sea_query::{Alias, Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -10,12 +10,12 @@ use crate::{
     AppState,
 };
 
-pub fn customers(
+pub async fn customers(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<Customer>> {
-    let service = context.service.lock().unwrap();
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
@@ -39,34 +39,33 @@ pub fn customers(
         query.offset(off as u64);
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
     // Execute the query
-    let result = service.db_adapter.query_many::<Customer>(&sql, vec![])?;
+    let result = service.db_adapter.query_many::<Customer>(&query).await?;
 
     Ok(result)
 }
 
-pub fn total_customers(context: &AppState) -> FieldResult<i32> {
-    let service = context.service.lock().unwrap();
+pub async fn total_customers(context: &AppState) -> FieldResult<i32> {
+    let service = context.service.lock().await;
 
     // Build the count query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(Customers::Table)
-        .expr_as(Expr::col(Customers::Id).count(), Alias::new("count"))
-        .to_string(SqliteQueryBuilder);
+        .expr_as(Expr::col(Customers::Id).count(), Alias::new("count"));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
+    let result = service.db_adapter.query_one::<i64>(&query).await?;
 
     Ok(result as i32)
 }
 
-pub fn customer(id: DbUuid, context: &AppState) -> FieldResult<Customer> {
-    let service = context.service.lock().unwrap();
+pub async fn customer(id: DbUuid, context: &AppState) -> FieldResult<Customer> {
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(Customers::Table)
         .columns([
             Customers::Id,
@@ -77,20 +76,20 @@ pub fn customer(id: DbUuid, context: &AppState) -> FieldResult<Customer> {
             Customers::CreatedAt,
             Customers::UpdatedAt,
         ])
-        .and_where(Expr::col(Customers::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
+        .and_where(Expr::col(Customers::Id).eq(id.to_string()));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<Customer>(&query, vec![])?;
+    let result = service.db_adapter.query_one::<Customer>(&query).await?;
 
     Ok(result)
 }
 
-pub fn customer_by_phone(phone: String, context: &AppState) -> FieldResult<Customer> {
-    let service = context.service.lock().unwrap();
+pub async fn customer_by_phone(phone: String, context: &AppState) -> FieldResult<Customer> {
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(Customers::Table)
         .columns([
             Customers::Id,
@@ -101,11 +100,10 @@ pub fn customer_by_phone(phone: String, context: &AppState) -> FieldResult<Custo
             Customers::CreatedAt,
             Customers::UpdatedAt,
         ])
-        .and_where(Expr::col(Customers::Phone).eq(phone))
-        .to_string(SqliteQueryBuilder);
+        .and_where(Expr::col(Customers::Phone).eq(phone));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<Customer>(&query, vec![])?;
+    let result = service.db_adapter.query_one::<Customer>(&query).await?;
 
     Ok(result)
 }

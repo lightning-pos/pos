@@ -1,4 +1,4 @@
-use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+use sea_query::{Alias, Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -10,12 +10,12 @@ use crate::{
     AppState,
 };
 
-pub fn cost_centers(
+pub async fn cost_centers(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<CostCenter>> {
-    let service = context.service.lock().unwrap();
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
@@ -39,19 +39,18 @@ pub fn cost_centers(
         query.offset(off as u64);
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
     // Execute the query
-    let result = service.db_adapter.query_many::<CostCenter>(&sql, vec![])?;
+    let result = service.db_adapter.query_many::<CostCenter>(&query).await?;
 
     Ok(result)
 }
 
-pub fn cost_center(id: DbUuid, context: &AppState) -> FieldResult<CostCenter> {
-    let service = context.service.lock().unwrap();
+pub async fn cost_center(id: DbUuid, context: &AppState) -> FieldResult<CostCenter> {
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(CostCenters::Table)
         .columns([
             CostCenters::Id,
@@ -62,20 +61,20 @@ pub fn cost_center(id: DbUuid, context: &AppState) -> FieldResult<CostCenter> {
             CostCenters::CreatedAt,
             CostCenters::UpdatedAt,
         ])
-        .and_where(Expr::col(CostCenters::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
+        .and_where(Expr::col(CostCenters::Id).eq(id.to_string()));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<CostCenter>(&query, vec![])?;
+    let result = service.db_adapter.query_one::<CostCenter>(&query).await?;
 
     Ok(result)
 }
 
-pub fn all_cost_centers(context: &AppState) -> FieldResult<Vec<CostCenter>> {
-    let service = context.service.lock().unwrap();
+pub async fn all_cost_centers(context: &AppState) -> FieldResult<Vec<CostCenter>> {
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(CostCenters::Table)
         .columns([
             CostCenters::Id,
@@ -86,26 +85,25 @@ pub fn all_cost_centers(context: &AppState) -> FieldResult<Vec<CostCenter>> {
             CostCenters::CreatedAt,
             CostCenters::UpdatedAt,
         ])
-        .and_where(Expr::col(CostCenters::State).eq(CostCenterState::Active.to_string()))
-        .to_string(SqliteQueryBuilder);
+        .and_where(Expr::col(CostCenters::State).eq(CostCenterState::Active.to_string()));
 
     // Execute the query
-    let result = service.db_adapter.query_many::<CostCenter>(&query, vec![])?;
+    let result = service.db_adapter.query_many::<CostCenter>(&query).await?;
 
     Ok(result)
 }
 
-pub fn total_cost_centers(context: &AppState) -> FieldResult<i32> {
-    let service = context.service.lock().unwrap();
+pub async fn total_cost_centers(context: &AppState) -> FieldResult<i32> {
+    let service = context.service.lock().await;
 
     // Build the count query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(CostCenters::Table)
-        .expr_as(Expr::col(CostCenters::Id).count(), Alias::new("count"))
-        .to_string(SqliteQueryBuilder);
+        .expr_as(Expr::col(CostCenters::Id).count(), Alias::new("count"));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
+    let result = service.db_adapter.query_one::<i64>(&query).await?;
 
     Ok(result as i32)
 }

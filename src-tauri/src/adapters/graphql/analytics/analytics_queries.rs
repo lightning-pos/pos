@@ -1,6 +1,6 @@
 use bigdecimal::BigDecimal;
 use chrono::{Duration, Utc};
-use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+use sea_query::{Alias, Expr, Func, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -17,8 +17,8 @@ use crate::{
 
 use super::analytics_overview_model::AnalyticsOverview;
 
-pub fn analytics_overview(days: Option<i32>, context: &AppState) -> FieldResult<AnalyticsOverview> {
-    let service = context.service.lock().unwrap();
+pub async fn analytics_overview(days: Option<i32>, context: &AppState) -> FieldResult<AnalyticsOverview> {
+    let service = context.service.lock().await;
 
     // Calculate the start date based on the days parameter
     let start_date = match days {
@@ -27,39 +27,39 @@ pub fn analytics_overview(days: Option<i32>, context: &AppState) -> FieldResult<
     };
 
     // Get total sales with date filter
-    let total_sales_query = Query::select()
+    let mut total_sales_query = Query::select();
+    let total_sales_stmt = total_sales_query
         .from(SalesOrders::Table)
-        .expr_as(Expr::col(SalesOrders::TotalAmount).sum(), Alias::new("total_sales"))
-        .and_where(Expr::col(SalesOrders::CreatedAt).gte(start_date.naive_utc().to_string()))
-        .to_string(SqliteQueryBuilder);
+        .expr_as(Func::sum(Expr::col(SalesOrders::TotalAmount)), Alias::new("total_sales"))
+        .and_where(Expr::col(SalesOrders::CreatedAt).gte(start_date.naive_utc().to_string()));
 
-    let total_sales_result = service.db_adapter.query_optional::<BigDecimal>(&total_sales_query)?;
+    let total_sales_result = service.db_adapter.query_optional::<BigDecimal>(&total_sales_stmt).await?;
     let total_sales = total_sales_result.unwrap_or_default();
 
     // Get total orders with date filter
-    let total_orders_query = Query::select()
+    let mut total_orders_query = Query::select();
+    let total_orders_stmt = total_orders_query
         .from(SalesOrders::Table)
-        .expr_as(Expr::col(SalesOrders::Id).count(), Alias::new("total_orders"))
-        .and_where(Expr::col(SalesOrders::CreatedAt).gte(start_date.naive_utc().to_string()))
-        .to_string(SqliteQueryBuilder);
+        .expr_as(Func::count(Expr::col(SalesOrders::Id)), Alias::new("total_orders"))
+        .and_where(Expr::col(SalesOrders::CreatedAt).gte(start_date.naive_utc().to_string()));
 
-    let total_orders = service.db_adapter.query_one::<i64>(&total_orders_query, vec![])?;
+    let total_orders = service.db_adapter.query_one::<i64>(&total_orders_stmt).await?;
 
     // Get total customers (not filtered by date since it's current inventory)
-    let total_customers_query = Query::select()
+    let mut total_customers_query = Query::select();
+    let total_customers_stmt = total_customers_query
         .from(Customers::Table)
-        .expr_as(Expr::col(Customers::Id).count(), Alias::new("total_customers"))
-        .to_string(SqliteQueryBuilder);
+        .expr_as(Func::count(Expr::col(Customers::Id)), Alias::new("total_customers"));
 
-    let total_customers = service.db_adapter.query_one::<i64>(&total_customers_query, vec![])?;
+    let total_customers = service.db_adapter.query_one::<i64>(&total_customers_stmt).await?;
 
     // Get total products (not filtered by date since it's current inventory)
-    let total_products_query = Query::select()
+    let mut total_products_query = Query::select();
+    let total_products_stmt = total_products_query
         .from(Items::Table)
-        .expr_as(Expr::col(Items::Id).count(), Alias::new("total_products"))
-        .to_string(SqliteQueryBuilder);
+        .expr_as(Func::count(Expr::col(Items::Id)), Alias::new("total_products"));
 
-    let total_products = service.db_adapter.query_one::<i64>(&total_products_query, vec![])?;
+    let total_products = service.db_adapter.query_one::<i64>(&total_products_stmt).await?;
 
     Ok(AnalyticsOverview {
         total_sales: total_sales.into(),

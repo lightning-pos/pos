@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -42,10 +42,11 @@ impl ItemVariant {
         self.updated_at
     }
 
-    pub fn item(&self, context: &AppState) -> FieldResult<Item> {
-        let service = context.service.lock().unwrap();
-        
-        let query = Query::select()
+    pub async fn item(&self, context: &AppState) -> FieldResult<Item> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
             .from(Items::Table)
             .columns([
                 Items::Id,
@@ -58,25 +59,24 @@ impl ItemVariant {
                 Items::CreatedAt,
                 Items::UpdatedAt,
             ])
-            .and_where(Expr::col(Items::Id).eq(self.item_id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let item = service.db_adapter.query_one::<Item>(&query, vec![])?;
-        
+            .and_where(Expr::col(Items::Id).eq(self.item_id.to_string()));
+
+        let item = service.db_adapter.query_one::<Item>(&query).await?;
+
         Ok(item)
     }
 
-    pub fn variant_values(&self, context: &AppState) -> FieldResult<Vec<VariantValue>> {
-        let service = context.service.lock().unwrap();
+    pub async fn variant_values(&self, context: &AppState) -> FieldResult<Vec<VariantValue>> {
+        let service = context.service.lock().await;
 
         // First, get the variant value IDs for this item variant
-        let value_ids_query = Query::select()
+        let mut value_ids_query = Query::select();
+        let value_ids_query = value_ids_query
             .from(ItemVariantValues::Table)
             .column(ItemVariantValues::VariantValueId)
-            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let value_ids = service.db_adapter.query_many::<DbUuid>(&value_ids_query, vec![])?;
+            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.id.to_string()));
+
+        let value_ids = service.db_adapter.query_many::<DbUuid>(&value_ids_query).await?;
 
         // If no value IDs found, return empty vector
         if value_ids.is_empty() {
@@ -85,9 +85,10 @@ impl ItemVariant {
 
         // Convert value IDs to strings for the IN clause
         let value_id_strings: Vec<String> = value_ids.iter().map(|id| id.to_string()).collect();
-        
+
         // Then get the variant values with those IDs
-        let values_query = Query::select()
+        let mut values_query = Query::select();
+        let values_query = values_query
             .from(VariantValues::Table)
             .columns([
                 VariantValues::Id,
@@ -97,18 +98,18 @@ impl ItemVariant {
                 VariantValues::CreatedAt,
                 VariantValues::UpdatedAt,
             ])
-            .and_where(Expr::col(VariantValues::Id).is_in(value_id_strings))
-            .to_string(SqliteQueryBuilder);
-            
-        let values = service.db_adapter.query_many::<VariantValue>(&values_query, vec![])?;
+            .and_where(Expr::col(VariantValues::Id).is_in(value_id_strings));
+
+        let values = service.db_adapter.query_many::<VariantValue>(&values_query).await?;
 
         Ok(values)
     }
 
-    pub fn final_price(&self, context: &AppState) -> FieldResult<Money> {
-        let service = context.service.lock().unwrap();
-        
-        let query = Query::select()
+    pub async fn final_price(&self, context: &AppState) -> FieldResult<Money> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
             .from(Items::Table)
             .columns([
                 Items::Id,
@@ -121,10 +122,9 @@ impl ItemVariant {
                 Items::CreatedAt,
                 Items::UpdatedAt,
             ])
-            .and_where(Expr::col(Items::Id).eq(self.item_id.to_string()))
-            .to_string(SqliteQueryBuilder);
-            
-        let item = service.db_adapter.query_one::<Item>(&query, vec![])?;
+            .and_where(Expr::col(Items::Id).eq(self.item_id.to_string()));
+
+        let item = service.db_adapter.query_one::<Item>(&query).await?;
 
         let adjustment = self.price_adjustment.unwrap_or(Money::from(0));
         let final_price = item.price + adjustment;

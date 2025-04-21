@@ -30,19 +30,19 @@ pub struct DeleteUserCommand {
 impl Command for AddUserCommand {
     type Output = User;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Check if username exists using SeaQuery
         let username = &self.user.username;
 
         // Build the query to check for existing username
-        let check_query = Query::select()
+        let mut query_builder = Query::select();
+        let check_query = query_builder
             .from(Users::Table)
             .column(Users::Id)
-            .and_where(Expr::col(Users::Username).eq(username.clone()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Users::Username).eq(username.clone()));
 
         // Execute the query
-        let user = service.db_adapter.query_optional::<User>(&check_query, vec![])?;
+        let user = service.db_adapter.query_optional::<User>(&check_query).await?;
 
         if user.is_some() {
             return Err(Error::UniqueConstraintError);
@@ -77,7 +77,7 @@ impl Command for AddUserCommand {
             .to_string(SqliteQueryBuilder);
 
         // Execute the insert query
-        service.db_adapter.execute(&insert_query, vec![])?;
+        service.db_adapter.execute(&insert_query).await?;
 
         // Create and return the new user object
         let new_user = User {
@@ -98,15 +98,15 @@ impl Command for AddUserCommand {
 impl Command for UpdateUserCommand {
     type Output = User;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Check if user exists using SeaQuery
-        let check_query = Query::select()
+        let mut query_builder = Query::select();
+        let check_query = query_builder
             .from(Users::Table)
             .columns([Users::Id])
-            .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()));
 
-        let existing_user = service.db_adapter.query_optional::<User>(&check_query, vec![])?;
+        let existing_user = service.db_adapter.query_optional::<User>(&check_query).await?;
 
         if existing_user.is_none() {
             return Err(Error::NotFoundError);
@@ -144,10 +144,11 @@ impl Command for UpdateUserCommand {
         let sql = query.to_string(SqliteQueryBuilder);
 
         // Execute the update
-        service.db_adapter.execute(&sql, vec![])?;
+        service.db_adapter.execute(&sql).await?;
 
         // Retrieve the updated user
-        let select_query = Query::select()
+        let mut query_builder = Query::select();
+        let select_query = query_builder
             .from(Users::Table)
             .columns([
                 Users::Id,
@@ -159,10 +160,9 @@ impl Command for UpdateUserCommand {
                 Users::CreatedAt,
                 Users::UpdatedAt,
             ])
-            .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()));
 
-        let user = service.db_adapter.query_one::<User>(&select_query, vec![])?;
+        let user = service.db_adapter.query_one::<User>(&select_query).await?;
 
         Ok(user)
     }
@@ -171,7 +171,7 @@ impl Command for UpdateUserCommand {
 impl Command for DeleteUserCommand {
     type Output = i32;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Build delete query with SeaQuery
         let delete_query = Query::delete()
             .from_table(Users::Table)
@@ -179,7 +179,7 @@ impl Command for DeleteUserCommand {
             .to_string(SqliteQueryBuilder);
 
         // Execute the delete query
-        let affected_rows = service.db_adapter.execute(&delete_query, vec![])?;
+        let affected_rows = service.db_adapter.execute(&delete_query).await?;
 
         Ok(affected_rows as i32)
     }
@@ -191,8 +191,8 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn test_add_user_command() {
+    #[tokio::test]
+    async fn test_add_user_command() {
         let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
@@ -202,7 +202,7 @@ mod tests {
             },
         };
 
-        let result = add_user_command.exec(&mut service);
+        let result = add_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         let user = result.unwrap();
         assert_eq!(user.username, "newuser");
@@ -210,8 +210,8 @@ mod tests {
         assert_eq!(user.state, UserState::Active);
     }
 
-    #[test]
-    fn test_update_user_command() {
+    #[tokio::test]
+    async fn test_update_user_command() {
         let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
@@ -220,7 +220,7 @@ mod tests {
                 full_name: "Update User".to_string(),
             },
         };
-        let user = add_user_command.exec(&mut service).unwrap();
+        let user = add_user_command.exec(&mut service).await.unwrap();
 
         let update_user_command = UpdateUserCommand {
             user: UserUpdateInput {
@@ -232,7 +232,7 @@ mod tests {
             },
         };
 
-        let result = update_user_command.exec(&mut service);
+        let result = update_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         let updated_user = result.unwrap();
         assert_eq!(updated_user.id, user.id);
@@ -240,8 +240,8 @@ mod tests {
         assert_eq!(updated_user.state, UserState::Inactive);
     }
 
-    #[test]
-    fn test_add_user_command_duplicate_username() {
+    #[tokio::test]
+    async fn test_add_user_command_duplicate_username() {
         let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
@@ -251,7 +251,7 @@ mod tests {
             },
         };
 
-        let result = add_user_command.exec(&mut service);
+        let result = add_user_command.exec(&mut service).await;
         assert!(result.is_ok());
 
         // Try to add user with same username
@@ -263,12 +263,12 @@ mod tests {
             },
         };
 
-        let result = duplicate_user_command.exec(&mut service);
+        let result = duplicate_user_command.exec(&mut service).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_update_user_command_non_existent_user() {
+    #[tokio::test]
+    async fn test_update_user_command_non_existent_user() {
         let mut service = setup_service();
         let non_existent_id = Uuid::now_v7().into();
         let update_user_command = UpdateUserCommand {
@@ -281,12 +281,12 @@ mod tests {
             },
         };
 
-        let result = update_user_command.exec(&mut service);
+        let result = update_user_command.exec(&mut service).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_update_user_command_partial_update() {
+    #[tokio::test]
+    async fn test_update_user_command_partial_update() {
         let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
@@ -295,7 +295,7 @@ mod tests {
                 full_name: "Initial Name".to_string(),
             },
         };
-        let user = add_user_command.exec(&mut service).unwrap();
+        let user = add_user_command.exec(&mut service).await.unwrap();
 
         let update_user_command = UpdateUserCommand {
             user: UserUpdateInput {
@@ -307,7 +307,7 @@ mod tests {
             },
         };
 
-        let result = update_user_command.exec(&mut service);
+        let result = update_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         let updated_user = result.unwrap();
         assert_eq!(updated_user.id, user.id);
@@ -316,8 +316,8 @@ mod tests {
         assert_eq!(updated_user.username, "partialupdate"); // Username should remain unchanged
     }
 
-    #[test]
-    fn test_delete_user_command() {
+    #[tokio::test]
+    async fn test_delete_user_command() {
         let mut service = setup_service();
         let add_user_command = AddUserCommand {
             user: UserNewInput {
@@ -326,28 +326,28 @@ mod tests {
                 full_name: "Delete User".to_string(),
             },
         };
-        let user = add_user_command.exec(&mut service).unwrap();
+        let user = add_user_command.exec(&mut service).await.unwrap();
 
         let delete_user_command = DeleteUserCommand { id: user.id };
-        let result = delete_user_command.exec(&mut service);
+        let result = delete_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 1); // 1 row affected
 
         // Attempt to delete the same user again
-        let result = delete_user_command.exec(&mut service);
+        let result = delete_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 0); // 0 rows affected, user no longer exists
     }
 
-    #[test]
-    fn test_delete_non_existent_user() {
+    #[tokio::test]
+    async fn test_delete_non_existent_user() {
         let mut service = setup_service();
         let non_existent_id = Uuid::now_v7().into();
         let delete_user_command = DeleteUserCommand {
             id: non_existent_id,
         };
 
-        let result = delete_user_command.exec(&mut service);
+        let result = delete_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 0); // 0 rows affected, user doesn't exist
     }

@@ -1,4 +1,4 @@
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -10,10 +10,11 @@ use crate::{
     AppState,
 };
 
-pub fn get_brand(id: DbUuid, context: &AppState) -> FieldResult<Brand> {
-    let service = context.service.lock().unwrap();
-    
-    let query = Query::select()
+pub async fn get_brand(id: DbUuid, context: &AppState) -> FieldResult<Brand> {
+    let service = context.service.lock().await;
+
+    let mut query_builder = Query::select();
+    let query = query_builder
         .from(Brands::Table)
         .columns([
             Brands::Id,
@@ -23,18 +24,18 @@ pub fn get_brand(id: DbUuid, context: &AppState) -> FieldResult<Brand> {
             Brands::CreatedAt,
             Brands::UpdatedAt,
         ])
-        .and_where(Expr::col(Brands::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
-        
-    let brand = service.db_adapter.query_one::<Brand>(&query, vec![])?;
+        .and_where(Expr::col(Brands::Id).eq(id.to_string()));
+
+    let brand = service.db_adapter.query_one::<Brand>(&query).await?;
 
     Ok(brand)
 }
 
-pub fn get_brands(context: &AppState) -> FieldResult<Vec<Brand>> {
-    let service = context.service.lock().unwrap();
-    
-    let query = Query::select()
+pub async fn get_brands(context: &AppState) -> FieldResult<Vec<Brand>> {
+    let service = context.service.lock().await;
+
+    let mut query_builder = Query::select();
+    let query = query_builder
         .from(Brands::Table)
         .columns([
             Brands::Id,
@@ -43,18 +44,18 @@ pub fn get_brands(context: &AppState) -> FieldResult<Vec<Brand>> {
             Brands::IsActive,
             Brands::CreatedAt,
             Brands::UpdatedAt,
-        ])
-        .to_string(SqliteQueryBuilder);
-        
-    let brands_list = service.db_adapter.query_many::<Brand>(&query, vec![])?;
+        ]);
+
+    let brands_list = service.db_adapter.query_many::<Brand>(&query).await?;
 
     Ok(brands_list)
 }
 
-pub fn get_active_brands(context: &AppState) -> FieldResult<Vec<Brand>> {
-    let service = context.service.lock().unwrap();
-    
-    let query = Query::select()
+pub async fn get_active_brands(context: &AppState) -> FieldResult<Vec<Brand>> {
+    let service = context.service.lock().await;
+
+    let mut query_builder = Query::select();
+    let query = query_builder
         .from(Brands::Table)
         .columns([
             Brands::Id,
@@ -64,10 +65,9 @@ pub fn get_active_brands(context: &AppState) -> FieldResult<Vec<Brand>> {
             Brands::CreatedAt,
             Brands::UpdatedAt,
         ])
-        .and_where(Expr::col(Brands::IsActive).eq(true))
-        .to_string(SqliteQueryBuilder);
-        
-    let brands_list = service.db_adapter.query_many::<Brand>(&query, vec![])?;
+        .and_where(Expr::col(Brands::IsActive).eq(true));
+
+    let brands_list = service.db_adapter.query_many::<Brand>(&query).await?;
 
     Ok(brands_list)
 }

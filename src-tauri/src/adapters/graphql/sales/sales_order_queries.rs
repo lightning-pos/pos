@@ -1,4 +1,4 @@
-use sea_query::{Alias, Expr, Query, SqliteQueryBuilder};
+use sea_query::{Alias, Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
@@ -10,12 +10,12 @@ use crate::{
     AppState,
 };
 
-pub fn sales_orders(
+pub async fn sales_orders(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<SalesOrder>> {
-    let service = context.service.lock().unwrap();
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
     let mut query_builder = Query::select();
@@ -56,34 +56,33 @@ pub fn sales_orders(
         query.offset(off as u64);
     }
 
-    let sql = query.to_string(SqliteQueryBuilder);
-
     // Execute the query
-    let result = service.db_adapter.query_many::<SalesOrder>(&sql, vec![])?;
+    let result = service.db_adapter.query_many::<SalesOrder>(&query).await?;
 
     Ok(result)
 }
 
-pub fn total_sales_orders(context: &AppState) -> FieldResult<i32> {
-    let service = context.service.lock().unwrap();
+pub async fn total_sales_orders(context: &AppState) -> FieldResult<i32> {
+    let service = context.service.lock().await;
 
     // Build the count query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(SalesOrders::Table)
-        .expr_as(Expr::col(SalesOrders::Id).count(), Alias::new("count"))
-        .to_string(SqliteQueryBuilder);
+        .expr_as(Expr::col(SalesOrders::Id).count(), Alias::new("count"));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<i64>(&query, vec![])?;
+    let result = service.db_adapter.query_one::<i64>(&query).await?;
 
     Ok(result as i32)
 }
 
-pub fn sales_order(id: DbUuid, context: &AppState) -> FieldResult<SalesOrder> {
-    let service = context.service.lock().unwrap();
+pub async fn sales_order(id: DbUuid, context: &AppState) -> FieldResult<SalesOrder> {
+    let service = context.service.lock().await;
 
     // Build the query with SeaQuery
-    let query = Query::select()
+    let mut query = Query::select();
+    let query = query
         .from(SalesOrders::Table)
         .columns([
             SalesOrders::Id,
@@ -111,11 +110,10 @@ pub fn sales_order(id: DbUuid, context: &AppState) -> FieldResult<SalesOrder> {
             SalesOrders::CreatedAt,
             SalesOrders::UpdatedAt,
         ])
-        .and_where(Expr::col(SalesOrders::Id).eq(id.to_string()))
-        .to_string(SqliteQueryBuilder);
+        .and_where(Expr::col(SalesOrders::Id).eq(id.to_string()));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<SalesOrder>(&query, vec![])?;
+    let result = service.db_adapter.query_one::<SalesOrder>(&query).await?;
 
     Ok(result)
 }

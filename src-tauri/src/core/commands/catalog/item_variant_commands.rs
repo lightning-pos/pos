@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -49,316 +49,140 @@ pub struct RemoveVariantValueCommand {
 impl Command for CreateItemVariantCommand {
     type Output = ItemVariant;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            // Verify item exists
-            let item_query = Query::select()
-                .from(Items::Table)
-                .columns([Items::Id])
-                .and_where(Expr::col(Items::Id).eq(self.item_variant.item_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Verify item exists
+        let mut item_query = Query::select();
+        let item_stmt = item_query
+            .from(Items::Table)
+            .columns([Items::Id])
+            .and_where(Expr::col(Items::Id).eq(self.item_variant.item_id.to_string()));
 
-            let item = db.query_optional::<Item>(&item_query, vec![])?;
-            if item.is_none() {
+        let item = service.db_adapter.query_optional::<Item>(&item_stmt).await?;
+        if item.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        // Verify all variant values exist and check for duplicate variant types
+        let mut variant_type_ids = HashSet::new();
+
+        for variant_value_id in &self.item_variant.variant_value_ids {
+            // Get the variant value and its type
+            let mut value_query = Query::select();
+            let value_stmt = value_query
+                .from(VariantValues::Table)
+                .columns([
+                    VariantValues::Id,
+                    VariantValues::VariantTypeId,
+                    VariantValues::Value,
+                    VariantValues::DisplayOrder,
+                    VariantValues::CreatedAt,
+                    VariantValues::UpdatedAt,
+                ])
+                .and_where(Expr::col(VariantValues::Id).eq(variant_value_id.to_string()));
+
+            let variant_value = service.db_adapter.query_optional::<VariantValue>(&value_stmt).await?;
+            if variant_value.is_none() {
                 return Err(Error::NotFoundError);
             }
 
-            // Verify all variant values exist and check for duplicate variant types
-            let mut variant_type_ids = HashSet::new();
+            let variant_value = variant_value.unwrap();
 
-            for variant_value_id in &self.item_variant.variant_value_ids {
-                // Get the variant value and its type
-                let value_query = Query::select()
-                    .from(VariantValues::Table)
-                    .columns([
-                        VariantValues::Id,
-                        VariantValues::VariantTypeId,
-                        VariantValues::Value,
-                        VariantValues::DisplayOrder,
-                        VariantValues::CreatedAt,
-                        VariantValues::UpdatedAt,
-                    ])
-                    .and_where(Expr::col(VariantValues::Id).eq(variant_value_id.to_string()))
-                    .to_string(SqliteQueryBuilder);
-
-                let variant_value = db.query_optional::<VariantValue>(&value_query, vec![])?;
-                if variant_value.is_none() {
-                    return Err(Error::NotFoundError);
-                }
-
-                let variant_value = variant_value.unwrap();
-
-                // Check if we already have a value from this variant type
-                if !variant_type_ids.insert(variant_value.variant_type_id) {
-                    // Cannot add multiple values from the same variant type
-                    return Err(Error::AlreadyExistsError);
-                }
+            // Check if we already have a value from this variant type
+            if !variant_type_ids.insert(variant_value.variant_type_id) {
+                // Cannot add multiple values from the same variant type
+                return Err(Error::AlreadyExistsError);
             }
+        }
 
-            // Check if this is the first variant for this item
-            let count_query = Query::select()
-                .from(ItemVariants::Table)
-                .expr(Expr::count(Expr::col(ItemVariants::Id)))
+        // Check if this is the first variant for this item
+        let mut count_query = Query::select();
+        let count_stmt = count_query
+            .from(ItemVariants::Table)
+            .expr(Expr::count(Expr::col(ItemVariants::Id)))
+            .and_where(Expr::col(ItemVariants::ItemId).eq(self.item_variant.item_id.to_string()));
+
+        let is_first: i64 = service.db_adapter.query_one(&count_stmt).await?;
+
+        // If this is the first variant and is_default is not specified, make it default
+        let is_default = self.item_variant.is_default.unwrap_or(is_first == 0);
+
+        // If this variant is set as default, unset any existing default
+        if is_default {
+            let mut update_query = Query::update();
+            let update_stmt = update_query
+                .table(ItemVariants::Table)
+                .value(ItemVariants::IsDefault, false.to_string())
                 .and_where(Expr::col(ItemVariants::ItemId).eq(self.item_variant.item_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+                .and_where(Expr::col(ItemVariants::IsDefault).eq(true.to_string()));
 
-            let is_first: i64 = db.query_one(&count_query, vec![])?;
+            service.db_adapter.update_many(&update_stmt).await?;
+        }
 
-            // If this is the first variant and is_default is not specified, make it default
-            let is_default = self.item_variant.is_default.unwrap_or(is_first == 0);
+        let now = Utc::now().naive_utc();
+        let variant_id = Uuid::now_v7().into();
+        let new_item_variant = ItemVariant {
+            id: variant_id,
+            item_id: self.item_variant.item_id,
+            sku: self.item_variant.sku.clone(),
+            price_adjustment: self.item_variant.price_adjustment,
+            is_default,
+            created_at: now,
+            updated_at: now,
+        };
 
-            // If this variant is set as default, unset any existing default
-            if is_default {
-                let update_query = Query::update()
-                    .table(ItemVariants::Table)
-                    .value(ItemVariants::IsDefault, false.to_string())
-                    .and_where(Expr::col(ItemVariants::ItemId).eq(self.item_variant.item_id.to_string()))
-                    .and_where(Expr::col(ItemVariants::IsDefault).eq(true.to_string()))
-                    .to_string(SqliteQueryBuilder);
+        // Insert the new variant
+        let mut insert_query = Query::insert();
+        let insert_stmt = insert_query
+            .into_table(ItemVariants::Table)
+            .columns([
+                ItemVariants::Id,
+                ItemVariants::ItemId,
+                ItemVariants::Sku,
+                ItemVariants::PriceAdjustment,
+                ItemVariants::IsDefault,
+                ItemVariants::CreatedAt,
+                ItemVariants::UpdatedAt,
+            ])
+            .values_panic([
+                new_item_variant.id.to_string().into(),
+                new_item_variant.item_id.to_string().into(),
+                new_item_variant.sku.clone().map_or_else(|| "NULL".into(), |s| s.into()),
+                new_item_variant.price_adjustment.map_or_else(|| "NULL".into(), |p| p.to_string().into()),
+                new_item_variant.is_default.to_string().into(),
+                new_item_variant.created_at.to_string().into(),
+                new_item_variant.updated_at.to_string().into(),
+            ]);
 
-                db.execute(&update_query, vec![])?;
-            }
+        service.db_adapter.insert_many(&insert_stmt).await?;
 
-            let now = Utc::now().naive_utc();
-            let variant_id = Uuid::now_v7().into();
-            let new_item_variant = ItemVariant {
-                id: variant_id,
-                item_id: self.item_variant.item_id,
-                sku: self.item_variant.sku.clone(),
-                price_adjustment: self.item_variant.price_adjustment,
-                is_default,
-                created_at: now,
-                updated_at: now,
-            };
-
-            // Insert the new variant
-            let insert_query = Query::insert()
-                .into_table(ItemVariants::Table)
+        // Associate variant values with this item variant
+        for variant_value_id in &self.item_variant.variant_value_ids {
+            let mut junction_insert = Query::insert();
+            let junction_stmt = junction_insert
+                .into_table(ItemVariantValues::Table)
                 .columns([
-                    ItemVariants::Id,
-                    ItemVariants::ItemId,
-                    ItemVariants::Sku,
-                    ItemVariants::PriceAdjustment,
-                    ItemVariants::IsDefault,
-                    ItemVariants::CreatedAt,
-                    ItemVariants::UpdatedAt,
+                    ItemVariantValues::ItemVariantId,
+                    ItemVariantValues::VariantValueId,
                 ])
                 .values_panic([
                     new_item_variant.id.to_string().into(),
-                    new_item_variant.item_id.to_string().into(),
-                    new_item_variant.sku.clone().map_or_else(|| "NULL".into(), |s| s.into()),
-                    new_item_variant.price_adjustment.map_or_else(|| "NULL".into(), |p| p.to_string().into()),
-                    new_item_variant.is_default.to_string().into(),
-                    new_item_variant.created_at.to_string().into(),
-                    new_item_variant.updated_at.to_string().into(),
-                ])
-                .to_string(SqliteQueryBuilder);
+                    variant_value_id.to_string().into(),
+                ]);
 
-            db.execute(&insert_query, vec![])?;
+            service.db_adapter.insert_many(&junction_stmt).await?;
+        }
 
-            // Associate variant values with this item variant
-            for variant_value_id in &self.item_variant.variant_value_ids {
-                let junction_insert = Query::insert()
-                    .into_table(ItemVariantValues::Table)
-                    .columns([
-                        ItemVariantValues::ItemVariantId,
-                        ItemVariantValues::VariantValueId,
-                    ])
-                    .values_panic([
-                        new_item_variant.id.to_string().into(),
-                        variant_value_id.to_string().into(),
-                    ])
-                    .to_string(SqliteQueryBuilder);
-
-                db.execute(&junction_insert, vec![])?;
-            }
-
-            Ok(new_item_variant)
-        })
+        Ok(new_item_variant)
     }
 }
 
 impl Command for UpdateItemVariantCommand {
     type Output = ItemVariant;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            // Verify item variant exists
-            let variant_query = Query::select()
-                .from(ItemVariants::Table)
-                .columns([
-                    ItemVariants::Id,
-                    ItemVariants::ItemId,
-                    ItemVariants::Sku,
-                    ItemVariants::PriceAdjustment,
-                    ItemVariants::IsDefault,
-                    ItemVariants::CreatedAt,
-                    ItemVariants::UpdatedAt,
-                ])
-                .and_where(Expr::col(ItemVariants::Id).eq(self.item_variant.id.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            let current_variant = db.query_optional::<ItemVariant>(&variant_query, vec![])?;
-            if current_variant.is_none() {
-                return Err(Error::NotFoundError);
-            }
-
-            let current_variant = current_variant.unwrap();
-            let now = Utc::now().naive_utc();
-
-            // Build the update query
-            let mut update_query = Query::update();
-            update_query.table(ItemVariants::Table)
-                .and_where(Expr::col(ItemVariants::Id).eq(self.item_variant.id.to_string()))
-                .value(ItemVariants::UpdatedAt, now.to_string());
-
-            // Add optional fields if they exist
-            if let Some(sku) = &self.item_variant.sku {
-                match sku {
-                    Some(s) => update_query.value(ItemVariants::Sku, s.clone()),
-                    None => update_query.value(ItemVariants::Sku, "NULL"),
-                };
-            }
-
-            if let Some(price_adjustment) = &self.item_variant.price_adjustment {
-                match price_adjustment {
-                    Some(p) => update_query.value(ItemVariants::PriceAdjustment, p.to_string()),
-                    None => update_query.value(ItemVariants::PriceAdjustment, "NULL"),
-                };
-            }
-
-            // If setting this variant as default, unset any existing default
-            if let Some(is_default) = self.item_variant.is_default {
-                update_query.value(ItemVariants::IsDefault, is_default.to_string());
-
-                if is_default {
-                    // Unset any other default variants for this item
-                    let unset_query = Query::update()
-                        .table(ItemVariants::Table)
-                        .value(ItemVariants::IsDefault, false.to_string())
-                        .and_where(Expr::col(ItemVariants::ItemId).eq(current_variant.item_id.to_string()))
-                        .and_where(Expr::col(ItemVariants::Id).ne(self.item_variant.id.to_string()))
-                        .and_where(Expr::col(ItemVariants::IsDefault).eq(true.to_string()))
-                        .to_string(SqliteQueryBuilder);
-
-                    db.execute(&unset_query, vec![])?;
-                }
-            }
-
-            // Execute the update
-            let sql = update_query.to_string(SqliteQueryBuilder);
-            db.execute(&sql, vec![])?;
-
-            // Retrieve the updated variant
-            let updated_query = Query::select()
-                .from(ItemVariants::Table)
-                .columns([
-                    ItemVariants::Id,
-                    ItemVariants::ItemId,
-                    ItemVariants::Sku,
-                    ItemVariants::PriceAdjustment,
-                    ItemVariants::IsDefault,
-                    ItemVariants::CreatedAt,
-                    ItemVariants::UpdatedAt,
-                ])
-                .and_where(Expr::col(ItemVariants::Id).eq(self.item_variant.id.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            let updated_variant = db.query_one::<ItemVariant>(&updated_query, vec![])?;
-            Ok(updated_variant)
-        })
-    }
-}
-
-impl Command for DeleteItemVariantCommand {
-    type Output = usize;
-
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            // Get the variant to check if it's default and get its item_id
-            let variant_query = Query::select()
-                .from(ItemVariants::Table)
-                .columns([
-                    ItemVariants::Id,
-                    ItemVariants::ItemId,
-                    ItemVariants::Sku,
-                    ItemVariants::PriceAdjustment,
-                    ItemVariants::IsDefault,
-                    ItemVariants::CreatedAt,
-                    ItemVariants::UpdatedAt,
-                ])
-                .and_where(Expr::col(ItemVariants::Id).eq(self.id.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            let variant = db.query_optional::<ItemVariant>(&variant_query, vec![])?;
-            if variant.is_none() {
-                return Err(Error::NotFoundError);
-            }
-
-            let variant = variant.unwrap();
-
-            // Delete associated variant values first
-            let delete_values_query = Query::delete()
-                .from_table(ItemVariantValues::Table)
-                .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.id.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            db.execute(&delete_values_query, vec![])?;
-
-            // Delete the variant
-            let delete_variant_query = Query::delete()
-                .from_table(ItemVariants::Table)
-                .and_where(Expr::col(ItemVariants::Id).eq(self.id.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            let num_deleted = db.execute(&delete_variant_query, vec![])?;
-
-            // If this was the default variant, set another one as default if available
-            if variant.is_default {
-                // Find another variant for this item
-                let another_query = Query::select()
-                    .from(ItemVariants::Table)
-                    .columns([
-                        ItemVariants::Id,
-                        ItemVariants::ItemId,
-                        ItemVariants::Sku,
-                        ItemVariants::PriceAdjustment,
-                        ItemVariants::IsDefault,
-                        ItemVariants::CreatedAt,
-                        ItemVariants::UpdatedAt,
-                    ])
-                    .and_where(Expr::col(ItemVariants::ItemId).eq(variant.item_id.to_string()))
-                    .limit(1)
-                    .to_string(SqliteQueryBuilder);
-
-                let another_variant = db.query_optional::<ItemVariant>(&another_query, vec![])?;
-
-                if let Some(another) = another_variant {
-                    // Set this variant as default
-                    let update_query = Query::update()
-                        .table(ItemVariants::Table)
-                        .value(ItemVariants::IsDefault, true.to_string())
-                        .and_where(Expr::col(ItemVariants::Id).eq(another.id.to_string()))
-                        .to_string(SqliteQueryBuilder);
-
-                    db.execute(&update_query, vec![])?;
-                }
-            }
-
-            if num_deleted == 0 {
-                Err(Error::NotFoundError)
-            } else {
-                Ok(num_deleted as usize)
-            }
-        })
-    }
-}
-
-impl Command for GetItemVariantCommand {
-    type Output = ItemVariant;
-
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let query = Query::select()
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Verify item variant exists
+        let mut variant_query = Query::select();
+        let variant_stmt = variant_query
             .from(ItemVariants::Table)
             .columns([
                 ItemVariants::Id,
@@ -369,10 +193,180 @@ impl Command for GetItemVariantCommand {
                 ItemVariants::CreatedAt,
                 ItemVariants::UpdatedAt,
             ])
-            .and_where(Expr::col(ItemVariants::Id).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(ItemVariants::Id).eq(self.item_variant.id.to_string()));
 
-        let item_variant = service.db_adapter.query_optional::<ItemVariant>(&query, vec![])?;
+        let current_variant = service.db_adapter.query_optional::<ItemVariant>(&variant_stmt).await?;
+        if current_variant.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        let current_variant = current_variant.unwrap();
+        let now = Utc::now().naive_utc();
+
+        // Build the update query
+        let mut update_query = Query::update();
+        let mut update_stmt = update_query
+            .table(ItemVariants::Table)
+            .and_where(Expr::col(ItemVariants::Id).eq(self.item_variant.id.to_string()))
+            .value(ItemVariants::UpdatedAt, now.to_string());
+
+        // Add optional fields if they exist
+        if let Some(sku) = &self.item_variant.sku {
+            match sku {
+                Some(s) => update_stmt = update_stmt.value(ItemVariants::Sku, s.clone()),
+                None => update_stmt = update_stmt.value(ItemVariants::Sku, "NULL"),
+            };
+        }
+
+        if let Some(price_adjustment) = &self.item_variant.price_adjustment {
+            match price_adjustment {
+                Some(p) => update_stmt = update_stmt.value(ItemVariants::PriceAdjustment, p.to_string()),
+                None => update_stmt = update_stmt.value(ItemVariants::PriceAdjustment, "NULL"),
+            };
+        }
+
+        // If setting this variant as default, unset any existing default
+        if let Some(is_default) = self.item_variant.is_default {
+            update_stmt = update_stmt.value(ItemVariants::IsDefault, is_default.to_string());
+
+            if is_default {
+                // Unset any other default variants for this item
+                let mut unset_query = Query::update();
+                let unset_stmt = unset_query
+                    .table(ItemVariants::Table)
+                    .value(ItemVariants::IsDefault, false.to_string())
+                    .and_where(Expr::col(ItemVariants::ItemId).eq(current_variant.item_id.to_string()))
+                    .and_where(Expr::col(ItemVariants::Id).ne(self.item_variant.id.to_string()))
+                    .and_where(Expr::col(ItemVariants::IsDefault).eq(true.to_string()));
+
+                service.db_adapter.update_many(&unset_stmt).await?;
+            }
+        }
+
+        // Execute the update
+        service.db_adapter.update_many(&update_stmt).await?;
+
+        // Retrieve the updated variant
+        let mut updated_query = Query::select();
+        let updated_stmt = updated_query
+            .from(ItemVariants::Table)
+            .columns([
+                ItemVariants::Id,
+                ItemVariants::ItemId,
+                ItemVariants::Sku,
+                ItemVariants::PriceAdjustment,
+                ItemVariants::IsDefault,
+                ItemVariants::CreatedAt,
+                ItemVariants::UpdatedAt,
+            ])
+            .and_where(Expr::col(ItemVariants::Id).eq(self.item_variant.id.to_string()));
+
+        let updated_variant = service.db_adapter.query_one::<ItemVariant>(&updated_stmt).await?;
+        Ok(updated_variant)
+    }
+}
+
+impl Command for DeleteItemVariantCommand {
+    type Output = usize;
+
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Get the variant to check if it's default and get its item_id
+        let mut variant_query = Query::select();
+        let variant_stmt = variant_query
+            .from(ItemVariants::Table)
+            .columns([
+                ItemVariants::Id,
+                ItemVariants::ItemId,
+                ItemVariants::Sku,
+                ItemVariants::PriceAdjustment,
+                ItemVariants::IsDefault,
+                ItemVariants::CreatedAt,
+                ItemVariants::UpdatedAt,
+            ])
+            .and_where(Expr::col(ItemVariants::Id).eq(self.id.to_string()));
+
+        let variant = service.db_adapter.query_optional::<ItemVariant>(&variant_stmt).await?;
+        if variant.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        let variant = variant.unwrap();
+
+        // Delete associated variant values first
+        let mut delete_values_query = Query::delete();
+        let delete_values_stmt = delete_values_query
+            .from_table(ItemVariantValues::Table)
+            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.id.to_string()));
+
+        service.db_adapter.delete(&delete_values_stmt).await?;
+
+        // Delete the variant
+        let mut delete_variant_query = Query::delete();
+        let delete_variant_stmt = delete_variant_query
+            .from_table(ItemVariants::Table)
+            .and_where(Expr::col(ItemVariants::Id).eq(self.id.to_string()));
+
+        let num_deleted = service.db_adapter.delete(&delete_variant_stmt).await?;
+
+        // If this was the default variant, set another one as default if available
+        if variant.is_default {
+            // Find another variant for this item
+            let mut another_query = Query::select();
+            let another_stmt = another_query
+                .from(ItemVariants::Table)
+                .columns([
+                    ItemVariants::Id,
+                    ItemVariants::ItemId,
+                    ItemVariants::Sku,
+                    ItemVariants::PriceAdjustment,
+                    ItemVariants::IsDefault,
+                    ItemVariants::CreatedAt,
+                    ItemVariants::UpdatedAt,
+                ])
+                .and_where(Expr::col(ItemVariants::ItemId).eq(variant.item_id.to_string()))
+                .limit(1);
+
+            let another_variant = service.db_adapter.query_optional::<ItemVariant>(&another_stmt).await?;
+
+            if let Some(another) = another_variant {
+                // Set this variant as default
+                let mut update_query = Query::update();
+                let update_stmt = update_query
+                    .table(ItemVariants::Table)
+                    .value(ItemVariants::IsDefault, true.to_string())
+                    .and_where(Expr::col(ItemVariants::Id).eq(another.id.to_string()));
+
+                service.db_adapter.update_many(&update_stmt).await?;
+            }
+        }
+
+        if num_deleted == 0 {
+            Err(Error::NotFoundError)
+        } else {
+            Ok(num_deleted as usize)
+        }
+    }
+}
+
+impl Command for GetItemVariantCommand {
+    type Output = ItemVariant;
+
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        let mut query = Query::select();
+        let stmt = query
+            .from(ItemVariants::Table)
+            .columns([
+                ItemVariants::Id,
+                ItemVariants::ItemId,
+                ItemVariants::Sku,
+                ItemVariants::PriceAdjustment,
+                ItemVariants::IsDefault,
+                ItemVariants::CreatedAt,
+                ItemVariants::UpdatedAt,
+            ])
+            .and_where(Expr::col(ItemVariants::Id).eq(self.id.to_string()));
+
+        let item_variant = service.db_adapter.query_optional::<ItemVariant>(&stmt).await?;
         match item_variant {
             Some(variant) => Ok(variant),
             None => Err(Error::NotFoundError),
@@ -383,9 +377,9 @@ impl Command for GetItemVariantCommand {
 impl Command for ListItemVariantsCommand {
     type Output = Vec<ItemVariant>;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let mut query_builder = Query::select();
-        let query = query_builder
+        let mut query = query_builder
             .from(ItemVariants::Table)
             .columns([
                 ItemVariants::Id,
@@ -398,11 +392,10 @@ impl Command for ListItemVariantsCommand {
             ]);
 
         if let Some(item_id) = &self.item_id {
-            query.and_where(Expr::col(ItemVariants::ItemId).eq(item_id.to_string()));
+            query = query.and_where(Expr::col(ItemVariants::ItemId).eq(item_id.to_string()));
         }
 
-        let sql = query.to_string(SqliteQueryBuilder);
-        let results = service.db_adapter.query_many::<ItemVariant>(&sql, vec![])?;
+        let results = service.db_adapter.query_many::<ItemVariant>(&query).await?;
         Ok(results)
     }
 }
@@ -410,122 +403,118 @@ impl Command for ListItemVariantsCommand {
 impl Command for AssignVariantValueCommand {
     type Output = usize;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            // Verify item variant exists
-            let variant_query = Query::select()
-                .from(ItemVariants::Table)
-                .columns([
-                    ItemVariants::Id,
-                ])
-                .and_where(Expr::col(ItemVariants::Id).eq(self.item_variant_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Verify item variant exists
+        let mut variant_query = Query::select();
+        let variant_stmt = variant_query
+            .from(ItemVariants::Table)
+            .columns([
+                ItemVariants::Id,
+            ])
+            .and_where(Expr::col(ItemVariants::Id).eq(self.item_variant_id.to_string()));
 
-            let variant = db.query_optional::<ItemVariant>(&variant_query, vec![])?;
-            if variant.is_none() {
-                return Err(Error::NotFoundError);
-            }
+        let variant = service.db_adapter.query_optional::<ItemVariant>(&variant_stmt).await?;
+        if variant.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-            // Verify variant value exists and get its type
-            let value_query = Query::select()
+        // Verify variant value exists and get its type
+        let mut value_query = Query::select();
+        let value_stmt = value_query
+            .from(VariantValues::Table)
+            .columns([
+                VariantValues::Id,
+                VariantValues::VariantTypeId,
+                VariantValues::Value,
+                VariantValues::DisplayOrder,
+                VariantValues::CreatedAt,
+                VariantValues::UpdatedAt,
+            ])
+            .and_where(Expr::col(VariantValues::Id).eq(self.variant_value_id.to_string()));
+
+        let new_variant_value = service.db_adapter.query_optional::<VariantValue>(&value_stmt).await?;
+        if new_variant_value.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        let new_variant_value = new_variant_value.unwrap();
+
+        // Check if the association already exists
+        let mut exists_query = Query::select();
+        let exists_stmt = exists_query
+            .from(ItemVariantValues::Table)
+            .expr(Expr::count(Expr::col(ItemVariantValues::ItemVariantId)))
+            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.item_variant_id.to_string()))
+            .and_where(Expr::col(ItemVariantValues::VariantValueId).eq(self.variant_value_id.to_string()));
+
+        let count: i64 = service.db_adapter.query_one(&exists_stmt).await?;
+        if count > 0 {
+            return Ok(0); // Association already exists
+        }
+
+        // Check if there's already a value from the same variant type
+        // First get all variant values associated with this item variant
+        let mut values_query = Query::select();
+        let values_stmt = values_query
+            .from(ItemVariantValues::Table)
+            .columns([
+                ItemVariantValues::VariantValueId,
+            ])
+            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.item_variant_id.to_string()));
+
+        let variant_value_ids: Vec<ItemVariantValue> = service.db_adapter.query_many(&values_stmt).await?;
+
+        // For each variant value, check its type
+        for item_variant_value in variant_value_ids {
+            let mut value_type_query = Query::select();
+            let value_type_stmt = value_type_query
                 .from(VariantValues::Table)
                 .columns([
-                    VariantValues::Id,
                     VariantValues::VariantTypeId,
-                    VariantValues::Value,
-                    VariantValues::DisplayOrder,
-                    VariantValues::CreatedAt,
-                    VariantValues::UpdatedAt,
                 ])
-                .and_where(Expr::col(VariantValues::Id).eq(self.variant_value_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+                .and_where(Expr::col(VariantValues::Id).eq(item_variant_value.variant_value_id.to_string()));
 
-            let new_variant_value = db.query_optional::<VariantValue>(&value_query, vec![])?;
-            if new_variant_value.is_none() {
-                return Err(Error::NotFoundError);
+            let existing_value: VariantValue = service.db_adapter.query_one(&value_type_stmt).await?;
+
+            if existing_value.variant_type_id == new_variant_value.variant_type_id {
+                // Cannot have multiple values from the same variant type
+                return Err(Error::AlreadyExistsError);
             }
+        }
 
-            let new_variant_value = new_variant_value.unwrap();
+        // Create the association
+        let mut insert_query = Query::insert();
+        let insert_stmt = insert_query
+            .into_table(ItemVariantValues::Table)
+            .columns([
+                ItemVariantValues::ItemVariantId,
+                ItemVariantValues::VariantValueId,
+            ])
+            .values_panic([
+                self.item_variant_id.to_string().into(),
+                self.variant_value_id.to_string().into(),
+            ]);
 
-            // Check if the association already exists
-            let exists_query = Query::select()
-                .from(ItemVariantValues::Table)
-                .expr(Expr::count(Expr::col(ItemVariantValues::ItemVariantId)))
-                .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.item_variant_id.to_string()))
-                .and_where(Expr::col(ItemVariantValues::VariantValueId).eq(self.variant_value_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+        service.db_adapter.insert_many(&insert_stmt).await?;
 
-            let count: i64 = db.query_one(&exists_query, vec![])?;
-            if count > 0 {
-                return Ok(0); // Association already exists
-            }
-
-            // Check if there's already a value from the same variant type
-            // First get all variant values associated with this item variant
-            let values_query = Query::select()
-                .from(ItemVariantValues::Table)
-                .columns([
-                    ItemVariantValues::VariantValueId,
-                ])
-                .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.item_variant_id.to_string()))
-                .to_string(SqliteQueryBuilder);
-
-            let variant_value_ids: Vec<ItemVariantValue> = db.query_many(&values_query, vec![])?;
-
-            // For each variant value, check its type
-            for item_variant_value in variant_value_ids {
-                let value_type_query = Query::select()
-                    .from(VariantValues::Table)
-                    .columns([
-                        VariantValues::VariantTypeId,
-                    ])
-                    .and_where(Expr::col(VariantValues::Id).eq(item_variant_value.variant_value_id.to_string()))
-                    .to_string(SqliteQueryBuilder);
-
-                let existing_value: VariantValue = db.query_one(&value_type_query, vec![])?;
-
-                if existing_value.variant_type_id == new_variant_value.variant_type_id {
-                    // Cannot have multiple values from the same variant type
-                    return Err(Error::AlreadyExistsError);
-                }
-            }
-
-            // Create the association
-            let insert_query = Query::insert()
-                .into_table(ItemVariantValues::Table)
-                .columns([
-                    ItemVariantValues::ItemVariantId,
-                    ItemVariantValues::VariantValueId,
-                ])
-                .values_panic([
-                    self.item_variant_id.to_string().into(),
-                    self.variant_value_id.to_string().into(),
-                ])
-                .to_string(SqliteQueryBuilder);
-
-            db.execute(&insert_query, vec![])?;
-
-            Ok(1)
-        })
+        Ok(1)
     }
 }
 
 impl Command for RemoveVariantValueCommand {
     type Output = usize;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.db_adapter.transaction(|db| {
-            // Delete the association
-            let delete_query = Query::delete()
-                .from_table(ItemVariantValues::Table)
-                .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.item_variant_id.to_string()))
-                .and_where(Expr::col(ItemVariantValues::VariantValueId).eq(self.variant_value_id.to_string()))
-                .to_string(SqliteQueryBuilder);
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Delete the association
+        let mut delete_query = Query::delete();
+        let delete_stmt = delete_query
+            .from_table(ItemVariantValues::Table)
+            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.item_variant_id.to_string()))
+            .and_where(Expr::col(ItemVariantValues::VariantValueId).eq(self.variant_value_id.to_string()));
 
-            let deleted_count = db.execute(&delete_query, vec![])?;
+        let deleted_count = service.db_adapter.delete(&delete_stmt).await?;
 
-            Ok(deleted_count as usize)
-        })
+        Ok(deleted_count as usize)
     }
 }
 
@@ -544,21 +533,22 @@ mod tests {
     use crate::core::models::catalog::variant_value_model::VariantValueNewInput;
     use crate::core::types::money::Money;
     use crate::adapters::outgoing::database::DatabaseAdapter;
-    use sea_query::{Expr, Query, SqliteQueryBuilder};
+    use sea_query::{Expr, Query};
+    use tokio;
 
-    fn create_test_item_category(service: &mut AppService) -> DbUuid {
+    async fn create_test_item_category(service: &mut AppService) -> DbUuid {
         let command = CreateItemGroupCommand {
             category: ItemGroupNew {
                 name: "Test Category".to_string(),
                 description: None,
             },
         };
-        let category = command.exec(service).unwrap();
+        let category = command.exec(service).await.unwrap();
         category.id
     }
 
-    fn create_test_item(service: &mut AppService) -> Item {
-        let category_id = create_test_item_category(service);
+    async fn create_test_item(service: &mut AppService) -> Item {
+        let category_id = create_test_item_category(service).await;
         let command = CreateItemCommand {
             item: NewItem {
                 name: "Test Item".to_string(),
@@ -570,10 +560,10 @@ mod tests {
                 tax_ids: None,
             },
         };
-        command.exec(service).unwrap()
+        command.exec(service).await.unwrap()
     }
 
-    fn create_test_variant_type(
+    async fn create_test_variant_type(
         service: &mut AppService,
     ) -> crate::core::models::catalog::variant_type_model::VariantType {
         let command = CreateVariantTypeCommand {
@@ -582,10 +572,10 @@ mod tests {
                 description: Some("Test Description".to_string()),
             },
         };
-        command.exec(service).unwrap()
+        command.exec(service).await.unwrap()
     }
 
-    fn create_test_variant_value(
+    async fn create_test_variant_value(
         service: &mut AppService,
         variant_type_id: DbUuid,
     ) -> VariantValue {
@@ -596,13 +586,13 @@ mod tests {
                 display_order: Some(1),
             },
         };
-        command.exec(service).unwrap()
+        command.exec(service).await.unwrap()
     }
 
-    fn create_test_item_variant(service: &mut AppService) -> ItemVariant {
-        let item = create_test_item(service);
-        let variant_type = create_test_variant_type(service);
-        let variant_value = create_test_variant_value(service, variant_type.id);
+    async fn create_test_item_variant(service: &mut AppService) -> ItemVariant {
+        let item = create_test_item(service).await;
+        let variant_type = create_test_variant_type(service).await;
+        let variant_value = create_test_variant_value(service, variant_type.id).await;
 
         let command = CreateItemVariantCommand {
             item_variant: ItemVariantNewInput {
@@ -613,15 +603,15 @@ mod tests {
                 variant_value_ids: vec![variant_value.id],
             },
         };
-        command.exec(service).unwrap()
+        command.exec(service).await.unwrap()
     }
 
-    #[test]
-    fn test_create_item_variant() {
+    #[tokio::test]
+    async fn test_create_item_variant() {
         let mut service = setup_service();
-        let item = create_test_item(&mut service);
-        let variant_type = create_test_variant_type(&mut service);
-        let variant_value = create_test_variant_value(&mut service, variant_type.id);
+        let item = create_test_item(&mut service).await;
+        let variant_type = create_test_variant_type(&mut service).await;
+        let variant_value = create_test_variant_value(&mut service, variant_type.id).await;
 
         let command = CreateItemVariantCommand {
             item_variant: ItemVariantNewInput {
@@ -633,32 +623,32 @@ mod tests {
             },
         };
 
-        let item_variant = command.exec(&mut service).unwrap();
+        let item_variant = command.exec(&mut service).await.unwrap();
         assert_eq!(item_variant.item_id, item.id);
         assert_eq!(item_variant.sku, Some("TEST-SKU-001".to_string()));
         assert_eq!(item_variant.price_adjustment, Some(Money::from(100)));
         assert!(item_variant.is_default);
 
         // Verify variant value association
-        let query = Query::select()
+        let mut query = Query::select();
+        let query_stmt = query
             .from(ItemVariantValues::Table)
             .columns([
                 ItemVariantValues::ItemVariantId,
                 ItemVariantValues::VariantValueId,
             ])
-            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(item_variant.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(item_variant.id.to_string()));
 
-        let associations = service.db_adapter.query_many::<ItemVariantValue>(&query, vec![]).unwrap();
+        let associations = service.db_adapter.query_many::<ItemVariantValue>(&query_stmt).await.unwrap();
 
         assert_eq!(associations.len(), 1);
         assert_eq!(associations[0].variant_value_id, variant_value.id);
     }
 
-    #[test]
-    fn test_update_item_variant() {
+    #[tokio::test]
+    async fn test_update_item_variant() {
         let mut service = setup_service();
-        let created = create_test_item_variant(&mut service);
+        let created = create_test_item_variant(&mut service).await;
 
         let update_command = UpdateItemVariantCommand {
             item_variant: ItemVariantUpdateInput {
@@ -670,30 +660,30 @@ mod tests {
             },
         };
 
-        let updated = update_command.exec(&mut service).unwrap();
+        let updated = update_command.exec(&mut service).await.unwrap();
         assert_eq!(updated.sku, Some("UPDATED-SKU".to_string()));
         assert_eq!(updated.price_adjustment, Some(Money::from(200)));
         assert!(updated.is_default);
     }
 
-    #[test]
-    fn test_get_item_variant() {
+    #[tokio::test]
+    async fn test_get_item_variant() {
         let mut service = setup_service();
-        let created = create_test_item_variant(&mut service);
+        let created = create_test_item_variant(&mut service).await;
 
         let get_command = GetItemVariantCommand { id: created.id };
-        let retrieved = get_command.exec(&mut service).unwrap();
+        let retrieved = get_command.exec(&mut service).await.unwrap();
         assert_eq!(retrieved.id, created.id);
         assert_eq!(retrieved.sku, created.sku);
     }
 
-    #[test]
-    fn test_list_item_variants() {
+    #[tokio::test]
+    async fn test_list_item_variants() {
         let mut service = setup_service();
-        let item = create_test_item(&mut service);
-        let variant_type = create_test_variant_type(&mut service);
-        let variant_value1 = create_test_variant_value(&mut service, variant_type.id);
-        let variant_value2 = create_test_variant_value(&mut service, variant_type.id);
+        let item = create_test_item(&mut service).await;
+        let variant_type = create_test_variant_type(&mut service).await;
+        let variant_value1 = create_test_variant_value(&mut service, variant_type.id).await;
+        let variant_value2 = create_test_variant_value(&mut service, variant_type.id).await;
 
         // Create multiple variants for the same item
         let command1 = CreateItemVariantCommand {
@@ -705,7 +695,7 @@ mod tests {
                 variant_value_ids: vec![variant_value1.id],
             },
         };
-        let variant1 = command1.exec(&mut service).unwrap();
+        let variant1 = command1.exec(&mut service).await.unwrap();
 
         let command2 = CreateItemVariantCommand {
             item_variant: ItemVariantNewInput {
@@ -716,79 +706,79 @@ mod tests {
                 variant_value_ids: vec![variant_value2.id],
             },
         };
-        let variant2 = command2.exec(&mut service).unwrap();
+        let variant2 = command2.exec(&mut service).await.unwrap();
 
         // List all variants
         let list_command = ListItemVariantsCommand { item_id: None };
-        let all_variants = list_command.exec(&mut service).unwrap();
+        let all_variants = list_command.exec(&mut service).await.unwrap();
         assert!(all_variants.len() >= 2);
 
         // List variants for specific item
         let list_command = ListItemVariantsCommand {
             item_id: Some(item.id),
         };
-        let item_variants = list_command.exec(&mut service).unwrap();
+        let item_variants = list_command.exec(&mut service).await.unwrap();
         assert_eq!(item_variants.len(), 2);
         assert!(item_variants.iter().any(|v| v.id == variant1.id));
         assert!(item_variants.iter().any(|v| v.id == variant2.id));
     }
 
-    #[test]
-    fn test_delete_item_variant() {
+    #[tokio::test]
+    async fn test_delete_item_variant() {
         let mut service = setup_service();
-        let created = create_test_item_variant(&mut service);
+        let created = create_test_item_variant(&mut service).await;
 
         let delete_command = DeleteItemVariantCommand { id: created.id };
-        let result = delete_command.exec(&mut service).unwrap();
+        let result = delete_command.exec(&mut service).await.unwrap();
         assert_eq!(result, 1);
 
         // Verify it's gone
         let get_command = GetItemVariantCommand { id: created.id };
-        let result = get_command.exec(&mut service);
+        let result = get_command.exec(&mut service).await;
         assert!(result.is_err());
 
         // Verify associations are gone
-        let query = Query::select()
+        let mut query = Query::select();
+        let query_stmt = query
             .from(ItemVariantValues::Table)
             .columns([
                 ItemVariantValues::ItemVariantId,
                 ItemVariantValues::VariantValueId,
             ])
-            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(created.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(created.id.to_string()));
 
-        let associations = service.db_adapter.query_many::<ItemVariantValue>(&query, vec![]).unwrap();
+        let associations = service.db_adapter.query_many::<ItemVariantValue>(&query_stmt).await.unwrap();
 
         assert_eq!(associations.len(), 0);
     }
 
-    #[test]
-    fn test_assign_and_remove_variant_value() {
+    #[tokio::test]
+    async fn test_assign_and_remove_variant_value() {
         let mut service = setup_service();
-        let item_variant = create_test_item_variant(&mut service);
-        let variant_type = create_test_variant_type(&mut service);
-        let new_variant_value = create_test_variant_value(&mut service, variant_type.id);
+        let item_variant = create_test_item_variant(&mut service).await;
+        let variant_type = create_test_variant_type(&mut service).await;
+        let new_variant_value = create_test_variant_value(&mut service, variant_type.id).await;
 
         // Assign new variant value
         let assign_command = AssignVariantValueCommand {
             item_variant_id: item_variant.id,
             variant_value_id: new_variant_value.id,
         };
-        let result = assign_command.exec(&mut service).unwrap();
+        let result = assign_command.exec(&mut service).await.unwrap();
         assert_eq!(result, 1);
 
         // Verify association exists
-        let query = Query::select()
+        let mut query1 = Query::select();
+        let query1_stmt = query1
             .from(ItemVariantValues::Table)
             .columns([
                 ItemVariantValues::ItemVariantId,
                 ItemVariantValues::VariantValueId,
             ])
             .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(item_variant.id.to_string()))
-            .and_where(Expr::col(ItemVariantValues::VariantValueId).eq(new_variant_value.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(ItemVariantValues::VariantValueId).eq(new_variant_value.id.to_string()));
 
-        let associations = service.db_adapter.query_many::<ItemVariantValue>(&query, vec![]).unwrap();
+        let associations = service.db_adapter.query_many::<ItemVariantValue>(&query1_stmt).await.unwrap();
 
         assert_eq!(associations.len(), 1);
 
@@ -797,32 +787,32 @@ mod tests {
             item_variant_id: item_variant.id,
             variant_value_id: new_variant_value.id,
         };
-        let result = remove_command.exec(&mut service).unwrap();
+        let result = remove_command.exec(&mut service).await.unwrap();
         assert_eq!(result, 1);
 
         // Verify association is gone
-        let query = Query::select()
+        let mut query2 = Query::select();
+        let query2_stmt = query2
             .from(ItemVariantValues::Table)
             .columns([
                 ItemVariantValues::ItemVariantId,
                 ItemVariantValues::VariantValueId,
             ])
             .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(item_variant.id.to_string()))
-            .and_where(Expr::col(ItemVariantValues::VariantValueId).eq(new_variant_value.id.to_string()))
-            .to_string(SqliteQueryBuilder);
+            .and_where(Expr::col(ItemVariantValues::VariantValueId).eq(new_variant_value.id.to_string()));
 
-        let associations = service.db_adapter.query_many::<ItemVariantValue>(&query, vec![]).unwrap();
+        let associations = service.db_adapter.query_many::<ItemVariantValue>(&query2_stmt).await.unwrap();
 
         assert_eq!(associations.len(), 0);
     }
 
-    #[test]
-    fn test_prevent_duplicate_variant_types_in_create() {
+    #[tokio::test]
+    async fn test_prevent_duplicate_variant_types_in_create() {
         let mut service = setup_service();
-        let item = create_test_item(&mut service);
-        let variant_type = create_test_variant_type(&mut service);
-        let variant_value1 = create_test_variant_value(&mut service, variant_type.id);
-        let variant_value2 = create_test_variant_value(&mut service, variant_type.id);
+        let item = create_test_item(&mut service).await;
+        let variant_type = create_test_variant_type(&mut service).await;
+        let variant_value1 = create_test_variant_value(&mut service, variant_type.id).await;
+        let variant_value2 = create_test_variant_value(&mut service, variant_type.id).await;
 
         // Try to create a variant with two values from the same type
         let command = CreateItemVariantCommand {
@@ -836,7 +826,7 @@ mod tests {
         };
 
         // This should fail with AlreadyExistsError
-        let result = command.exec(&mut service);
+        let result = command.exec(&mut service).await;
         assert!(result.is_err());
         match result {
             Err(Error::AlreadyExistsError) => {} // Expected error
@@ -844,12 +834,12 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_prevent_duplicate_variant_types_in_assign() {
+    #[tokio::test]
+    async fn test_prevent_duplicate_variant_types_in_assign() {
         let mut service = setup_service();
-        let item = create_test_item(&mut service);
-        let variant_type1 = create_test_variant_type(&mut service);
-        let variant_value1 = create_test_variant_value(&mut service, variant_type1.id);
+        let item = create_test_item(&mut service).await;
+        let variant_type1 = create_test_variant_type(&mut service).await;
+        let variant_value1 = create_test_variant_value(&mut service, variant_type1.id).await;
 
         // Create a variant with one value
         let command = CreateItemVariantCommand {
@@ -862,17 +852,17 @@ mod tests {
             },
         };
 
-        let item_variant = command.exec(&mut service).unwrap();
+        let item_variant = command.exec(&mut service).await.unwrap();
 
         // Try to assign another value from the same type
-        let variant_value2 = create_test_variant_value(&mut service, variant_type1.id);
+        let variant_value2 = create_test_variant_value(&mut service, variant_type1.id).await;
         let assign_command = AssignVariantValueCommand {
             item_variant_id: item_variant.id,
             variant_value_id: variant_value2.id,
         };
 
         // This should fail with AlreadyExistsError
-        let result = assign_command.exec(&mut service);
+        let result = assign_command.exec(&mut service).await;
         assert!(result.is_err());
         match result {
             Err(Error::AlreadyExistsError) => {} // Expected error

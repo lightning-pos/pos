@@ -1,6 +1,7 @@
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use sea_query::{SelectStatement, InsertStatement, UpdateStatement, DeleteStatement, SqliteQueryBuilder};
 
@@ -21,8 +22,11 @@ impl SqlxAdapter {
     }
 }
 
+fn async_check<T: Send>() {}
+
 // Helper method to convert SqlParam to libsql::Value
 fn convert_params(params: Vec<SqlParam>) -> Vec<libsql::Value> {
+    async_check::<libsql::Connection>();
     params.into_iter().map(|param| {
         match param {
             SqlParam::String(s) => libsql::Value::Text(s),
@@ -41,8 +45,7 @@ impl DatabaseAdapter for SqlxAdapter {
         let sql = query.to_string(SqliteQueryBuilder);
 
         // Get a lock on the connection
-        let conn = self.conn.lock()
-            .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
+        let conn = self.conn.lock().await;
 
         // Execute the query
         let mut stmt = conn.prepare(&sql).await
@@ -72,8 +75,7 @@ impl DatabaseAdapter for SqlxAdapter {
         let sql = query.to_string(SqliteQueryBuilder);
 
         // Get a lock on the connection
-        let conn = self.conn.lock()
-            .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
+        let conn = self.conn.lock().await;
 
         // Execute the query
         let mut stmt = conn.prepare(&sql).await
@@ -103,8 +105,7 @@ impl DatabaseAdapter for SqlxAdapter {
         let sql = query.to_string(SqliteQueryBuilder);
 
         // Get a lock on the connection
-        let conn = self.conn.lock()
-            .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
+        let conn = self.conn.lock().await;
 
         // Execute the query
         let mut stmt = conn.prepare(&sql).await
@@ -121,8 +122,7 @@ impl DatabaseAdapter for SqlxAdapter {
 
     async fn execute(&self, query: &str) -> Result<u64> {
         // Get a lock on the connection
-        let conn = self.conn.lock()
-            .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
+        let conn = self.conn.lock().await;
 
         // Execute the query
         let mut stmt = conn.prepare(query).await
@@ -206,8 +206,7 @@ impl DatabaseAdapter for SqlxAdapter {
         R: Send,
     {
         // Get a lock on the connection
-        let conn = self.conn.lock()
-            .map_err(|e| Error::DatabaseError(format!("Failed to lock connection: {}", e)))?;
+        let conn = self.conn.lock().await;
 
         // Begin transaction
         conn.execute("BEGIN TRANSACTION", Vec::<libsql::Value>::new()).await
