@@ -58,7 +58,8 @@ impl Expense {
     pub async fn category(&self, context: &AppState) -> FieldResult<PurchaseCategory> {
         let service = context.service.lock().await;
 
-        let query = Query::select()
+        let mut query = Query::select();
+        let query = query
             .from(PurchaseCategories::Table)
             .columns([
                 PurchaseCategories::Id,
@@ -78,7 +79,8 @@ impl Expense {
     pub async fn cost_center(&self, context: &AppState) -> FieldResult<CostCenter> {
         let service = context.service.lock().await;
 
-        let query = Query::select()
+        let mut query = Query::select();
+        let query = query
             .from(CostCenters::Table)
             .columns([
                 CostCenters::Id,

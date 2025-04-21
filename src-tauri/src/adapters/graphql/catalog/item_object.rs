@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use sea_query::{Expr, Func, Query, QueryStatementWriter, SqliteQueryBuilder};
+use sea_query::{Expr, Func, Query};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
@@ -164,12 +164,8 @@ impl Item {
             ])
             .and_where(Expr::col(ItemVariants::ItemId).eq(self.id.to_string()))
             .and_where(Expr::col(ItemVariants::IsDefault).eq(true));
-        let sql = query.to_string(SqliteQueryBuilder);
 
-
-        // let sql = format!("SELECT * FROM item_variants WHERE item_id = '{}' AND is_default = 1", self.id);
-
-        let default_variant = service.db_adapter.query_optional_sql::<ItemVariant>(sql).await?;
+        let default_variant = service.db_adapter.query_optional::<ItemVariant>(&query).await?;
 
         Ok(default_variant)
     }

@@ -19,43 +19,38 @@ use crate::{
     AppState,
 };
 
-#[derive(juniper::GraphQLObject)]
-#[graphql(description = "A relationship between an item and a discount")]
-pub struct ItemDiscountObject {
-    pub item_id: DbUuid,
-    pub discount_id: DbUuid,
-}
+#[graphql_object(context = AppState)]
+impl ItemDiscount {
+    pub fn item_id(&self) -> DbUuid {
+        self.item_id
+    }
 
-impl From<ItemDiscount> for ItemDiscountObject {
-    fn from(item_discount: ItemDiscount) -> Self {
-        Self {
-            item_id: item_discount.item_id,
-            discount_id: item_discount.discount_id,
-        }
+    pub fn discount_id(&self) -> DbUuid {
+        self.discount_id
     }
 }
 
 // Query resolvers
 pub struct ItemDiscountQuery;
 
-#[juniper::graphql_object(context = AppState)]
+#[graphql_object(context = AppState)]
 impl ItemDiscountQuery {
     #[graphql(description = "Get all discounts for an item")]
     pub async fn item_discounts(
         context: &AppState,
         item_id: DbUuid,
-    ) -> FieldResult<Vec<ItemDiscountObject>> {
+    ) -> FieldResult<Vec<ItemDiscount>> {
         let mut service = context.service.lock().await;
-        let cmd = GetItemDiscountsCommand { item_id };
+        let cmd: GetItemDiscountsCommand = GetItemDiscountsCommand { item_id };
         let item_discounts = cmd.exec(&mut service).await?;
-        Ok(item_discounts.into_iter().map(Into::into).collect())
+        Ok(item_discounts)
     }
 
     #[graphql(description = "Get all items for a discount")]
     pub async fn discount_items(
         context: &AppState,
         discount_id: DbUuid,
-    ) -> FieldResult<Vec<ItemDiscountObject>> {
+    ) -> FieldResult<Vec<ItemDiscount>> {
         let mut service = context.service.lock().await;
         let cmd = GetDiscountItemsCommand { discount_id };
         let discount_items = cmd.exec(&mut service).await?;
@@ -72,7 +67,7 @@ impl ItemDiscountMutation {
     pub async fn add_item_discount(
         context: &AppState,
         item_discount: ItemDiscountNewInput,
-    ) -> FieldResult<ItemDiscountObject> {
+    ) -> FieldResult<ItemDiscount> {
         let mut service = context.service.lock().await;
 
         // Verify that the item exists

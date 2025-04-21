@@ -1,21 +1,12 @@
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
-    adapters::graphql::catalog::{
-        item_discount::ItemDiscountObject,
-        variants::{item_variant_queries, variant_type_queries, variant_value_queries},
-    },
-    adapters::graphql::Query,
+    adapters::graphql::{catalog::variants::{item_variant_queries, variant_type_queries, variant_value_queries}, Query},
     core::{
         models::{
             auth::user_model::User,
             catalog::{
-                discount_model::{Discount, DiscountState},
-                item_group_model::ItemGroup,
-                item_model::Item,
-                item_variant_model::ItemVariant,
-                variant_type_model::VariantType,
-                variant_value_model::VariantValue,
+                discount_model::{Discount, DiscountState}, item_discount_model::ItemDiscount, item_group_model::ItemGroup, item_model::Item, item_variant_model::ItemVariant, variant_type_model::VariantType, variant_value_model::VariantValue
             },
             common::{
                 brand_model::Brand, channel_model::Channel, tax_group_model::TaxGroup,
@@ -425,7 +416,7 @@ impl Query {
         &self,
         item_id: DbUuid,
         context: &AppState,
-    ) -> FieldResult<Vec<ItemDiscountObject>> {
+    ) -> FieldResult<Vec<ItemDiscount>> {
         super::catalog::item_discount::ItemDiscountQuery::item_discounts(context, item_id).await
     }
 
@@ -433,7 +424,7 @@ impl Query {
         &self,
         discount_id: DbUuid,
         context: &AppState,
-    ) -> FieldResult<Vec<ItemDiscountObject>> {
+    ) -> FieldResult<Vec<ItemDiscount>> {
         super::catalog::item_discount::ItemDiscountQuery::discount_items(context, discount_id).await
     }
 }

@@ -22,11 +22,8 @@ impl SqlxAdapter {
     }
 }
 
-fn async_check<T: Send>() {}
-
 // Helper method to convert SqlParam to libsql::Value
-fn convert_params(params: Vec<SqlParam>) -> Vec<libsql::Value> {
-    async_check::<libsql::Connection>();
+fn _convert_params(params: Vec<SqlParam>) -> Vec<libsql::Value> {
     params.into_iter().map(|param| {
         match param {
             SqlParam::String(s) => libsql::Value::Text(s),

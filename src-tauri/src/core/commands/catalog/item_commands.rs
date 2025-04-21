@@ -129,7 +129,7 @@ impl Command for UpdateItemCommand {
                 .column(ItemCategories::Id)
                 .and_where(Expr::col(ItemCategories::Id).eq(cat_id.to_string()));
 
-            let category = service.db_adapter.query_optional::<ItemGroup>(&category_stmt).await?;
+            let category = service.db_adapter.query_optional::<ItemGroup>(category_stmt).await?;
             if category.is_none() {
                 return Err(Error::NotFoundError);
             }

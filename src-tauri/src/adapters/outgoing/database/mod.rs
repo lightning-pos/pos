@@ -27,41 +27,41 @@ pub enum SqlParam {
 /// This allows commands to construct queries without directly executing them.
 pub trait DatabaseAdapter: Send + Sync {
     /// Execute a query that returns a single row or fails if no row is found
-    async fn query_one<T>(&self, query: &SelectStatement) -> Result<T>;
+    fn query_one<T>(&self, query: &SelectStatement) -> impl Future<Output = Result<T>> + Send;
 
     /// Execute a query that returns an optional row (Some if found, None if not found)
-    async fn query_optional<T>(&self, query: &SelectStatement) -> Result<Option<T>>;
+    fn query_optional<T>(&self, query: &SelectStatement) -> impl Future<Output = Result<Option<T>>> + Send;
 
     /// Execute a query that returns all rows matching the parameters
-    async fn query_many<T>(&self, query: &SelectStatement) -> Result<Vec<T>>;
+    fn query_many<T>(&self, query: &SelectStatement) -> impl Future<Output = Result<Vec<T>>> + Send;
 
     /// Insert a single row and return the inserted entity
-    async fn insert_one<T>(&self, query: &InsertStatement) -> Result<T>;
+    fn insert_one<T>(&self, query: &InsertStatement) -> impl Future<Output = Result<T>> + Send;
 
     /// Insert multiple rows and return the number of rows affected
-    async fn insert_many(&self, query: &InsertStatement) -> Result<u64>;
+    fn insert_many(&self, query: &InsertStatement) -> impl Future<Output = Result<u64>> + Send;
 
     /// Update a single row and return the updated entity
-    async fn update_one<T>(&self, query: &UpdateStatement) -> Result<T>;
+    fn update_one<T>(&self, query: &UpdateStatement) -> impl Future<Output = Result<T>> + Send;
 
     /// Update multiple rows and return the number of rows affected
-    async fn update_many(&self, query: &UpdateStatement) -> Result<u64>;
+    fn update_many(&self, query: &UpdateStatement) -> impl Future<Output = Result<u64>> + Send;
 
     /// Upsert (insert or update) a row and return the resulting entity
-    async fn upsert<T>(&self, query: &InsertStatement) -> Result<T>;
+    fn upsert<T>(&self, query: &InsertStatement) -> impl Future<Output = Result<T>> + Send;
 
     /// Delete rows matching the filter and return the number of rows affected
-    async fn delete(&self, query: &DeleteStatement) -> Result<u64>;
+    fn delete(&self, query: &DeleteStatement) -> impl Future<Output = Result<u64>> + Send;
 
     /// Execute a transaction
-    async fn transaction<F, R>(&self, f: F) -> Result<R>
+    fn transaction<F, R>(&self, f: F) -> impl Future<Output = Result<R>> + Send
     where
         F: FnOnce(&Self) -> Pin<Box<dyn Future<Output = Result<R>> + Send>> + Send,
         R: Send;
 
     /// Execute a query that doesn't return rows but returns the number of affected rows
     /// This is a low-level method used by other methods
-    async fn execute(&self, query: &str) -> Result<u64>;
+    fn execute(&self, query: &str) -> impl Future<Output = Result<u64>> + Send;
 }
 
 

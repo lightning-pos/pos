@@ -1,16 +1,13 @@
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
-    adapters::graphql::catalog::{
-        item_discount::ItemDiscountObject,
-        variants::{item_variant_mutations, variant_type_mutations, variant_value_mutations},
-    },
+    adapters::graphql::catalog::variants::{item_variant_mutations, variant_type_mutations, variant_value_mutations},
     core::{
         models::{
             auth::user_model::{User, UserNewInput, UserUpdateInput},
             catalog::{
                 discount_model::{Discount, DiscountNewInput, DiscountUpdateInput},
-                item_discount_model::ItemDiscountNewInput,
+                item_discount_model::{ItemDiscount, ItemDiscountNewInput},
                 item_group_model::{ItemGroup, ItemGroupNew, ItemGroupUpdate},
                 item_model::{Item, NewItem, UpdateItem},
                 item_variant_model::{ItemVariant, ItemVariantNewInput, ItemVariantUpdateInput},
@@ -512,7 +509,7 @@ impl Mutation {
         &self,
         item_discount: ItemDiscountNewInput,
         context: &AppState,
-    ) -> FieldResult<ItemDiscountObject> {
+    ) -> FieldResult<ItemDiscount> {
         super::catalog::item_discount::ItemDiscountMutation::add_item_discount(
             context,
             item_discount,
