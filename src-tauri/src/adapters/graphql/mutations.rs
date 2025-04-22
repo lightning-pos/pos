@@ -8,7 +8,7 @@ use crate::{
             catalog::{
                 discount_model::{Discount, DiscountNewInput, DiscountUpdateInput},
                 item_discount_model::{ItemDiscount, ItemDiscountNewInput},
-                item_group_model::{ItemGroup, ItemGroupNew, ItemGroupUpdate},
+                item_group_model::{ItemCategory, ItemCategoryNew, ItemCategoryUpdate},
                 item_model::{Item, NewItem, UpdateItem},
                 item_variant_model::{ItemVariant, ItemVariantNewInput, ItemVariantUpdateInput},
                 variant_type_model::{VariantType, VariantTypeNewInput, VariantTypeUpdateInput},
@@ -84,16 +84,16 @@ impl Mutation {
     }
 
     async fn create_item_category(
-        new_category: ItemGroupNew,
+        new_category: ItemCategoryNew,
         context: &AppState,
-    ) -> FieldResult<ItemGroup> {
+    ) -> FieldResult<ItemCategory> {
         super::catalog::item_group_mutations::create_item_category(new_category, context).await
     }
 
     async fn update_item_category(
-        category: ItemGroupUpdate,
+        category: ItemCategoryUpdate,
         context: &AppState,
-    ) -> FieldResult<ItemGroup> {
+    ) -> FieldResult<ItemCategory> {
         super::catalog::item_group_mutations::update_item_category(category, context).await
     }
 

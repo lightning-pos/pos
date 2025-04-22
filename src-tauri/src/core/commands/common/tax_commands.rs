@@ -292,7 +292,7 @@ mod tests {
     use super::*;
     use crate::core::{
         commands::{app_service::AppService, catalog::item_group_commands::CreateItemGroupCommand, tests::setup_service},
-        models::catalog::{item_group_model::ItemGroupNew, item_model::{ItemNature, ItemState}},
+        models::catalog::{item_group_model::ItemCategoryNew, item_model::{ItemNature, ItemState}},
         types::percentage::Percentage,
     };
 
@@ -457,7 +457,7 @@ mod tests {
     async fn create_test_item_category(service: &mut AppService) -> DbUuid {
         let category_name = format!("Test Category {}", Uuid::now_v7());
         let command = CreateItemGroupCommand {
-            category: ItemGroupNew {
+            category: ItemCategoryNew {
                 name: category_name,
                 description: None,
             },

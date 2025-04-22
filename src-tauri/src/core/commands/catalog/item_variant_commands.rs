@@ -527,7 +527,7 @@ mod tests {
         variant_type_commands::CreateVariantTypeCommand,
         variant_value_commands::CreateVariantValueCommand,
     };
-    use crate::core::models::catalog::item_group_model::ItemGroupNew;
+    use crate::core::models::catalog::item_group_model::ItemCategoryNew;
     use crate::core::models::catalog::item_model::{ItemNature, ItemState, NewItem};
     use crate::core::models::catalog::variant_type_model::VariantTypeNewInput;
     use crate::core::models::catalog::variant_value_model::VariantValueNewInput;
@@ -538,7 +538,7 @@ mod tests {
 
     async fn create_test_item_category(service: &mut AppService) -> DbUuid {
         let command = CreateItemGroupCommand {
-            category: ItemGroupNew {
+            category: ItemCategoryNew {
                 name: "Test Category".to_string(),
                 description: None,
             },

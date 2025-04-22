@@ -1,40 +1,35 @@
-use crate::{core::types::db_uuid::DbUuid, schema::item_categories};
+use crate::core::types::db_uuid::DbUuid;
 use chrono::NaiveDateTime;
 use derive_more::Display;
-use diesel::prelude::{AsChangeset, Insertable, Queryable, Selectable};
-use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
 use sea_query::Iden;
 
-#[derive(Debug, Queryable, Insertable, Selectable)]
-#[diesel(table_name = item_categories)]
-pub struct ItemGroup {
+#[derive(Debug)]
+pub struct ItemCategory {
     pub id: DbUuid,
     pub name: String,
     pub description: Option<String>,
-    pub state: ItemGroupState,
+    pub state: ItemCategoryState,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
 
 #[derive(Debug, Clone, GraphQLInputObject)]
-pub struct ItemGroupNew {
+pub struct ItemCategoryNew {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]
-#[diesel(table_name = item_categories)]
-pub struct ItemGroupUpdate {
+#[derive(Debug, Clone, GraphQLInputObject)]
+pub struct ItemCategoryUpdate {
     pub id: DbUuid,
     pub name: Option<String>,
     pub description: Option<Option<String>>,
-    pub state: Option<ItemGroupState>,
-    pub updated_at: Option<NaiveDateTime>,
+    pub state: Option<ItemCategoryState>,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, Display)]
-pub enum ItemGroupState {
+#[derive(Debug, Clone, Copy, GraphQLEnum, Display)]
+pub enum ItemCategoryState {
     Active,
     Inactive,
     Deleted,

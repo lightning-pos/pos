@@ -2,19 +2,9 @@ use std::{
     iter::Sum,
     ops::{Add, Div, Mul, Sub},
 };
-
-use diesel::{
-    deserialize::{self, FromSql},
-    expression::AsExpression,
-    serialize::{self, Output, ToSql},
-    sql_types::Integer,
-    sqlite::{Sqlite, SqliteValue},
-    Queryable,
-};
 use juniper::{graphql_scalar, InputValue, ScalarValue, Value};
 
-#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, AsExpression)]
-#[diesel(sql_type = Integer)]
+#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 #[graphql_scalar(parse_token(String))]
 pub struct Percentage(i32);
 
@@ -68,27 +58,6 @@ impl Percentage {
     pub fn from_input<S: ScalarValue>(v: &InputValue<S>) -> Result<Self, String> {
         let s = v.as_string_value().ok_or("Expected a string")?;
         Self::from_str(s)
-    }
-}
-
-impl FromSql<Integer, Sqlite> for Percentage {
-    fn from_sql(bytes: SqliteValue<'_, '_, '_>) -> deserialize::Result<Self> {
-        let basis_points = <i32 as FromSql<Integer, Sqlite>>::from_sql(bytes)?;
-        Ok(Self(basis_points))
-    }
-}
-
-impl ToSql<Integer, Sqlite> for Percentage {
-    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Sqlite>) -> serialize::Result {
-        <i32 as ToSql<Integer, Sqlite>>::to_sql(&self.0, out)
-    }
-}
-
-impl Queryable<Integer, Sqlite> for Percentage {
-    type Row = i32;
-
-    fn build(row: Self::Row) -> deserialize::Result<Self> {
-        Ok(Percentage(row))
     }
 }
 

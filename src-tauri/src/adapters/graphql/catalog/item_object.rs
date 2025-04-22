@@ -7,11 +7,11 @@ use crate::{
     core::{
         models::{
             catalog::{
-                item_group_model::{ItemGroup, ItemCategories},
+                item_group_model::{ItemCategories, ItemCategory},
                 item_model::{Item, ItemNature, ItemState},
                 item_variant_model::{ItemVariant, ItemVariants},
             },
-            common::tax_model::{Tax, Taxes, ItemTaxes},
+            common::tax_model::{ItemTaxes, Tax, Taxes},
         },
         types::{db_uuid::DbUuid, money::Money},
     },
@@ -52,7 +52,7 @@ impl Item {
         self.updated_at
     }
 
-    pub async fn category(&self, context: &AppState) -> FieldResult<ItemGroup> {
+    pub async fn category(&self, context: &AppState) -> FieldResult<ItemCategory> {
         let service = context.service.lock().await;
 
         let mut query_builder = Query::select();
@@ -67,7 +67,7 @@ impl Item {
                 ItemCategories::UpdatedAt,
             ])
             .and_where(Expr::col(ItemCategories::Id).eq(self.category_id.to_string()));
-        let result = service.db_adapter.query_one::<ItemGroup>(&query).await?;
+        let result = service.db_adapter.query_one::<ItemCategory>(&query).await?;
         Ok(result)
     }
 

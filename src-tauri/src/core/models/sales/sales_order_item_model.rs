@@ -1,18 +1,10 @@
 use chrono::NaiveDateTime;
-use diesel::{
-    prelude::{Insertable, Queryable},
-    Selectable,
-};
 use juniper::GraphQLInputObject;
 use sea_query::Iden;
 
-use crate::{
-    core::types::{db_uuid::DbUuid, money::Money},
-    schema::sales_order_items,
-};
+use crate::core::types::{db_uuid::DbUuid, money::Money};
 
-#[derive(Debug, Queryable, Selectable, Insertable)]
-#[diesel(table_name = sales_order_items)]
+#[derive(Debug)]
 pub struct SalesOrderItem {
     pub id: DbUuid,
     pub order_id: DbUuid,

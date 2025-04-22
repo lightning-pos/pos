@@ -80,7 +80,6 @@ impl ItemDiscountMutation {
                 state: None,
                 price: None,
                 category_id: None,
-                updated_at: None,
             },
         };
         get_item_cmd.exec(&mut service).await?;

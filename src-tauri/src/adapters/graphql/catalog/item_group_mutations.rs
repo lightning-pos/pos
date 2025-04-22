@@ -6,23 +6,23 @@ use crate::{
             },
             Command,
         },
-        models::catalog::item_group_model::{ItemGroup, ItemGroupNew, ItemGroupUpdate},
+        models::catalog::item_group_model::{ItemCategory, ItemCategoryNew, ItemCategoryUpdate},
         types::db_uuid::DbUuid,
     },
     AppState,
 };
 use juniper::FieldResult;
 
-pub async fn create_item_category(category: ItemGroupNew, context: &AppState) -> FieldResult<ItemGroup> {
+pub async fn create_item_category(category: ItemCategoryNew, context: &AppState) -> FieldResult<ItemCategory> {
     let mut service = context.service.lock().await;
     let res = CreateItemGroupCommand { category }.exec(&mut service).await?;
     Ok(res)
 }
 
 pub async fn update_item_category(
-    category: ItemGroupUpdate,
+    category: ItemCategoryUpdate,
     context: &AppState,
-) -> FieldResult<ItemGroup> {
+) -> FieldResult<ItemCategory> {
     let mut service = context.service.lock().await;
     let res = UpdateItemGroupCommand { category }.exec(&mut service).await?;
     Ok(res)

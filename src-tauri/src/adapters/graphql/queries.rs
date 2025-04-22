@@ -6,7 +6,7 @@ use crate::{
         models::{
             auth::user_model::User,
             catalog::{
-                discount_model::{Discount, DiscountState}, item_discount_model::ItemDiscount, item_group_model::ItemGroup, item_model::Item, item_variant_model::ItemVariant, variant_type_model::VariantType, variant_value_model::VariantValue
+                discount_model::{Discount, DiscountState}, item_discount_model::ItemDiscount, item_group_model::ItemCategory, item_model::Item, item_variant_model::ItemVariant, variant_type_model::VariantType, variant_value_model::VariantValue
             },
             common::{
                 brand_model::Brand, channel_model::Channel, tax_group_model::TaxGroup,
@@ -40,11 +40,11 @@ impl Query {
         first: Option<i32>,
         offset: Option<i32>,
         context: &AppState,
-    ) -> FieldResult<Vec<ItemGroup>> {
+    ) -> FieldResult<Vec<ItemCategory>> {
         super::catalog::item_group_queries::item_categories(first, offset, context).await
     }
 
-    async fn items_category(&self, id: DbUuid, context: &AppState) -> FieldResult<ItemGroup> {
+    async fn items_category(&self, id: DbUuid, context: &AppState) -> FieldResult<ItemCategory> {
         super::catalog::item_group_queries::items_category(id, context).await
     }
 

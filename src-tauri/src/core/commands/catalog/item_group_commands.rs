@@ -6,7 +6,7 @@ use crate::{
     adapters::outgoing::database::DatabaseAdapter, core::{
         commands::{app_service::AppService, Command},
         models::catalog::item_group_model::{
-            ItemCategories, ItemGroup, ItemGroupNew, ItemGroupState, ItemGroupUpdate,
+            ItemCategory, ItemCategories, ItemCategoryNew, ItemCategoryState, ItemCategoryUpdate,
         },
         types::db_uuid::DbUuid,
     }, error::{Error, Result}
@@ -14,11 +14,11 @@ use crate::{
 
 // Commands
 pub struct CreateItemGroupCommand {
-    pub category: ItemGroupNew,
+    pub category: ItemCategoryNew,
 }
 
 pub struct UpdateItemGroupCommand {
-    pub category: ItemGroupUpdate,
+    pub category: ItemCategoryUpdate,
 }
 
 pub struct DeleteItemGroupCommand {
@@ -27,7 +27,7 @@ pub struct DeleteItemGroupCommand {
 
 // Command Implementations
 impl Command for CreateItemGroupCommand {
-    type Output = ItemGroup;
+    type Output = ItemCategory;
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Check if a category with the same name already exists
@@ -37,7 +37,7 @@ impl Command for CreateItemGroupCommand {
             .column(ItemCategories::Id)
             .and_where(Expr::col(ItemCategories::Name).eq(self.category.name.clone()));
 
-        let existing = service.db_adapter.query_optional::<ItemGroup>(&select_stmt).await?;
+        let existing = service.db_adapter.query_optional::<ItemCategory>(&select_stmt).await?;
 
         if existing.is_some() {
             return Err(Error::UniqueConstraintError);
@@ -46,11 +46,11 @@ impl Command for CreateItemGroupCommand {
         let now = Utc::now().naive_utc();
         let item_id = Uuid::now_v7().into();
 
-        let new_cat = ItemGroup {
+        let new_cat = ItemCategory {
             id: item_id,
             name: self.category.name.clone(),
             description: self.category.description.clone(),
-            state: ItemGroupState::Inactive,
+            state: ItemCategoryState::Inactive,
             created_at: now,
             updated_at: now,
         };
@@ -83,7 +83,7 @@ impl Command for CreateItemGroupCommand {
 }
 
 impl Command for UpdateItemGroupCommand {
-    type Output = ItemGroup;
+    type Output = ItemCategory;
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Check if the category exists
@@ -100,7 +100,7 @@ impl Command for UpdateItemGroupCommand {
             ])
             .and_where(Expr::col(ItemCategories::Id).eq(self.category.id.to_string()));
 
-        let existing = service.db_adapter.query_optional::<ItemGroup>(&select_stmt).await?;
+        let existing = service.db_adapter.query_optional::<ItemCategory>(&select_stmt).await?;
 
         if existing.is_none() {
             return Err(Error::NotFoundError);
@@ -147,7 +147,7 @@ impl Command for UpdateItemGroupCommand {
             ])
             .and_where(Expr::col(ItemCategories::Id).eq(self.category.id.to_string()));
 
-        let updated_cat = service.db_adapter.query_one::<ItemGroup>(&updated_stmt).await?;
+        let updated_cat = service.db_adapter.query_one::<ItemCategory>(&updated_stmt).await?;
         Ok(updated_cat)
     }
 }
@@ -187,14 +187,14 @@ impl Command for DeleteItemGroupCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::{commands::tests::setup_service, models::catalog::item_group_model::ItemGroupState};
+    use crate::core::{commands::tests::setup_service, models::catalog::item_group_model::ItemCategoryState};
     use uuid::Uuid;
     use tokio;
 
     #[tokio::test]
     async fn test_create_item_category() {
         let mut app_service = setup_service();
-        let new_cat = ItemGroupNew {
+        let new_cat = ItemCategoryNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
         };
@@ -206,7 +206,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_item_category_already_exists() {
         let mut app_service = setup_service();
-        let new_cat = ItemGroupNew {
+        let new_cat = ItemCategoryNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
         };
@@ -226,19 +226,18 @@ mod tests {
     #[tokio::test]
     async fn test_update_item_category() {
         let mut app_service = setup_service();
-        let new_cat = ItemGroupNew {
+        let new_cat = ItemCategoryNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
         };
         let create_command = CreateItemGroupCommand { category: new_cat };
         let category = create_command.exec(&mut app_service).await.unwrap();
 
-        let updated_category = ItemGroupUpdate {
+        let updated_category = ItemCategoryUpdate {
             id: category.id,
             name: Some("updated test".to_string()),
             description: None,
             state: None,
-            updated_at: None,
         };
 
         let update_command = UpdateItemGroupCommand {
@@ -252,13 +251,11 @@ mod tests {
     #[tokio::test]
     async fn test_update_item_category_does_not_exist() {
         let mut app_service = setup_service();
-        let now = Utc::now().naive_utc();
-        let category = ItemGroupUpdate {
+        let category = ItemCategoryUpdate {
             id: Uuid::now_v7().into(),
             name: Some("test".to_string()),
             description: Some(Some("test description".to_string())),
-            state: Some(ItemGroupState::Active),
-            updated_at: Some(now),
+            state: Some(ItemCategoryState::Active),
         };
 
         let command = UpdateItemGroupCommand { category };
@@ -269,7 +266,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_item_category() {
         let mut app_service = setup_service();
-        let new_cat = ItemGroupNew {
+        let new_cat = ItemCategoryNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
         };

@@ -1,16 +1,10 @@
 use chrono::NaiveDateTime;
-use diesel::{
-    prelude::{AsChangeset, Insertable, Queryable},
-    Selectable,
-};
 use juniper::GraphQLInputObject;
 use sea_query::Iden;
 
 use crate::core::types::db_uuid::DbUuid;
-use crate::schema::variant_types;
 
-#[derive(Debug, Clone, Queryable, Selectable, Insertable)]
-#[diesel(table_name = variant_types)]
+#[derive(Debug, Clone)]
 pub struct VariantType {
     pub id: DbUuid,
     pub name: String,
@@ -36,8 +30,7 @@ pub enum VariantTypes {
     UpdatedAt,
 }
 
-#[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]
-#[diesel(table_name = variant_types)]
+#[derive(Debug, Clone, GraphQLInputObject)]
 pub struct VariantTypeUpdateInput {
     pub id: DbUuid,
     pub name: Option<String>,

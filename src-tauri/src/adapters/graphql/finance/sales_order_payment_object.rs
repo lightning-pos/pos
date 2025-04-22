@@ -1,11 +1,11 @@
 use juniper::graphql_object;
 
-use crate::core::{
+use crate::{core::{
     models::finance::sales_order_payment_model::{SalesOrderPayment, SalesOrderPaymentState},
     types::{db_uuid::DbUuid, money::Money},
-};
+}, AppState};
 
-#[graphql_object(description = "Sales Order Payment")]
+#[graphql_object(context = AppState, description = "Sales Order Payment")]
 impl SalesOrderPayment {
     fn id(&self) -> DbUuid {
         self.id

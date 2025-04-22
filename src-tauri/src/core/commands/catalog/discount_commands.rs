@@ -464,7 +464,7 @@ mod tests {
         let result = update_cmd.exec(&mut service).await;
 
         // This should fail because the initial query in the command fails
-        assert!(matches!(result, Err(Error::DieselError(_)))); // Or potentially NotFoundError depending on how DieselError maps
+        assert!(matches!(result, Err(Error::LibsqlError(_)))); // Or potentially NotFoundError depending on how LibsqlError maps
     }
 
     #[tokio::test]

@@ -4,7 +4,7 @@ use juniper::FieldResult;
 use crate::{
     adapters::outgoing::database::DatabaseAdapter,
     core::{
-        models::catalog::item_group_model::{ItemGroup, ItemCategories},
+        models::catalog::item_group_model::{ItemCategories, ItemCategory},
         types::db_uuid::DbUuid,
     },
     AppState,
@@ -14,7 +14,7 @@ pub async fn item_categories(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
-) -> FieldResult<Vec<ItemGroup>> {
+) -> FieldResult<Vec<ItemCategory>> {
     let service = context.service.lock().await;
 
     // Build the query with SeaQuery
@@ -39,12 +39,12 @@ pub async fn item_categories(
     }
 
     // Execute the query
-    let result = service.db_adapter.query_many::<ItemGroup>(&&query).await?;
+    let result = service.db_adapter.query_many::<ItemCategory>(&&query).await?;
 
     Ok(result)
 }
 
-pub async fn items_category(id: DbUuid, context: &AppState) -> FieldResult<ItemGroup> {
+pub async fn items_category(id: DbUuid, context: &AppState) -> FieldResult<ItemCategory> {
     let service = context.service.lock().await;
 
     // Build the query with SeaQuery
@@ -62,7 +62,7 @@ pub async fn items_category(id: DbUuid, context: &AppState) -> FieldResult<ItemG
         .and_where(Expr::col(ItemCategories::Id).eq(id.to_string()));
 
     // Execute the query
-    let result = service.db_adapter.query_one::<ItemGroup>(&query).await?;
+    let result = service.db_adapter.query_one::<ItemCategory>(&query).await?;
 
     Ok(result)
 }

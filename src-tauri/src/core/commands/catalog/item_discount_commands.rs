@@ -135,7 +135,7 @@ mod tests {
     use crate::core::models::catalog::{
         discount_model::{Discount, DiscountNewInput, DiscountScope, DiscountState, DiscountType},
         item_model::{Item, ItemNature, ItemState},
-        item_group_model::ItemGroupNew,
+        item_group_model::ItemCategoryNew,
     };
     use crate::core::types::money::Money;
     use chrono::Utc;
@@ -145,7 +145,7 @@ mod tests {
     async fn create_test_item_category(service: &mut AppService) -> DbUuid {
         let category_name = format!("Test Category {}", Uuid::now_v7());
         let command = CreateItemGroupCommand {
-            category: ItemGroupNew {
+            category: ItemCategoryNew {
                 name: category_name,
                 description: None,
             },

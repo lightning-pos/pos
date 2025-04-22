@@ -1,7 +1,6 @@
 pub mod adapters;
 pub mod core;
 pub mod error;
-pub mod schema;
 
 use core::commands::app_service::AppService;
 use tokio::sync::Mutex;

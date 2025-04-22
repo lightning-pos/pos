@@ -1,14 +1,11 @@
 use chrono::NaiveDateTime;
 use derive_more::derive::Display;
-use diesel::{prelude::*, Selectable};
-use diesel_derive_enum::DbEnum;
 use juniper::{GraphQLEnum, GraphQLInputObject};
 use sea_query::Iden;
 
-use crate::{core::types::db_uuid::DbUuid, schema::users};
+use crate::core::types::db_uuid::DbUuid;
 
-#[derive(Debug, Queryable, Selectable, Insertable)]
-#[diesel(table_name = users)]
+#[derive(Debug)]
 pub struct User {
     pub id: DbUuid,
     pub username: String,
@@ -34,22 +31,11 @@ pub enum Users {
     UpdatedAt,
 }
 
-#[derive(Debug, Display, Clone, PartialEq, DbEnum, GraphQLEnum)]
+#[derive(Debug, Display, Clone, PartialEq, GraphQLEnum)]
 pub enum UserState {
     Active,
     Inactive,
     Locked,
-}
-
-#[derive(Debug, Clone, AsChangeset)]
-#[diesel(table_name = users)]
-pub struct UserUpdateChangeset {
-    pub id: DbUuid,
-    pub username: Option<String>,
-    pub pin_hash: Option<String>,
-    pub full_name: Option<String>,
-    pub state: Option<UserState>,
-    pub updated_at: NaiveDateTime,
 }
 
 #[derive(Debug, Clone, GraphQLInputObject)]

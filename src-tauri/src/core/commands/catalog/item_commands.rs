@@ -8,7 +8,7 @@ use crate::{
         commands::{app_service::AppService, Command},
         models::{
             catalog::{
-                item_group_model::{ItemCategories, ItemGroup},
+                item_group_model::{ItemCategories, ItemCategory},
                 item_model::{Item, Items, NewItem, UpdateItem},
             },
             common::tax_model::{Tax, Taxes},
@@ -42,7 +42,7 @@ impl Command for CreateItemCommand {
             .column(ItemCategories::Id)
             .and_where(Expr::col(ItemCategories::Id).eq(self.item.category_id.to_string()));
 
-        let category = service.db_adapter.query_optional::<ItemGroup>(&category_stmt).await?;
+        let category = service.db_adapter.query_optional::<ItemCategory>(&category_stmt).await?;
         if category.is_none() {
             return Err(Error::NotFoundError);
         }
@@ -129,7 +129,7 @@ impl Command for UpdateItemCommand {
                 .column(ItemCategories::Id)
                 .and_where(Expr::col(ItemCategories::Id).eq(cat_id.to_string()));
 
-            let category = service.db_adapter.query_optional::<ItemGroup>(category_stmt).await?;
+            let category = service.db_adapter.query_optional::<ItemCategory>(category_stmt).await?;
             if category.is_none() {
                 return Err(Error::NotFoundError);
             }
@@ -243,12 +243,12 @@ impl Command for DeleteItemCommand {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::{commands::tests::setup_service, models::{catalog::{item_group_model::ItemGroupState, item_model::{ItemNature, ItemState}}, common::tax_model::{ItemTax, ItemTaxes}}, types::{money::Money, percentage::Percentage}};
+    use crate::core::{commands::tests::setup_service, models::{catalog::{item_group_model::ItemCategoryState, item_model::{ItemNature, ItemState}}, common::tax_model::{ItemTax, ItemTaxes}}, types::{money::Money, percentage::Percentage}};
 
     use super::*;
 
     // Helper function to create a test category
-    async fn create_test_category(service: &mut AppService) -> ItemGroup {
+    async fn create_test_category(service: &mut AppService) -> ItemCategory {
         let category_id: DbUuid = Uuid::now_v7().into();
         let now = Utc::now().naive_utc();
 
@@ -257,18 +257,18 @@ mod tests {
              VALUES ('{}', '{}', NULL, '{}', '{}', '{}')",
             category_id.to_string(),
             "Test Category",
-            ItemGroupState::Active.to_string(),
+            ItemCategoryState::Active.to_string(),
             now.to_string(),
             now.to_string()
         );
 
         service.db_adapter.execute(&insert_sql).await.unwrap();
 
-        ItemGroup {
+        ItemCategory {
             id: category_id,
             name: "Test Category".to_string(),
             description: None,
-            state: ItemGroupState::Active,
+            state: ItemCategoryState::Active,
             created_at: now,
             updated_at: now,
         }
@@ -421,7 +421,6 @@ mod tests {
             state: None,
             price: None,
             category_id: None,
-            updated_at: None,
         };
 
         let update_command = UpdateItemCommand { item: updated_item };
@@ -433,7 +432,6 @@ mod tests {
     async fn test_update_item_does_not_exist() {
         let mut service = setup_service();
 
-        let now = Utc::now().naive_utc();
         let item = UpdateItem {
             id: Uuid::now_v7().into(),
             name: Some("Test Item".to_string()),
@@ -442,7 +440,6 @@ mod tests {
             state: None,
             price: None,
             category_id: None,
-            updated_at: Some(now),
         };
 
         let command = UpdateItemCommand { item };

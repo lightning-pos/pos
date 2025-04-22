@@ -9,7 +9,7 @@ use crate::{
         models::{
             finance::sales_order_payment_model::{
                 SalesOrderPayment, SalesOrderPaymentNewInput, SalesOrderPaymentState,
-                SalesOrderPaymentUpdateChangeset, SalesOrderPaymentUpdateInput, SalesOrderPayments,
+                SalesOrderPaymentUpdateInput, SalesOrderPayments,
             },
             sales::sales_order_model::{SalesOrder, SalesOrderState, SalesOrders},
         },
@@ -148,7 +148,7 @@ impl Command for UpdateSalesOrderPaymentCommand {
         }
 
         // Create the changeset
-        let changeset = SalesOrderPaymentUpdateChangeset {
+        let changeset = SalesOrderPaymentUpdateInput {
             id: self.payment.id,
             payment_method_id: self.payment.payment_method_id,
             payment_date: self.payment.payment_date,
@@ -156,7 +156,6 @@ impl Command for UpdateSalesOrderPaymentCommand {
             reference_number: self.payment.reference_number.clone(),
             notes: self.payment.notes.clone(),
             state: self.payment.state,
-            updated_at: now,
         };
 
         // Build the update query

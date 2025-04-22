@@ -1,16 +1,10 @@
 use chrono::NaiveDateTime;
-use diesel::{
-    prelude::{AsChangeset, Insertable, Queryable},
-    Selectable,
-};
 use juniper::GraphQLInputObject;
 use sea_query::Iden;
 
 use crate::core::types::db_uuid::DbUuid;
-use crate::schema::brands;
 
-#[derive(Debug, Clone, Queryable, Selectable, Insertable)]
-#[diesel(table_name = brands)]
+#[derive(Debug, Clone)]
 pub struct Brand {
     pub id: DbUuid,
     pub name: String,
@@ -35,17 +29,7 @@ pub struct BrandUpdateInput {
     pub is_active: Option<bool>,
 }
 
-#[derive(Debug, Clone, AsChangeset)]
-#[diesel(table_name = brands)]
-pub struct BrandUpdateChangeset {
-    pub name: Option<String>,
-    pub description: Option<Option<String>>,
-    pub is_active: Option<bool>,
-    pub updated_at: NaiveDateTime,
-}
-
-#[derive(Debug, Iden)]
-#[iden = "brands"]
+#[derive(Iden)]
 pub enum Brands {
     Table,
     Id,
