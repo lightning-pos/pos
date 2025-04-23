@@ -1,9 +1,9 @@
 use crate::{
-    adapters::outgoing::database::{DatabaseAdapter, SqlxAdapter},
+    adapters::outgoing::database::{DatabaseAdapter, LibSqlAdapter},
     core::types::db_uuid::DbUuid,
 };
 
-pub struct AppService<DB: DatabaseAdapter = SqlxAdapter> {
+pub struct AppService<DB: DatabaseAdapter = LibSqlAdapter> {
     pub db_adapter: DB,
     pub state: SessionState,
 }
@@ -28,7 +28,7 @@ impl AppService {
             db.connect().expect("Failed to connect to libsql database")
         });
 
-        let db_adapter = SqlxAdapter::new(conn);
+        let db_adapter = LibSqlAdapter::new(conn);
 
         Self {
             db_adapter,
@@ -104,7 +104,7 @@ pub mod tests {
 
         // Create the AppService with the initialized database
         AppService {
-            db_adapter: SqlxAdapter::new(conn),
+            db_adapter: LibSqlAdapter::new(conn),
             state: SessionState { current_user: None },
         }
     }

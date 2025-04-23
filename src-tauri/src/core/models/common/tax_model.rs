@@ -2,8 +2,10 @@ use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
 use sea_query::Iden;
 
+use crate::adapters::outgoing::database::FromRow;
 use crate::core::types::db_uuid::DbUuid;
 use crate::core::types::percentage::Percentage;
+use crate::error::Result;
 
 #[derive(Debug, Clone)]
 pub struct Tax {
@@ -59,4 +61,16 @@ pub enum ItemTaxes {
     Table,
     ItemId,
     TaxId,
+}
+
+impl FromRow<libsql::Row> for Tax {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
+}
+
+impl FromRow<libsql::Row> for ItemTax {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
 }

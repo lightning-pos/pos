@@ -35,7 +35,6 @@ uuid = { version = "1.11.1", features = ["v7"] }
 rand = "0.8"
 libsql = { version = "0.9.3" }
 tokio = { version = "1.44.2", features = ["rt", "rt-multi-thread", "macros"] }
-sqlx = { version = "0.8.4", features = ["sqlite", "runtime-tokio"] }
 sea-query = { version = "0.32.3", features = [
     "with-uuid",
     "with-chrono",

@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
 use sea_query::Iden;
 
-use crate::core::types::db_uuid::DbUuid;
+use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
 
 #[derive(Debug, Clone)]
 pub struct VariantValue {
@@ -39,4 +39,11 @@ pub enum VariantValues {
     DisplayOrder,
     CreatedAt,
     UpdatedAt,
+}
+
+
+impl FromRow<libsql::Row> for VariantValue {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
 }

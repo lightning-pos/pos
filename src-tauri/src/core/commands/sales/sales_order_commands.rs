@@ -7,10 +7,10 @@ use crate::{
     adapters::outgoing::database::DatabaseAdapter, core::{
         commands::{app_service::AppService, Command},
         models::sales::{
-            sales_order_charge_model::SalesOrderCharges,
-            sales_order_item_model::SalesOrderItems,
+            sales_order_charge_model::{SalesOrderCharge, SalesOrderCharges},
+            sales_order_item_model::{SalesOrderItem, SalesOrderItems},
             sales_order_model::{
-                SalesOrder, SalesOrders, SalesOrderNewInput, SalesOrderPaymentState, SalesOrderState,
+                SalesOrder, SalesOrderNewInput, SalesOrderPaymentState, SalesOrderState, SalesOrders
             },
         },
         types::db_uuid::DbUuid,
@@ -157,7 +157,7 @@ impl Command for CreateSalesOrderCommand {
                 new_sales_order.updated_at.to_string().into(),
             ]);
 
-        db.insert_one(&insert_stmt).await?;
+        db.insert_one::<SalesOrder>(&insert_stmt).await?;
 
         // Insert order items
         for item in &self.sales_order.items {
@@ -203,7 +203,7 @@ impl Command for CreateSalesOrderCommand {
                     now.to_string().into(),
                 ]);
 
-            db.insert_one(&item_insert_stmt).await?;
+            db.insert_one::<SalesOrderItem>(&item_insert_stmt).await?;
         }
 
         // Insert order charges if any
@@ -240,7 +240,7 @@ impl Command for CreateSalesOrderCommand {
                         now.to_string().into(),
                     ]);
 
-                db.insert_one(&charge_insert_stmt).await?;
+                db.insert_one::<SalesOrderCharge>(&charge_insert_stmt).await?;
             }
         }
 
@@ -338,7 +338,7 @@ impl Command for VoidSalesOrderCommand {
             .value(SalesOrders::UpdatedAt, now.to_string())
             .and_where(Expr::col(SalesOrders::Id).eq(self.id.to_string()));
 
-        db.update_one(&update_stmt).await?;
+        db.update_one::<SalesOrder>(&update_stmt).await?;
 
         // Retrieve the updated order
         let mut select_stmt = Query::select();

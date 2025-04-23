@@ -3,7 +3,9 @@ use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
 use sea_query::Iden;
 
+use crate::adapters::outgoing::database::FromRow;
 use crate::core::types::{db_uuid::DbUuid, money::Money};
+use crate::error::Result;
 
 use super::sales_order_charge_model::SalesOrderChargeNewInput;
 use super::sales_order_item_model::SalesOrderItemInput;
@@ -164,4 +166,10 @@ pub enum SalesOrders {
     DiscountId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl FromRow<libsql::Row> for SalesOrder {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
 }

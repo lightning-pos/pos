@@ -79,7 +79,7 @@ impl Command for CreatePurchaseCategoryCommand {
             ]);
 
         // Execute the query
-        service.db_adapter.insert_one(&insert_stmt).await?;
+        service.db_adapter.insert_one::<PurchaseCategory>(&insert_stmt).await?;
 
         // Return the newly created category
         Ok(new_category)

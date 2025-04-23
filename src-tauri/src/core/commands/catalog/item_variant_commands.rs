@@ -462,7 +462,7 @@ impl Command for AssignVariantValueCommand {
             ])
             .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.item_variant_id.to_string()));
 
-        let variant_value_ids: Vec<ItemVariantValue> = service.db_adapter.query_many(&values_stmt).await?;
+        let variant_value_ids = service.db_adapter.query_many::<ItemVariantValue>(&values_stmt).await?;
 
         // For each variant value, check its type
         for item_variant_value in variant_value_ids {

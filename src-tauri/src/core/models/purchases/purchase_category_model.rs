@@ -1,4 +1,4 @@
-use crate::core::types::db_uuid::DbUuid;
+use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
 use chrono::NaiveDateTime;
 use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
@@ -47,4 +47,10 @@ pub enum PurchaseCategories {
     State,
     CreatedAt,
     UpdatedAt,
+}
+
+impl FromRow<libsql::Row> for PurchaseCategory {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
 }

@@ -1,4 +1,4 @@
-use crate::core::types::{db_uuid::DbUuid, money::Money};
+use crate::{adapters::outgoing::database::FromRow, core::types::{db_uuid::DbUuid, money::Money}, error::Result};
 use chrono::NaiveDateTime;
 use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
@@ -84,4 +84,10 @@ pub enum Discounts {
     EndDate,
     CreatedAt,
     UpdatedAt,
+}
+
+impl FromRow<libsql::Row> for Discount {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
 }

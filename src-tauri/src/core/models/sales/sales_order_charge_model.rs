@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use juniper::{GraphQLInputObject, GraphQLObject};
 use sea_query::Iden;
 
-use crate::core::types::{db_uuid::DbUuid, money::Money};
+use crate::{adapters::outgoing::database::FromRow, core::types::{db_uuid::DbUuid, money::Money}, error::Result};
 
 #[derive(Debug, GraphQLObject)]
 pub struct SalesOrderCharge {
@@ -38,4 +38,10 @@ pub enum SalesOrderCharges {
     TaxGroupId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl FromRow<libsql::Row> for SalesOrderCharge {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
 }

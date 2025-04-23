@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
 use sea_query::Iden;
 
-use crate::core::types::db_uuid::DbUuid;
+use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
 
 #[derive(Debug, Clone)]
 pub struct TaxGroup {
@@ -55,3 +55,10 @@ pub enum TaxGroupTaxes {
     TaxGroupId,
     TaxId,
 }
+
+impl FromRow<libsql::Row> for TaxGroup {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
+}
+

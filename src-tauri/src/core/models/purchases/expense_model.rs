@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
 use sea_query::Iden;
 
-use crate::core::types::{db_uuid::DbUuid, money::Money};
+use crate::{adapters::outgoing::database::FromRow, core::types::{db_uuid::DbUuid, money::Money}, error::Result};
 
 #[derive(Debug)]
 pub struct Expense {
@@ -51,4 +51,10 @@ pub enum Expenses {
     Description,
     CreatedAt,
     UpdatedAt,
+}
+
+impl FromRow<libsql::Row> for Expense {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
 }

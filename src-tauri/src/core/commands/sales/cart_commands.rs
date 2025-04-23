@@ -61,7 +61,7 @@ impl Command for CreateCartCommand {
             ]);
 
         // Execute the query
-        service.db_adapter.insert_one(&insert_stmt).await?;
+        service.db_adapter.insert_one::<Cart>(&insert_stmt).await?;
 
         // Return the newly created cart
         Ok(new_cart)

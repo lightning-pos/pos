@@ -22,7 +22,7 @@
 use juniper::GraphQLInputObject;
 use sea_query::Iden;
 
-use crate::core::types::db_uuid::DbUuid;
+use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
 
 /// Junction table connecting item variants to variant values.
 ///
@@ -69,3 +69,10 @@ pub struct ItemVariantValueInput {
     pub item_variant_id: DbUuid,
     pub variant_value_id: DbUuid,
 }
+
+impl FromRow<libsql::Row> for ItemVariantValue {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
+}
+

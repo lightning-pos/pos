@@ -66,7 +66,7 @@ impl Command for CreateSupplierCommand {
             ]);
 
         // Execute the query
-        service.db_adapter.insert_one(&insert_stmt).await?;
+        service.db_adapter.insert_one::<Supplier>(&insert_stmt).await?;
 
         // Return the newly created supplier
         Ok(new_supplier)

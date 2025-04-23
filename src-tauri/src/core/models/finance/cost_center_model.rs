@@ -3,7 +3,7 @@ use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
 use sea_query::Iden;
 
-use crate::core::types::db_uuid::DbUuid;
+use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
 
 #[derive(Debug, Clone)]
 pub struct CostCenter {
@@ -49,4 +49,10 @@ pub enum CostCenters {
     State,
     CreatedAt,
     UpdatedAt,
+}
+
+impl FromRow<libsql::Row> for CostCenter {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        todo!()
+    }
 }

@@ -64,7 +64,7 @@ impl Command for CreateSalesChargeTypeCommand {
             ]);
 
         // Execute the query
-        service.db_adapter.insert_one(&insert_stmt).await?;
+        service.db_adapter.insert_one::<SalesChargeType>(&insert_stmt).await?;
 
         // Return the newly created charge type
         Ok(new_charge_type)
@@ -120,7 +120,7 @@ impl Command for UpdateSalesChargeTypeCommand {
         update_stmt.and_where(Expr::col(SalesChargeTypes::Id).eq(charge_type_id.to_string()));
 
         // Execute the query
-        service.db_adapter.update_one(&update_stmt).await?;
+        service.db_adapter.update_one::<SalesChargeType>(&update_stmt).await?;
 
         // Get the updated charge type
         let updated_charge_type = service.db_adapter.query_one::<SalesChargeType>(&select_stmt).await?;

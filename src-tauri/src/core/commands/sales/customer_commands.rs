@@ -69,7 +69,7 @@ impl Command for CreateCustomerCommand {
             ]);
 
         // Execute the query
-        service.db_adapter.insert_one(&insert_stmt).await?;
+        service.db_adapter.insert_one::<Customer>(&insert_stmt).await?;
 
         // Return the newly created customer
         Ok(new_customer)
@@ -141,7 +141,7 @@ impl Command for UpdateCustomerCommand {
         update_stmt.and_where(Expr::col(Customers::Id).eq(customer_id.to_string()));
 
         // Execute the query
-        service.db_adapter.update_one(&update_stmt).await?;
+        service.db_adapter.update_one::<Customer>(&update_stmt).await?;
 
         // Get the updated customer
         let updated_customer = service.db_adapter.query_one::<Customer>(&select_stmt).await?;
