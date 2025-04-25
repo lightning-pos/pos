@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use derive_more::derive::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use sea_query::Iden;
+use lightning_macros::SeaQueryModel;
 
 use crate::{
     core::types::db_uuid::DbUuid,
@@ -9,7 +9,7 @@ use crate::{
     error::{Error, Result},
 };
 
-#[derive(Debug)]
+#[derive(Debug, SeaQueryModel)]
 pub struct User {
     pub id: DbUuid,
     pub username: String,
@@ -78,20 +78,6 @@ impl FromRow<libsql::Row> for User {
             updated_at,
         })
     }
-}
-
-// Define table and column identifiers for SeaQuery
-#[derive(Iden)]
-pub enum Users {
-    Table,
-    Id,
-    Username,
-    PinHash,
-    FullName,
-    State,
-    LastLoginAt,
-    CreatedAt,
-    UpdatedAt,
 }
 
 #[derive(Debug, Display, Clone, PartialEq, GraphQLEnum)]
