@@ -298,7 +298,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_tax() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = CreateTaxCommand {
             tax: TaxNewInput {
@@ -317,7 +317,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_tax_with_items() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create test items
         let item1 = create_test_item(&mut service).await;
@@ -354,7 +354,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_tax_with_nonexistent_item() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = CreateTaxCommand {
             tax: TaxNewInput {
@@ -371,7 +371,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_tax() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // First create a tax
         let create_command = CreateTaxCommand {
@@ -405,7 +405,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_tax_does_not_exist() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = UpdateTaxCommand {
             tax: TaxUpdateInput {
@@ -422,7 +422,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_tax() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // First create a tax
         let create_command = CreateTaxCommand {
@@ -444,7 +444,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_tax_does_not_exist() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = DeleteTaxCommand {
             id: Uuid::now_v7().into(),
@@ -518,7 +518,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_assign_tax_to_item() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a tax and an item
         let tax = CreateTaxCommand {
@@ -549,7 +549,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_assign_tax_to_nonexistent_item() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create only a tax
         let tax = CreateTaxCommand {
@@ -578,7 +578,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_assign_nonexistent_tax_to_item() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create only an item
         let item = create_test_item(&mut service).await;
@@ -597,7 +597,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_assign_same_tax_twice() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a tax and an item
         let tax = CreateTaxCommand {
@@ -630,7 +630,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_tax_from_item() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a tax and an item
         let tax = CreateTaxCommand {
@@ -670,7 +670,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_nonexistent_tax_assignment() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = RemoveTaxFromItemCommand {
             item_id: Uuid::now_v7().into(),

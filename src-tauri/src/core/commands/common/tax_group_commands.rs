@@ -322,7 +322,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_tax_group() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a tax first
         let tax_input = TaxNewInput {
@@ -359,7 +359,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_tax_group() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a tax group first
         let tax_group_input = TaxGroupNewInput {
@@ -398,7 +398,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_tax_group() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a tax group first
         let tax_group_input = TaxGroupNewInput {
@@ -425,7 +425,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_assign_tax_to_group() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a tax
         let tax_input = TaxNewInput {
@@ -467,7 +467,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_tax_from_group() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a tax
         let tax_input = TaxNewInput {

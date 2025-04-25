@@ -166,7 +166,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_supplier() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = CreateSupplierCommand {
             supplier: SupplierNewInput {
@@ -184,7 +184,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_supplier_minimal() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = CreateSupplierCommand {
             supplier: SupplierNewInput {
@@ -202,7 +202,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_supplier() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create supplier
         let create_command = CreateSupplierCommand {
@@ -233,7 +233,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_supplier_remove_field() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create supplier
         let create_command = CreateSupplierCommand {
@@ -264,7 +264,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_nonexistent_supplier() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let update_command = UpdateSupplierCommand {
             supplier: SupplierUpdateInput {
@@ -281,7 +281,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_supplier() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create supplier
         let create_command = CreateSupplierCommand {
@@ -312,7 +312,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_nonexistent_supplier() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Delete non-existent supplier
         let delete_command = DeleteSupplierCommand {

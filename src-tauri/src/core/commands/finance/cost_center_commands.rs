@@ -164,7 +164,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_cost_center() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = CreateCostCenterCommand {
             cost_center: CostCenterNewInput {
@@ -187,7 +187,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_cost_center_minimal() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = CreateCostCenterCommand {
             cost_center: CostCenterNewInput {
@@ -207,7 +207,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_cost_center() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create cost center
         let create_command = CreateCostCenterCommand {
@@ -244,7 +244,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_cost_center_remove_field() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create cost center
         let create_command = CreateCostCenterCommand {
@@ -278,7 +278,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_nonexistent_cost_center() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let update_command = UpdateCostCenterCommand {
             cost_center: CostCenterUpdateInput {
@@ -296,7 +296,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_cost_center() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create cost center
         let create_command = CreateCostCenterCommand {
@@ -328,7 +328,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_nonexistent_cost_center() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Delete non-existent cost center
         let delete_command = DeleteCostCenterCommand {

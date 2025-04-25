@@ -247,7 +247,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_payment_method() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         setup_test_db(&mut service).await;
 
         let input = PaymentMethodNewInput {
@@ -270,7 +270,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_payment_method_default_state() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         setup_test_db(&mut service).await;
 
         let input = PaymentMethodNewInput {
@@ -293,7 +293,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_payment_method_duplicate_code() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         setup_test_db(&mut service).await;
 
         // Create first payment method
@@ -327,7 +327,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_payment_method() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         setup_test_db(&mut service).await;
 
         // Create payment method first
@@ -365,7 +365,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_payment_method_duplicate_code() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         setup_test_db(&mut service).await;
 
         // Create first payment method
@@ -413,7 +413,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_nonexistent_payment_method() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         setup_test_db(&mut service).await;
 
         let update_input = PaymentMethodUpdateInput {
@@ -434,7 +434,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_payment_method() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         setup_test_db(&mut service).await;
 
         // Create payment method first
@@ -459,7 +459,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_nonexistent_payment_method() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         setup_test_db(&mut service).await;
 
         let delete_cmd = DeletePaymentMethodCommand {

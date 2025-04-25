@@ -311,7 +311,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_discount() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_basic_discount(&mut service).await;
 
         assert_eq!(created.name, "Test Discount");
@@ -322,7 +322,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_discount_unique_constraint() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         create_basic_discount(&mut service).await; // Create first one
 
         // Try creating another with the same name
@@ -346,7 +346,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_discount() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_basic_discount(&mut service).await;
 
         let get_cmd = GetDiscountCommand { id: created.id };
@@ -358,7 +358,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_discount_not_found() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let non_existent_id = Uuid::now_v7().into();
         let get_cmd = GetDiscountCommand {
             id: non_existent_id,
@@ -370,7 +370,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_discounts() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created1 = create_basic_discount(&mut service).await;
 
         let list_cmd = ListDiscountsCommand;
@@ -412,7 +412,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_discount() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_basic_discount(&mut service).await;
 
         let update_info = DiscountUpdateInput {
@@ -445,7 +445,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_discount_not_found() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let non_existent_id = Uuid::now_v7().into();
         let update_info = DiscountUpdateInput {
             id: non_existent_id,
@@ -469,7 +469,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_discount() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_basic_discount(&mut service).await;
 
         // Delete
@@ -493,7 +493,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_discount_not_found() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let non_existent_id = Uuid::now_v7().into();
 
         let delete_cmd = DeleteDiscountCommand {

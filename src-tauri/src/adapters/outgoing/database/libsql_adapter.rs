@@ -127,6 +127,8 @@ impl DatabaseAdapter for LibSqlAdapter {
         // Convert the SelectStatement to SQL string
         let sql = query.to_string(SqliteQueryBuilder);
 
+        println!("Executing SQL: {}", sql);
+
         // Get a lock on the connection
         let conn = self.conn.lock().await;
 
@@ -191,6 +193,8 @@ impl DatabaseAdapter for LibSqlAdapter {
         // Convert the InsertStatement to SQL string
         let sql = query.to_string(SqliteQueryBuilder);
 
+        println!("Executing SQL: {}", sql);
+
         // Execute the query
         self.execute(&sql).await?;
 
@@ -202,6 +206,8 @@ impl DatabaseAdapter for LibSqlAdapter {
 
         // Construct a query to get the last inserted row
         let select_sql = format!("SELECT * FROM {} WHERE rowid = last_insert_rowid()", table_name);
+
+        println!("Executing SQL: {}", select_sql);
 
         // Execute the query
         let mut stmt = conn.prepare(&select_sql).await

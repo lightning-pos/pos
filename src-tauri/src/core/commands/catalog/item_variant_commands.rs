@@ -608,7 +608,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_item_variant() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
         let variant_type = create_test_variant_type(&mut service).await;
         let variant_value = create_test_variant_value(&mut service, variant_type.id).await;
@@ -647,7 +647,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_item_variant() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_item_variant(&mut service).await;
 
         let update_command = UpdateItemVariantCommand {
@@ -668,7 +668,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_item_variant() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_item_variant(&mut service).await;
 
         let get_command = GetItemVariantCommand { id: created.id };
@@ -679,7 +679,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_item_variants() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
         let variant_type = create_test_variant_type(&mut service).await;
         let variant_value1 = create_test_variant_value(&mut service, variant_type.id).await;
@@ -725,7 +725,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_item_variant() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_item_variant(&mut service).await;
 
         let delete_command = DeleteItemVariantCommand { id: created.id };
@@ -754,7 +754,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_assign_and_remove_variant_value() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item_variant = create_test_item_variant(&mut service).await;
         let variant_type = create_test_variant_type(&mut service).await;
         let new_variant_value = create_test_variant_value(&mut service, variant_type.id).await;
@@ -808,7 +808,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_prevent_duplicate_variant_types_in_create() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
         let variant_type = create_test_variant_type(&mut service).await;
         let variant_value1 = create_test_variant_value(&mut service, variant_type.id).await;
@@ -836,7 +836,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_prevent_duplicate_variant_types_in_assign() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
         let variant_type1 = create_test_variant_type(&mut service).await;
         let variant_value1 = create_test_variant_value(&mut service, variant_type1.id).await;

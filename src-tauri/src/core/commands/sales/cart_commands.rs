@@ -168,7 +168,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_cart_with_customer() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let customer_id = Some(create_test_customer(&mut app_service).await);
         let cart_data = r#"{"items": []}"#.to_string();
 
@@ -189,7 +189,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_cart_without_customer() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let cart_data = r#"{"items": []}"#.to_string();
 
         let command = CreateCartCommand {
@@ -209,7 +209,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_cart() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
 
         // First create a cart without customer
         let initial_cart_data = r#"{"items": []}"#.to_string();
@@ -239,7 +239,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_cart_does_not_exist() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
 
         let nonexistent_id = Uuid::now_v7().into();
         let command = UpdateCartCommand {
@@ -255,7 +255,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_cart() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
 
         // First create a cart
         let create_command = CreateCartCommand {
@@ -287,7 +287,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_cart_does_not_exist() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
 
         let nonexistent_id = Uuid::now_v7().into();
         let command = DeleteCartCommand { id: nonexistent_id };

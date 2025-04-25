@@ -196,7 +196,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_expense() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a category first
         let category = create_test_category(&mut service).await;
@@ -227,7 +227,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_expense() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a category first
         let category = create_test_category(&mut service).await;
@@ -276,7 +276,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_expense() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a category first
         let category = create_test_category(&mut service).await;
@@ -317,7 +317,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_expense_cost_center() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a category
         let category = create_test_category(&mut service).await;

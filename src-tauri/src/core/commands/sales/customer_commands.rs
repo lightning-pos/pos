@@ -182,7 +182,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_customer() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let new_customer = CustomerNewInput {
             full_name: String::from("John Doe"),
             email: Some(String::from("john@example.com")),
@@ -202,7 +202,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_customer() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let new_customer = CustomerNewInput {
             full_name: String::from("John Doe"),
             email: Some(String::from("john@example.com")),
@@ -236,7 +236,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_customer_does_not_exist() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let customer = CustomerUpdateInput {
             id: Uuid::now_v7().into(),
             full_name: Some(String::from("John Smith")),
@@ -252,7 +252,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_customer() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let new_customer = CustomerNewInput {
             full_name: String::from("John Doe"),
             email: Some(String::from("john@example.com")),
@@ -282,7 +282,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_customer_does_not_exist() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let command = DeleteCustomerCommand {
             id: Uuid::now_v7().into(),
         };

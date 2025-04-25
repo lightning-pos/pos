@@ -304,7 +304,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_item() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a test category first
         let category = create_test_category(&mut service).await;
@@ -328,7 +328,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_item_with_taxes() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create test category
         let category = create_test_category(&mut service).await;
@@ -371,7 +371,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_item_with_nonexistent_tax() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create only category
         let category = create_test_category(&mut service).await;
@@ -394,7 +394,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_item() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a test category first
         let category = create_test_category(&mut service).await;
@@ -430,7 +430,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_item_does_not_exist() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let item = UpdateItem {
             id: Uuid::now_v7().into(),
@@ -450,7 +450,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_item() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a test category first
         let category = create_test_category(&mut service).await;
@@ -476,7 +476,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_item_does_not_exist() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = DeleteItemCommand {
             id: Uuid::now_v7().into(),

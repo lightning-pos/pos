@@ -168,7 +168,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_sales_charge_type() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let input = SalesChargeTypeNewInput {
             name: "Service Charge".to_string(),
@@ -184,7 +184,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_sales_charge_type() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create first
         let input = SalesChargeTypeNewInput {
@@ -226,7 +226,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_non_existent_charge_type() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let update_input = SalesChargeTypeUpdateInput {
             id: Uuid::now_v7().into(),
@@ -243,7 +243,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_sales_charge_type() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a charge type first
         let input = SalesChargeTypeNewInput {

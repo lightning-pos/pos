@@ -226,7 +226,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_variant_type() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let variant_type = create_test_variant_type(&mut service).await;
         assert_eq!(variant_type.name, "Test Variant Type");
         assert_eq!(variant_type.description, Some("Test Description".to_string()));
@@ -234,7 +234,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_variant_type() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_variant_type(&mut service).await;
 
         let update_command = UpdateVariantTypeCommand {
@@ -253,7 +253,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_variant_type() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_variant_type(&mut service).await;
 
         let get_command = GetVariantTypeCommand { id: created.id };
@@ -264,7 +264,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_variant_types() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_variant_type(&mut service).await;
 
         let list_command = ListVariantTypesCommand;
@@ -275,7 +275,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_variant_type() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_variant_type(&mut service).await;
 
         let delete_command = DeleteVariantTypeCommand { id: created.id };

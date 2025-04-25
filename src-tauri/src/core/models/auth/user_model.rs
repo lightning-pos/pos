@@ -50,7 +50,7 @@ impl FromRow<libsql::Row> for User {
         // last_login_at is optional (column 5)
         let last_login_at = match row.get::<String>(5) {
             Ok(timestamp_str) => {
-                Some(NaiveDateTime::parse_from_str(&timestamp_str, "%Y-%m-%d %H:%M:%S")
+                Some(NaiveDateTime::parse_from_str(&timestamp_str, "%Y-%m-%d %H:%M:%S%.f")
                     .map_err(|e| Error::DatabaseError(format!("Failed to parse last_login_at: {}", e)))?
                 )
             },
@@ -59,12 +59,12 @@ impl FromRow<libsql::Row> for User {
 
         let created_at_str = row.get::<String>(6)
             .map_err(|e| Error::DatabaseError(format!("Failed to get created_at: {}", e)))?;
-        let created_at = NaiveDateTime::parse_from_str(&created_at_str, "%Y-%m-%d %H:%M:%S")
+        let created_at = NaiveDateTime::parse_from_str(&created_at_str, "%Y-%m-%d %H:%M:%S%.f")
             .map_err(|e| Error::DatabaseError(format!("Failed to parse created_at: {}", e)))?;
 
         let updated_at_str = row.get::<String>(7)
             .map_err(|e| Error::DatabaseError(format!("Failed to get updated_at: {}", e)))?;
-        let updated_at = NaiveDateTime::parse_from_str(&updated_at_str, "%Y-%m-%d %H:%M:%S")
+        let updated_at = NaiveDateTime::parse_from_str(&updated_at_str, "%Y-%m-%d %H:%M:%S%.f")
             .map_err(|e| Error::DatabaseError(format!("Failed to parse updated_at: {}", e)))?;
 
         Ok(User {

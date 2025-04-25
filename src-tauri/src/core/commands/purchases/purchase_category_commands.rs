@@ -188,7 +188,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_purchase_category() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let command = CreatePurchaseCategoryCommand {
             category: PurchaseCategoryNew {
@@ -209,7 +209,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_duplicate_category() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create first category
         let command1 = CreatePurchaseCategoryCommand {
@@ -235,7 +235,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_purchase_category() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create category
         let command = CreatePurchaseCategoryCommand {
@@ -269,7 +269,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_nonexistent_category() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let update_command = UpdatePurchaseCategoryCommand {
             category: PurchaseCategoryUpdate {
@@ -287,7 +287,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_purchase_category() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create category
         let command = CreatePurchaseCategoryCommand {
@@ -317,7 +317,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_nonexistent_category() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         let delete_command = DeletePurchaseCategoryCommand {
             id: Uuid::now_v7().into(),

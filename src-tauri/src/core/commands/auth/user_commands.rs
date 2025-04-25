@@ -103,7 +103,7 @@ impl Command for UpdateUserCommand {
         let mut query_builder = Query::select();
         let check_query = query_builder
             .from(Users::Table)
-            .columns([Users::Id])
+            .columns([Users::Id, Users::Username, Users::PinHash, Users::FullName, Users::State, Users::LastLoginAt, Users::CreatedAt, Users::UpdatedAt])
             .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()));
 
         let existing_user = service.db_adapter.query_optional::<User>(&check_query).await?;
@@ -193,7 +193,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_user_command() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "newuser".to_string(),
@@ -212,7 +212,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_user_command() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "updateuser".to_string(),
@@ -233,6 +233,7 @@ mod tests {
         };
 
         let result = update_user_command.exec(&mut service).await;
+        println!("Update result: {:?}", result);
         assert!(result.is_ok());
         let updated_user = result.unwrap();
         assert_eq!(updated_user.id, user.id);
@@ -242,7 +243,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_user_command_duplicate_username() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "testuser".to_string(),
@@ -269,7 +270,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_user_command_non_existent_user() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let non_existent_id = Uuid::now_v7().into();
         let update_user_command = UpdateUserCommand {
             user: UserUpdateInput {
@@ -287,7 +288,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_user_command_partial_update() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "partialupdate".to_string(),
@@ -318,7 +319,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_user_command() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "deleteuser".to_string(),
@@ -341,7 +342,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_non_existent_user() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let non_existent_id = Uuid::now_v7().into();
         let delete_user_command = DeleteUserCommand {
             id: non_existent_id,

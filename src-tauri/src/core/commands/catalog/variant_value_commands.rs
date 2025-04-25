@@ -293,7 +293,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_variant_value() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let variant_type = create_test_variant_type(&mut service).await;
 
         let command = CreateVariantValueCommand {
@@ -312,7 +312,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_variant_value() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_variant_value(&mut service).await;
 
         let update_command = UpdateVariantValueCommand {
@@ -331,7 +331,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_variant_value() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_variant_value(&mut service).await;
 
         let get_command = GetVariantValueCommand { id: created.id };
@@ -342,7 +342,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_variant_values() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let variant_type = create_test_variant_type(&mut service).await;
 
         // Create multiple values
@@ -383,7 +383,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_variant_value() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let created = create_test_variant_value(&mut service).await;
 
         let delete_command = DeleteVariantValueCommand { id: created.id };

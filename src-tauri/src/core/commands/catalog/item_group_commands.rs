@@ -193,7 +193,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_item_category() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let new_cat = ItemCategoryNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
@@ -205,7 +205,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_item_category_already_exists() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let new_cat = ItemCategoryNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
@@ -225,7 +225,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_item_category() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let new_cat = ItemCategoryNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),
@@ -250,7 +250,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_item_category_does_not_exist() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let category = ItemCategoryUpdate {
             id: Uuid::now_v7().into(),
             name: Some("test".to_string()),
@@ -265,7 +265,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_item_category() {
-        let mut app_service = setup_service();
+        let mut app_service = setup_service().await;
         let new_cat = ItemCategoryNew {
             name: "test".to_string(),
             description: Some("test description".to_string()),

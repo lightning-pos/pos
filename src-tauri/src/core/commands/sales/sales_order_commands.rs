@@ -474,7 +474,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_sales_order() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(&mut service).await;
         let user_id = create_test_user(&mut service).await;
@@ -602,7 +602,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_sales_order_with_charges() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(&mut service).await;
         let user_id = create_test_user(&mut service).await;
@@ -695,7 +695,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_void_sales_order() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(&mut service).await;
         let user_id = create_test_user(&mut service).await;
@@ -752,7 +752,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_void_already_cancelled_order() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let now = Utc::now().naive_utc();
         let cost_center = create_test_cost_center(&mut service).await;
         let user_id = create_test_user(&mut service).await;
@@ -808,7 +808,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_void_non_existent_order() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let user_id = create_test_user(&mut service).await;
 
         let cmd = VoidSalesOrderCommand {

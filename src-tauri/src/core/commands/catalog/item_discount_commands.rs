@@ -224,7 +224,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_item_discount() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
         let discount = create_test_discount(&mut service, None).await;
 
@@ -243,7 +243,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_duplicate_item_discount() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
         let discount = create_test_discount(&mut service, None).await;
 
@@ -275,7 +275,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_item_discounts() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
         let discount1 = create_test_discount(&mut service, None).await;
         let discount2 = create_test_discount(&mut service, None).await;
@@ -308,7 +308,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_discount_items() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
 
         // Create a unique discount first
         let discount_name = format!("Discount for Items {}", Uuid::now_v7());
@@ -348,7 +348,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_item_discount() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
         let discount = create_test_discount(&mut service, None).await;
 
@@ -382,7 +382,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_nonexistent_item_discount() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
         let discount = create_test_discount(&mut service, None).await;
 

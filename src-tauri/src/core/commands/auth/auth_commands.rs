@@ -77,7 +77,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_login_command() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "testuser".to_string(),
@@ -111,7 +111,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_logout_command() {
-        let mut service = setup_service();
+        let mut service = setup_service().await;
         service.state.current_user = Some(Uuid::now_v7().into());
 
         let logout_command = LogoutCommand;
