@@ -37,8 +37,11 @@ impl DbUuid {
 }
 
 impl FromRow<libsql::Row> for DbUuid {
-    fn from_row(_row: &libsql::Row) -> Result<Self> {
-        todo!()
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        match row.get(0) {
+            Ok(libsql::Value::Text(s)) => DbUuid::parse_str(&s),
+            _ => Err(Error::DatabaseError("Invalid UUID value type in database".to_string())),
+        }
     }
 }
 
