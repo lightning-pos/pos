@@ -1,11 +1,11 @@
 use chrono::NaiveDateTime;
 use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel, LibsqlEnum};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::{db_uuid::DbUuid, money::Money}, error::Result};
+use crate::{adapters::outgoing::database::FromLibsqlValue, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
 
-#[derive(Debug)]
+#[derive(Debug, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct Item {
     pub id: DbUuid,
     pub name: String,
@@ -40,35 +40,15 @@ pub struct UpdateItem {
     pub category_id: Option<DbUuid>,
 }
 
-#[derive(Debug, Clone, Copy, GraphQLEnum, Display)]
+#[derive(Debug, Clone, Copy, GraphQLEnum, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum ItemNature {
     Goods,
     Service,
 }
 
-#[derive(Debug, Clone, Copy, GraphQLEnum, Display)]
+#[derive(Debug, Clone, Copy, GraphQLEnum, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum ItemState {
     Active,
     Inactive,
     Deleted,
-}
-
-#[derive(Iden)]
-pub enum Items {
-    Table,
-    Id,
-    Name,
-    Description,
-    Nature,
-    State,
-    Price,
-    CategoryId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for Item {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

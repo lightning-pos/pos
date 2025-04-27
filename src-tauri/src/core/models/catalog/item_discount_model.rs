@@ -1,11 +1,13 @@
 use juniper::GraphQLInputObject;
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
 
-#[derive(Debug)]
+#[derive(Debug, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct ItemDiscount {
+    #[sea_query(primary_key)]
     pub item_id: DbUuid,
+    #[sea_query(primary_key)]
     pub discount_id: DbUuid,
 }
 
@@ -14,17 +16,3 @@ pub struct ItemDiscountNewInput {
     pub item_id: DbUuid,
     pub discount_id: DbUuid,
 }
-
-#[derive(Iden)]
-pub enum ItemDiscounts {
-    Table,
-    ItemId,
-    DiscountId,
-}
-
-impl FromRow<libsql::Row> for ItemDiscount {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
-}
-

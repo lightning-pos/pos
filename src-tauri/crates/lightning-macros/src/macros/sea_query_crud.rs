@@ -41,17 +41,18 @@ pub fn sea_query_crud_derive(input: TokenStream) -> TokenStream {
         _ => panic!("SeaQueryCrud only works with structs"),
     };
 
-    let primary_key_fields: Vec<&syn::Field> = fields.iter()
+    // Collect fields with primary_key attribute
+    let mut primary_key_fields: Vec<&syn::Field> = fields.iter()
         .filter(|field| has_primary_key_attr(&field.attrs))
         .cloned()
         .collect();
 
     if primary_key_fields.is_empty() {
         // If no primary key is explicitly marked, assume "id" is the primary key
-        let id_field = fields.iter()
-            .find(|&field| field.ident.as_ref().map_or(false, |id| id == "id"));
-
-        if id_field.is_none() {
+        if let Some(id_field) = fields.iter()
+            .find(|&field| field.ident.as_ref().map_or(false, |id| id == "id")) {
+            primary_key_fields.push(id_field);
+        } else {
             panic!("SeaQueryCrud requires at least one field marked as primary_key or a field named 'id'");
         }
     }
@@ -127,31 +128,33 @@ fn has_primary_key_attr(attrs: &[Attribute]) -> bool {
 
 // Generate the insert statement implementation
 fn generate_insert_impl(table_enum: &Ident, fields: &[&syn::Field]) -> proc_macro2::TokenStream {
-    let field_columns = fields.iter().map(|field| {
+    // Generate column names
+    let columns: Vec<proc_macro2::TokenStream> = fields.iter().map(|field| {
         let field_name = field.ident.as_ref().unwrap();
         let column_name = format_ident!("{}", field_name.to_string().to_case(Case::Pascal));
         quote! { #table_enum::#column_name }
-    });
+    }).collect();
 
-    // Generate field values for insert
-    let field_values = fields.iter().map(|field| {
+    // Generate values
+    let values: Vec<proc_macro2::TokenStream> = fields.iter().map(|field| {
         let field_name = field.ident.as_ref().unwrap();
         quote! {
-            sea_query::SimpleExpr::from(sea_query::Value::from(self.#field_name.clone()))
+            sea_query::SimpleExpr::from(
+                sea_query::Value::from(self.#field_name.clone())
+            )
         }
-    });
+    }).collect();
 
     quote! {
         fn insert(&self) -> sea_query::InsertStatement {
-            use sea_query::{Query, Table};
-
+            use sea_query::{Query, Table, Value};
             Query::insert()
                 .into_table(#table_enum::Table)
                 .columns([
-                    #(#field_columns),*
+                    #(#columns),*
                 ])
                 .values_panic([
-                    #(#field_values),*
+                    #(#values),*
                 ])
                 .to_owned()
         }
@@ -164,45 +167,39 @@ fn generate_update_impl(
     fields: &[&syn::Field],
     primary_key_fields: &[&syn::Field]
 ) -> proc_macro2::TokenStream {
-    let pk_fields: Vec<&syn::Field> = if primary_key_fields.is_empty() {
-        // If no primary key is explicitly marked, assume "id" is the primary key
-        fields.iter()
-            .filter(|field| field.ident.as_ref().map_or(false, |id| id == "id"))
-            .cloned()
-            .collect()
-    } else {
-        primary_key_fields.to_vec()
-    };
-
-    // Generate set expressions for non-primary key fields
-    let set_exprs = fields.iter()
-        .filter(|field| !pk_fields.contains(field))
+    // Generate value assignments for each field
+    let value_assignments: Vec<proc_macro2::TokenStream> = fields.iter()
+        .filter(|field| {
+            // Skip primary key fields in the update statement
+            !primary_key_fields.contains(field)
+        })
         .map(|field| {
             let field_name = field.ident.as_ref().unwrap();
             let column_name = format_ident!("{}", field_name.to_string().to_case(Case::Pascal));
             quote! {
                 stmt.value(#table_enum::#column_name, sea_query::Value::from(self.#field_name.clone()));
             }
-        });
+        })
+        .collect();
 
     // Generate where conditions for primary key fields
-    let where_conditions = pk_fields.iter().map(|field| {
+    let where_conditions: Vec<proc_macro2::TokenStream> = primary_key_fields.iter().map(|field| {
         let field_name = field.ident.as_ref().unwrap();
         let column_name = format_ident!("{}", field_name.to_string().to_case(Case::Pascal));
         quote! {
             stmt.and_where(sea_query::Expr::col(#table_enum::#column_name).eq(sea_query::Value::from(self.#field_name.clone())));
         }
-    });
+    }).collect();
 
     quote! {
         fn update(&self) -> sea_query::UpdateStatement {
-            use sea_query::{Query, Table, Expr};
+            use sea_query::{Query, Table, Expr, Value};
 
             let mut stmt = Query::update();
             stmt.table(#table_enum::Table);
 
-            // Set all non-primary key fields
-            #(#set_exprs)*
+            // Add value assignments for each field
+            #(#value_assignments)*
 
             // Add where conditions for primary key fields
             #(#where_conditions)*
@@ -217,41 +214,25 @@ fn generate_delete_impl(
     table_enum: &Ident,
     primary_key_fields: &[&syn::Field]
 ) -> proc_macro2::TokenStream {
-    let pk_fields: Vec<&syn::Field> = if primary_key_fields.is_empty() {
-        // If no primary key is explicitly marked, assume "id" is the primary key
-        vec![]  // This will be handled in the generated code
-    } else {
-        primary_key_fields.to_vec()
-    };
-
     // Generate where conditions for primary key fields
-    let where_conditions = pk_fields.iter().map(|field| {
+    let where_conditions: Vec<proc_macro2::TokenStream> = primary_key_fields.iter().map(|field| {
         let field_name = field.ident.as_ref().unwrap();
         let column_name = format_ident!("{}", field_name.to_string().to_case(Case::Pascal));
-        quote! {
-            stmt.and_where(sea_query::Expr::col(#table_enum::#column_name).eq::<#field.ty>(sea_query::Value::from(self.#field_name.clone())));
-        }
-    });
 
-    // If no primary keys were explicitly marked, assume "id"
-    let default_id_condition = if pk_fields.is_empty() {
         quote! {
-            stmt.and_where(sea_query::Expr::col(#table_enum::Id).eq::<crate::core::types::db_uuid::DbUuid>(self.id.clone().into()));
+            stmt.and_where(sea_query::Expr::col(#table_enum::#column_name).eq(sea_query::Value::from(self.#field_name.clone())));
         }
-    } else {
-        quote! {}
-    };
+    }).collect();
 
     quote! {
         fn delete(&self) -> sea_query::DeleteStatement {
-            use sea_query::{Query, Table, Expr};
+            use sea_query::{Query, Table, Expr, Value};
 
             let mut stmt = Query::delete();
             stmt.from_table(#table_enum::Table);
 
             // Add where conditions for primary key fields
             #(#where_conditions)*
-            #default_id_condition
 
             stmt.to_owned()
         }
@@ -263,44 +244,9 @@ fn generate_static_helpers(
     table_enum: &Ident,
     primary_key_fields: &[&syn::Field]
 ) -> proc_macro2::TokenStream {
-    let pk_fields: Vec<&syn::Field> = if primary_key_fields.is_empty() {
-        // If no primary key is explicitly marked, assume "id" is the primary key
-        vec![]  // This will be handled in the generated code
-    } else {
-        primary_key_fields.to_vec()
-    };
-
-    if pk_fields.is_empty() {
-        // Generate a helper for id-based operations
-        let id_field_type = quote! { crate::core::types::db_uuid::DbUuid };
-
-        quote! {
-            /// Delete a record by its ID
-            pub fn delete_by_id(id: #id_field_type) -> sea_query::DeleteStatement {
-                use sea_query::{Query, Table, Expr};
-
-                Query::delete()
-                    .from_table(#table_enum::Table)
-                    .and_where(Expr::col(#table_enum::Id).eq::<#id_field_type>(id.into()))
-                    .to_owned()
-            }
-
-            /// Find a record by its ID
-            pub fn find_by_id(id: #id_field_type) -> sea_query::SelectStatement {
-                use sea_query::{Query, Table, Expr};
-
-                Query::select()
-                    .from(#table_enum::Table)
-                    .columns([
-                        #table_enum::Table
-                    ])
-                    .and_where(Expr::col(#table_enum::Id).eq::<#id_field_type>(id.into()))
-                    .to_owned()
-            }
-        }
-    } else if pk_fields.len() == 1 {
+    if primary_key_fields.len() == 1 {
         // Single primary key field
-        let pk_field = pk_fields[0];
+        let pk_field = primary_key_fields[0];
         let pk_field_name = pk_field.ident.as_ref().unwrap();
         let pk_field_type = &pk_field.ty;
         let pk_column_name = format_ident!("{}", pk_field_name.to_string().to_case(Case::Pascal));
@@ -310,32 +256,75 @@ fn generate_static_helpers(
         quote! {
             /// Delete a record by its primary key
             pub fn #fn_name_delete(#pk_field_name: #pk_field_type) -> sea_query::DeleteStatement {
-                use sea_query::{Query, Table, Expr};
+                use sea_query::{Query, Table, Expr, Value};
 
                 Query::delete()
                     .from_table(#table_enum::Table)
-                    .and_where(Expr::col(#table_enum::#pk_column_name).eq::<#pk_field.ty>(#pk_field_name.into()))
+                    .and_where(Expr::col(#table_enum::#pk_column_name).eq(Value::from(#pk_field_name)))
                     .to_owned()
             }
 
             /// Find a record by its primary key
             pub fn #fn_name_find(#pk_field_name: #pk_field_type) -> sea_query::SelectStatement {
-                use sea_query::{Query, Table, Expr};
+                use sea_query::{Query, Table, Expr, Value};
 
                 Query::select()
                     .from(#table_enum::Table)
                     .columns([
                         #table_enum::Table
                     ])
-                    .and_where(Expr::col(#table_enum::#pk_column_name).eq::<#pk_field.ty>(#pk_field_name.into()))
+                    .and_where(Expr::col(#table_enum::#pk_column_name).eq(Value::from(#pk_field_name)))
                     .to_owned()
             }
         }
-    } else {
-        // Multiple primary keys - more complex case
+    } else if primary_key_fields.len() > 1 {
+        // Multiple primary keys - generate a composite finder
+        // Collect parameters for the function signature
+        let pk_params: Vec<proc_macro2::TokenStream> = primary_key_fields.iter().map(|field| {
+            let field_name = field.ident.as_ref().unwrap();
+            let field_type = &field.ty;
+            quote! { #field_name: #field_type }
+        }).collect();
+
+        // Collect where conditions
+        let where_conditions: Vec<proc_macro2::TokenStream> = primary_key_fields.iter().map(|field| {
+            let field_name = field.ident.as_ref().unwrap();
+            let column_name = format_ident!("{}", field_name.to_string().to_case(Case::Pascal));
+            quote! {
+                stmt.and_where(Expr::col(#table_enum::#column_name).eq(Value::from(#field_name)));
+            }
+        }).collect();
+
         quote! {
-            // For composite primary keys, we don't generate static helpers
-            // as they would require multiple parameters and be less convenient
+            /// Find a record by its composite primary key
+            pub fn find_by_primary_key(#(#pk_params),*) -> sea_query::SelectStatement {
+                use sea_query::{Query, Table, Expr, Value};
+
+                let mut stmt = Query::select();
+                stmt.from(#table_enum::Table)
+                   .columns([#table_enum::Table]);
+
+                // Add where conditions for all primary key fields
+                #(#where_conditions)*
+
+                stmt.to_owned()
+            }
+
+            /// Delete a record by its composite primary key
+            pub fn delete_by_primary_key(#(#pk_params),*) -> sea_query::DeleteStatement {
+                use sea_query::{Query, Table, Expr, Value};
+
+                let mut stmt = Query::delete();
+                stmt.from_table(#table_enum::Table);
+
+                // Add where conditions for all primary key fields
+                #(#where_conditions)*
+
+                stmt.to_owned()
+            }
         }
+    } else {
+        // This should never happen due to our earlier checks
+        quote! {}
     }
 }

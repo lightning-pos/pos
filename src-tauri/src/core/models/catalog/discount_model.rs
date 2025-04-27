@@ -1,10 +1,10 @@
-use crate::{adapters::outgoing::database::FromRow, core::types::{db_uuid::DbUuid, money::Money}, error::Result};
+use crate::{adapters::outgoing::database::FromLibsqlValue, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
 use chrono::NaiveDateTime;
 use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use sea_query::Iden;
+use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
-#[derive(Debug)]
+#[derive(Debug, SeaQueryModel, LibsqlFromRow, SeaQueryCrud)]
 pub struct Discount {
     pub id: DbUuid,
     pub name: String,
@@ -47,13 +47,13 @@ pub struct DiscountUpdateInput {
 // Using DbEnum derive for mapping Rust enums to database enum types
 // Make sure these enum types are created in the database via migrations
 
-#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum DiscountType {
     Percentage,
     FixedAmount,
 }
 
-#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum DiscountScope {
     AllItems,
     SpecificItems, // Added for item-specific discounts
@@ -61,33 +61,10 @@ pub enum DiscountScope {
                    // SpecificCategories,
 }
 
-#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum DiscountState {
     Active,
     Inactive,
     Scheduled, // If start_date is in the future
     Expired,   // If end_date is in the past
-}
-
-// Define table and column identifiers for SeaQuery
-#[derive(Iden)]
-pub enum Discounts {
-    Table,
-    Id,
-    Name,
-    Description,
-    DiscountType,
-    Value,
-    Scope,
-    State,
-    StartDate,
-    EndDate,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for Discount {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }
