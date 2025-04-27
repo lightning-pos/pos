@@ -127,3 +127,25 @@ pub fn libsql_enum_derive(input: TokenStream) -> TokenStream {
 pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
     macros::libsql_type::libsql_type_derive(input)
 }
+
+/// Automatically implements FromRow<libsql::Row> for structs.
+///
+/// This macro will generate an implementation of FromRow<libsql::Row> for a struct,
+/// allowing it to be directly converted from a database row. It works with structs
+/// that have named fields and automatically handles Option types.
+///
+/// # Example
+///
+/// ```rust
+/// #[derive(Debug, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
+/// pub struct User {
+///     pub id: DbUuid,
+///     pub username: String,
+///     pub last_login_at: Option<NaiveDateTime>,
+///     // ...other fields
+/// }
+/// ```
+#[proc_macro_derive(LibsqlFromRow)]
+pub fn libsql_from_row_derive(input: TokenStream) -> TokenStream {
+    macros::libsql_from_row::libsql_from_row_derive(input)
+}

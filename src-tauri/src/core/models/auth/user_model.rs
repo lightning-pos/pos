@@ -1,15 +1,14 @@
 use chrono::NaiveDateTime;
 use derive_more::derive::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use lightning_macros::{SeaQueryCrud, SeaQueryEnum, SeaQueryModel, LibsqlEnum};
+use lightning_macros::{SeaQueryCrud, SeaQueryEnum, SeaQueryModel, LibsqlEnum, LibsqlFromRow};
 
 use crate::{
-    adapters::outgoing::database::{FromLibsqlValue, FromRow},
-    core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid},
-    error::Result
+    adapters::outgoing::database::FromLibsqlValue,
+    core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}
 };
 
-#[derive(Debug, SeaQueryModel, SeaQueryCrud)]
+#[derive(Debug, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct User {
     pub id: DbUuid,
     pub username: String,
@@ -19,42 +18,6 @@ pub struct User {
     pub last_login_at: Option<NaiveDateTime>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
-}
-
-impl FromRow<libsql::Row> for User {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-
-        let id = DbUuid::from_libsql_value(row.get_value(0)?)?;
-
-        let username = String::from_libsql_value(row.get_value(1)?)?;
-
-        let pin_hash = String::from_libsql_value(row.get_value(2)?)?;
-
-        let full_name = String::from_libsql_value(row.get_value(3)?)?;
-
-        let state = UserState::from_libsql_value(row.get_value(4)?)?;
-
-        let last_login_at = match row.get_value(5) {
-            Ok(libsql::Value::Null) => None,
-            Ok(value) => Some(NaiveDateTime::from_libsql_value(value)?),
-            Err(_) => None,
-        };
-
-        let created_at = NaiveDateTime::from_libsql_value(row.get_value(6)?)?;
-
-        let updated_at = NaiveDateTime::from_libsql_value(row.get_value(7)?)?;
-
-        Ok(User {
-            id,
-            username,
-            pin_hash,
-            full_name,
-            state,
-            last_login_at,
-            created_at,
-            updated_at,
-        })
-    }
 }
 
 #[derive(Debug, Clone, Display, PartialEq, GraphQLEnum, SeaQueryEnum, LibsqlEnum)]
