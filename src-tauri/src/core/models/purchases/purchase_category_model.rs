@@ -1,10 +1,11 @@
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
 use chrono::NaiveDateTime;
 use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use sea_query::Iden;
+use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
-#[derive(Debug)]
+use crate::{adapters::outgoing::database::FromLibsqlValue, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
+
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct PurchaseCategory {
     pub id: DbUuid,
     pub name: String,
@@ -30,27 +31,9 @@ pub struct PurchaseCategoryUpdate {
     pub updated_at: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum PurchaseCategoryState {
     Active,
     Inactive,
     Deleted,
-}
-
-// Define table and column identifiers for SeaQuery
-#[derive(Iden)]
-pub enum PurchaseCategories {
-    Table,
-    Id,
-    Name,
-    Description,
-    State,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for PurchaseCategory {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

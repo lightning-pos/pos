@@ -29,9 +29,9 @@
 
 use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::{db_uuid::DbUuid, money::Money}, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}};
 
 /// Represents a specific variant of an item with its own SKU and price adjustment.
 ///
@@ -48,7 +48,7 @@ use crate::{adapters::outgoing::database::FromRow, core::types::{db_uuid::DbUuid
 /// # Relationships
 /// - Belongs to one Item
 /// - Has many VariantValues through ItemVariantValues
-#[derive(Debug)]
+#[derive(Debug, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct ItemVariant {
     pub id: DbUuid,
     pub item_id: DbUuid,
@@ -94,23 +94,4 @@ pub struct ItemVariantUpdateInput {
     pub price_adjustment: Option<Option<Money>>,
     pub is_default: Option<bool>,
     pub updated_at: Option<NaiveDateTime>,
-}
-
-// Define table and column identifiers for SeaQuery
-#[derive(Iden)]
-pub enum ItemVariants {
-    Table,
-    Id,
-    ItemId,
-    Sku,
-    PriceAdjustment,
-    IsDefault,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for ItemVariant {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

@@ -43,6 +43,7 @@ impl FromLibsqlValue for String {
     fn from_libsql_value(value: libsql::Value) -> Result<Self> {
         match value {
             libsql::Value::Text(s) => Ok(s.clone()),
+            libsql::Value::Null => Ok(String::new()),
             _ => Err(Error::DatabaseError("Invalid string value type in database".to_string())),
         }
     }
@@ -52,11 +53,52 @@ impl FromLibsqlValue for NaiveDateTime {
     fn from_libsql_value(value: libsql::Value) -> Result<Self> {
         match value {
             libsql::Value::Text(s) => {
-                println!("NaiveDateTime value: {}", s);
                 NaiveDateTime::parse_from_str(&s, "%Y-%m-%d %H:%M:%S%.f")
                     .map_err(|e| Error::DatabaseError(format!("Failed to parse NaiveDateTime: {}", e)))
             },
+            libsql::Value::Integer(i) => {
+                // For integer timestamps, assume Unix timestamp in seconds
+                let seconds = i;
+                let naive = NaiveDateTime::from_timestamp(seconds, 0);
+                Ok(naive)
+            },
+            libsql::Value::Real(f) => {
+                // For floating point timestamps, assume Unix timestamp with fractional seconds
+                let seconds = f.trunc() as i64;
+                let nanos = ((f.fract() * 1_000_000_000.0) as u32).min(999_999_999);
+                let naive = NaiveDateTime::from_timestamp(seconds, nanos);
+                Ok(naive)
+            },
+            libsql::Value::Null => {
+                // For NULL values, return the current time
+                Ok(chrono::Utc::now().naive_utc())
+            },
             _ => Err(Error::DatabaseError("Invalid NaiveDateTime value type in database".to_string())),
+        }
+    }
+}
+
+impl FromLibsqlValue for bool {
+    fn from_libsql_value(value: libsql::Value) -> Result<Self> {
+        match value {
+            libsql::Value::Integer(i) => Ok(i != 0),
+            libsql::Value::Text(s) => {
+                match s.to_lowercase().as_str() {
+                    "true" | "1" | "yes" => Ok(true),
+                    "false" | "0" | "no" => Ok(false),
+                    _ => Err(Error::DatabaseError(format!("Invalid boolean string value: {}", s))),
+                }
+            },
+            _ => Err(Error::DatabaseError("Invalid boolean value type in database".to_string())),
+        }
+    }
+}
+
+impl FromLibsqlValue for i32 {
+    fn from_libsql_value(value: libsql::Value) -> Result<Self> {
+        match value {
+            libsql::Value::Integer(i) => Ok(i as i32),
+            _ => Err(Error::DatabaseError("Invalid i32 value type in database".to_string())),
         }
     }
 }

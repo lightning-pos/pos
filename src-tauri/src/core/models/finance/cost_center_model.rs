@@ -1,11 +1,11 @@
 use chrono::NaiveDateTime;
 use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use sea_query::Iden;
+use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
+use crate::{adapters::outgoing::database::FromLibsqlValue, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct CostCenter {
     pub id: DbUuid,
     pub name: String,
@@ -33,26 +33,8 @@ pub struct CostCenterUpdateInput {
     pub state: Option<CostCenterState>,
 }
 
-#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display)]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum CostCenterState {
     Active,
     Inactive,
-}
-
-#[derive(Iden)]
-pub enum CostCenters {
-    Table,
-    Id,
-    Name,
-    Code,
-    Description,
-    State,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for CostCenter {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

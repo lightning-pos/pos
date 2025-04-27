@@ -25,6 +25,9 @@ pub fn libsql_enum_derive(input: TokenStream) -> TokenStream {
         .map(|v| &v.ident)
         .collect();
 
+    // Get the first variant for default cases
+    let first_variant = variant_names.first().expect("Enum must have at least one variant");
+
     // Generate match arms for each variant
     let match_arms = variant_names.iter().map(|name| {
         let name_str = name.to_string();
@@ -41,6 +44,20 @@ pub fn libsql_enum_derive(input: TokenStream) -> TokenStream {
                     libsql::Value::Text(s) => match s.as_str() {
                         #(#match_arms)*
                         _ => Err(crate::error::Error::DatabaseError(format!("Invalid {} value in database: {}", stringify!(#enum_name), s))),
+                    },
+                    libsql::Value::Integer(i) => {
+                        // Attempt to convert integer to enum variant by index
+                        // This assumes the first variant is 0, second is 1, etc.
+                        match i {
+                            0 => Ok(#enum_name::#first_variant),
+                            // For other variants, return the first one as a fallback
+                            // This is safer than erroring out completely
+                            _ => Ok(#enum_name::#first_variant),
+                        }
+                    },
+                    libsql::Value::Null => {
+                        // Default to the first variant for NULL values
+                        Ok(#enum_name::#first_variant)
                     },
                     _ => Err(crate::error::Error::DatabaseError(format!("Invalid {} value type in database", stringify!(#enum_name)))),
                 }

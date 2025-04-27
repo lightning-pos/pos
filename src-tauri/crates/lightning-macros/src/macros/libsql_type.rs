@@ -25,9 +25,42 @@ pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
 
     // Check if the inner type is a primitive that can be directly cast
     let is_primitive = is_primitive_type(inner_type);
+    
+    // Check if this is the Percentage type
+    let is_percentage = type_name.to_string() == "Percentage";
 
     // Generate different implementations based on the inner type
-    let gen = if is_primitive {
+    let gen = if is_percentage {
+        // Special handling for Percentage type
+        quote! {
+            impl FromLibsqlValue for #type_name {
+                fn from_libsql_value(value: libsql::Value) -> crate::error::Result<Self> {
+                    match value {
+                        libsql::Value::Integer(i) => {
+                            // For integer values, use directly as basis points
+                            Ok(#type_name(i as #inner_type))
+                        },
+                        libsql::Value::Real(f) => {
+                            // For float values, convert to basis points
+                            let basis_points = (f * Self::BASIS_POINTS as f64).round() as #inner_type;
+                            Ok(#type_name(basis_points))
+                        },
+                        libsql::Value::Text(s) => {
+                            // For text values, parse using from_str
+                            Self::from_str(&s).map_err(|e| crate::error::Error::DatabaseError(e))
+                        },
+                        libsql::Value::Null => {
+                            // Default to 0% for NULL values
+                            Ok(#type_name(0))
+                        },
+                        _ => Err(crate::error::Error::DatabaseError(
+                            format!("Invalid {} value type in database", stringify!(#type_name))
+                        )),
+                    }
+                }
+            }
+        }
+    } else if is_primitive {
         // For primitive types, we can use direct conversion
         quote! {
             impl FromLibsqlValue for #type_name {

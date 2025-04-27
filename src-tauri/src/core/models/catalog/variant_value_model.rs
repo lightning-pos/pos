@@ -1,10 +1,10 @@
 use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct VariantValue {
     pub id: DbUuid,
     pub variant_type_id: DbUuid,
@@ -27,23 +27,4 @@ pub struct VariantValueUpdateInput {
     pub value: Option<String>,
     pub display_order: Option<i32>,
     pub updated_at: Option<NaiveDateTime>,
-}
-
-// Define table and column identifiers for SeaQuery
-#[derive(Iden)]
-pub enum VariantValues {
-    Table,
-    Id,
-    VariantTypeId,
-    Value,
-    DisplayOrder,
-    CreatedAt,
-    UpdatedAt,
-}
-
-
-impl FromRow<libsql::Row> for VariantValue {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

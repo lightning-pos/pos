@@ -1,10 +1,10 @@
 use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct Customer {
     pub id: DbUuid,
     pub full_name: String,
@@ -30,23 +30,4 @@ pub struct CustomerUpdateInput {
     pub email: Option<Option<String>>,
     pub phone: Option<Option<String>>,
     pub address: Option<Option<String>>,
-}
-
-// Define table and column identifiers for SeaQuery
-#[derive(Iden)]
-pub enum Customers {
-    Table,
-    Id,
-    FullName,
-    Email,
-    Phone,
-    Address,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for Customer {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

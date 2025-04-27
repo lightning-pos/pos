@@ -1,10 +1,10 @@
 use chrono::NaiveDateTime;
 use juniper::{GraphQLInputObject, GraphQLObject};
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::{db_uuid::DbUuid, money::Money}, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid, types::money::Money};
 
-#[derive(Debug, GraphQLObject)]
+#[derive(Debug, Clone, GraphQLObject, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct SalesOrderCharge {
     pub id: DbUuid,
     pub order_id: DbUuid,
@@ -24,24 +24,4 @@ pub struct SalesOrderChargeNewInput {
     pub amount: Money,
     pub tax_amount: Money,
     pub tax_group_id: Option<DbUuid>,
-}
-
-#[derive(Iden)]
-pub enum SalesOrderCharges {
-    Table,
-    Id,
-    OrderId,
-    ChargeTypeId,
-    ChargeTypeName,
-    Amount,
-    TaxAmount,
-    TaxGroupId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for SalesOrderCharge {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

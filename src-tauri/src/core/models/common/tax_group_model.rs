@@ -1,10 +1,10 @@
 use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct TaxGroup {
     pub id: DbUuid,
     pub name: String,
@@ -38,27 +38,3 @@ pub struct TaxGroupTaxNewInput {
     pub tax_group_id: DbUuid,
     pub tax_id: DbUuid,
 }
-
-#[derive(Iden)]
-pub enum TaxGroups {
-    Table,
-    Id,
-    Name,
-    Description,
-    CreatedAt,
-    UpdatedAt,
-}
-
-#[derive(Iden)]
-pub enum TaxGroupTaxes {
-    Table,
-    TaxGroupId,
-    TaxId,
-}
-
-impl FromRow<libsql::Row> for TaxGroup {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
-}
-

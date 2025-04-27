@@ -1,10 +1,10 @@
 use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct Channel {
     pub id: DbUuid,
     pub name: String,
@@ -27,22 +27,4 @@ pub struct ChannelUpdateInput {
     pub name: Option<String>,
     pub description: Option<Option<String>>,
     pub is_active: Option<bool>,
-}
-
-#[derive(Iden)]
-pub enum Channels {
-    Table,
-    Id,
-    Name,
-    Description,
-    IsActive,
-    CreatedAt,
-    UpdatedAt,
-}
-
-
-impl FromRow<libsql::Row> for Channel {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

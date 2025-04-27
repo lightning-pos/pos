@@ -3,11 +3,12 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 use juniper::{graphql_scalar, InputValue, ScalarValue, Value};
-use lightning_macros::LibsqlType;
+use lightning_macros::{LibsqlType, SeaQueryType};
+use sea_query;
 
 use crate::adapters::outgoing::database::FromLibsqlValue;
 
-#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, LibsqlType)]
+#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, SeaQueryType, LibsqlType)]
 #[graphql_scalar(parse_token(String))]
 pub struct Percentage(i32);
 
@@ -24,7 +25,7 @@ impl Percentage {
     /// Creates a new Percentage from a string representation
     /// Example: "2.5" becomes 25000 basis points (2.5%)
     /// Rounds to nearest basis point
-    pub fn from_str(s: &str) -> Result<Self, String> {
+    pub fn from_str(s: &str) -> std::result::Result<Self, String> {
         let value = s.parse::<f32>().map_err(|e| e.to_string())?;
 
         // Convert to basis points with rounding
@@ -58,7 +59,7 @@ impl Percentage {
         Value::scalar(self.to_string())
     }
 
-    pub fn from_input<S: ScalarValue>(v: &InputValue<S>) -> Result<Self, String> {
+    pub fn from_input<S: ScalarValue>(v: &InputValue<S>) -> std::result::Result<Self, String> {
         let s = v.as_string_value().ok_or("Expected a string")?;
         Self::from_str(s)
     }
@@ -110,6 +111,9 @@ impl Div<i32> for Percentage {
         Self(self.0 / other)
     }
 }
+
+// The From<Percentage> and From<&Percentage> implementations are already provided by the SeaQueryType derive macro
+// The FromLibsqlValue implementation is already provided by the LibsqlType derive macro
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,6 @@
 use derive_more::derive::Display;
 use juniper::graphql_scalar;
+use sea_query::{Nullable, Value as SeaValue};
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 use uuid::Uuid;
@@ -47,5 +48,11 @@ impl FromLibsqlValue for DbUuid {
             libsql::Value::Text(s) => DbUuid::parse_str(&s),
             _ => Err(Error::DatabaseError("Invalid UUID value type in database".to_string())),
         }
+    }
+}
+
+impl Nullable for DbUuid {
+    fn null() -> SeaValue {
+        SeaValue::String(None)
     }
 }

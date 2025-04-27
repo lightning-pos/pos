@@ -282,10 +282,10 @@ mod tests {
 
         let insert_sql = format!(
             "INSERT INTO taxes (id, name, rate, description, created_at, updated_at) \
-             VALUES ('{}', '{}', '{}', NULL, '{}', '{}')",
+             VALUES ('{}', '{}', {}, NULL, '{}', '{}')",
             tax_id.to_string(),
             "Test Tax",
-            rate.to_string(),
+            rate.basis_points(),  
             now.to_string(),
             now.to_string()
         );

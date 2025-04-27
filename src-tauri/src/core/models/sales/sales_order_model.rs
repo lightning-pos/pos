@@ -1,16 +1,16 @@
 use chrono::NaiveDateTime;
 use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use sea_query::Iden;
+use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
-use crate::adapters::outgoing::database::FromRow;
+use crate::adapters::outgoing::database::FromLibsqlValue;
+use crate::core::db::SeaQueryCrudTrait;
 use crate::core::types::{db_uuid::DbUuid, money::Money};
-use crate::error::Result;
 
 use super::sales_order_charge_model::SalesOrderChargeNewInput;
 use super::sales_order_item_model::SalesOrderItemInput;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct SalesOrder {
     pub id: DbUuid,
     pub order_readable_id: String,
@@ -120,14 +120,14 @@ pub struct SalesOrderUpdateInput {
     pub discount_id: Option<Option<DbUuid>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, GraphQLEnum, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, GraphQLEnum, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum SalesOrderState {
     Draft,
     Completed,
     Cancelled,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, GraphQLEnum, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, GraphQLEnum, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum SalesOrderPaymentState {
     Pending,
     PartiallyPaid,
@@ -136,40 +136,4 @@ pub enum SalesOrderPaymentState {
     PartiallyRefunded,
     Failed,
     Voided,
-}
-
-// Define table and column identifiers for SeaQuery
-#[derive(Iden)]
-pub enum SalesOrders {
-    Table,
-    Id,
-    OrderReadableId,
-    OrderDate,
-    CustomerId,
-    CustomerName,
-    CustomerPhoneNumber,
-    BillingAddress,
-    ShippingAddress,
-    NetAmount,
-    DiscAmount,
-    TaxableAmount,
-    TaxAmount,
-    TotalAmount,
-    OrderState,
-    PaymentState,
-    Notes,
-    ChannelId,
-    LocationId,
-    CostCenterId,
-    CreatedBy,
-    UpdatedBy,
-    DiscountId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for SalesOrder {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

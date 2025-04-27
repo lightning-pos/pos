@@ -1,10 +1,10 @@
 use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct Location {
     pub id: DbUuid,
     pub name: String,
@@ -39,22 +39,4 @@ pub struct LocationUpdateChangeset {
     pub address: Option<Option<String>>,
     pub is_active: Option<bool>,
     pub updated_at: NaiveDateTime,
-}
-
-#[derive(Iden)]
-pub enum Locations {
-    Table,
-    Id,
-    Name,
-    Description,
-    Address,
-    IsActive,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for Location {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }

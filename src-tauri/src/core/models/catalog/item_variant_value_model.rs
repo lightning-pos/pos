@@ -20,9 +20,9 @@
 //! - All variant-specific data is stored in the ItemVariant table
 
 use juniper::GraphQLInputObject;
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
 
 /// Junction table connecting item variants to variant values.
 ///
@@ -41,18 +41,12 @@ use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid,
 /// # Validation
 /// The system enforces that each item variant can only have one value from each variant type.
 /// This validation happens in the command layer, not at the database level.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct ItemVariantValue {
+    #[sea_query(primary_key)]
     pub item_variant_id: DbUuid,
+    #[sea_query(primary_key)]
     pub variant_value_id: DbUuid,
-}
-
-// Define table and column identifiers for SeaQuery
-#[derive(Iden)]
-pub enum ItemVariantValues {
-    Table,
-    ItemVariantId,
-    VariantValueId,
 }
 
 /// Input type for creating a new item variant value association.
@@ -69,10 +63,3 @@ pub struct ItemVariantValueInput {
     pub item_variant_id: DbUuid,
     pub variant_value_id: DbUuid,
 }
-
-impl FromRow<libsql::Row> for ItemVariantValue {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
-}
-

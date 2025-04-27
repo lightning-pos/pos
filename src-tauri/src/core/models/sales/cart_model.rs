@@ -1,10 +1,10 @@
 use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
-use sea_query::Iden;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{adapters::outgoing::database::FromRow, core::types::db_uuid::DbUuid, error::Result};
+use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct Cart {
     pub id: DbUuid,
     pub cart_data: String,
@@ -23,21 +23,4 @@ pub struct CartNewInput {
 pub struct CartUpdateInput {
     pub id: DbUuid,
     pub cart_data: Option<String>,
-}
-
-// Define table and column identifiers for SeaQuery
-#[derive(Iden)]
-pub enum Carts {
-    Table,
-    Id,
-    CartData,
-    CustomerId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl FromRow<libsql::Row> for Cart {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
-        todo!()
-    }
 }
