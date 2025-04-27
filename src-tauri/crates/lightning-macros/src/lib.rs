@@ -110,3 +110,20 @@ pub fn sea_query_type_derive(input: TokenStream) -> TokenStream {
 pub fn libsql_enum_derive(input: TokenStream) -> TokenStream {
     macros::libsql_enum::libsql_enum_derive(input)
 }
+
+/// Automatically implements FromLibsqlValue for tuple structs.
+///
+/// This macro will generate an implementation of FromLibsqlValue for a tuple struct,
+/// allowing it to be directly converted from libsql::Value. It works with types like
+/// DbUuid, Money, etc. that wrap a single value.
+///
+/// # Example
+///
+/// ```rust
+/// #[derive(Debug, Clone, Copy, LibsqlType)]
+/// pub struct DbUuid(Uuid);
+/// ```
+#[proc_macro_derive(LibsqlType)]
+pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
+    macros::libsql_type::libsql_type_derive(input)
+}

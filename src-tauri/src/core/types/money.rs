@@ -5,9 +5,13 @@ use std::{
 
 use bigdecimal::{BigDecimal, ToPrimitive};
 use juniper::{graphql_scalar, InputValue, ScalarValue, Value};
+use lightning_macros::LibsqlType;
+
+use crate::{adapters::outgoing::database::FromLibsqlValue, error::{Error, Result}};
 
 #[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 #[graphql_scalar(parse_token(String))]
+#[derive(LibsqlType)]
 pub struct Money(i64);
 
 impl Money {
@@ -23,8 +27,8 @@ impl Money {
     /// Creates a new Money from a string representation
     /// Example: "10.99" becomes 1099 cents ($10.99)
     /// Rounds to nearest cent
-    pub fn from_str(s: &str) -> Result<Self, String> {
-        let value = s.parse::<f64>().map_err(|e| e.to_string())?;
+    pub fn from_str(s: &str) -> Result<Self> {
+        let value = s.parse::<f64>().map_err(|e| Error::DatabaseError(format!("Failed to parse money value: {}", e)))?;
 
         // Convert to cents with rounding
         let cents = (value * Self::BASE_UNIT as f64).round() as i64;
@@ -54,14 +58,14 @@ impl Money {
         Value::scalar(self.to_string())
     }
 
-    fn from_input<S>(v: &InputValue<S>) -> Result<Self, String>
+    fn from_input<S>(v: &InputValue<S>) -> std::result::Result<Self, juniper::FieldError>
     where
         S: ScalarValue,
     {
         let s = v
             .as_string_value()
-            .ok_or_else(|| "Expected a string value".to_string())?;
-        Self::from_str(s)
+            .ok_or_else(|| juniper::FieldError::new("Expected a string value", juniper::Value::Null))?;
+        Self::from_str(s).map_err(|e| juniper::FieldError::new(e.to_string(), juniper::Value::Null))
     }
 }
 
@@ -80,7 +84,7 @@ impl From<BigDecimal> for Money {
 
 impl From<String> for Money {
     fn from(s: String) -> Self {
-        Self::from_str(&s).unwrap()
+        Self::from_str(&s).unwrap_or_else(|_| Self(0))
     }
 }
 

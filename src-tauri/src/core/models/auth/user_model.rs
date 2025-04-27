@@ -6,7 +6,7 @@ use lightning_macros::{SeaQueryCrud, SeaQueryEnum, SeaQueryModel, LibsqlEnum};
 use crate::{
     adapters::outgoing::database::{FromLibsqlValue, FromRow},
     core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid},
-    error::{Error, Result}
+    error::Result
 };
 
 #[derive(Debug, SeaQueryModel, SeaQueryCrud)]

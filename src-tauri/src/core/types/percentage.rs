@@ -3,8 +3,11 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 use juniper::{graphql_scalar, InputValue, ScalarValue, Value};
+use lightning_macros::LibsqlType;
 
-#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+use crate::adapters::outgoing::database::FromLibsqlValue;
+
+#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, LibsqlType)]
 #[graphql_scalar(parse_token(String))]
 pub struct Percentage(i32);
 
