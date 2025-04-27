@@ -1,12 +1,12 @@
 use chrono::Utc;
-// Diesel imports no longer needed
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use uuid::Uuid;
 
 use crate::{
     adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
+        db::SeaQueryCrudTrait,
         models::auth::user_model::{
             User, UserNewInput, UserState, UserUpdateInput, Users,
         },
@@ -31,17 +31,13 @@ impl Command for AddUserCommand {
     type Output = User;
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        // Check if username exists using SeaQuery
         let username = &self.user.username;
-
-        // Build the query to check for existing username
         let mut query_builder = Query::select();
         let check_query = query_builder
             .from(Users::Table)
             .column(Users::Id)
             .and_where(Expr::col(Users::Username).eq(username.clone()));
 
-        // Execute the query
         let user = service.db_adapter.query_optional::<User>(&check_query).await?;
 
         if user.is_some() {
@@ -53,33 +49,7 @@ impl Command for AddUserCommand {
         let user_id: DbUuid = Uuid::now_v7().into();
         let pin_hash = self.user.pin.clone();
 
-        // Build the insert query
-        let insert_query = Query::insert()
-            .into_table(Users::Table)
-            .columns([
-                Users::Id,
-                Users::Username,
-                Users::PinHash,
-                Users::FullName,
-                Users::State,
-                Users::CreatedAt,
-                Users::UpdatedAt,
-            ])
-            .values_panic([
-                user_id.to_string().into(),
-                self.user.username.clone().into(),
-                pin_hash.clone().into(),
-                self.user.full_name.clone().into(),
-                UserState::Active.to_string().into(),
-                now.to_string().into(),
-                now.to_string().into(),
-            ])
-            .to_string(SqliteQueryBuilder);
-
-        // Execute the insert query
-        service.db_adapter.execute(&insert_query).await?;
-
-        // Create and return the new user object
+        // Create a new user instance
         let new_user = User {
             id: user_id,
             username: self.user.username.clone(),
@@ -90,6 +60,10 @@ impl Command for AddUserCommand {
             created_at: now,
             updated_at: now,
         };
+
+        // Generate and execute the insert query
+        let insert_stmt = new_user.insert();
+        service.db_adapter.insert_one::<User>(&insert_stmt).await?;
 
         Ok(new_user)
     }
@@ -112,39 +86,33 @@ impl Command for UpdateUserCommand {
             return Err(Error::NotFoundError);
         }
 
-        // Build update query with SeaQuery
+        // Get the existing user data and update it
+        let mut user = existing_user.unwrap();
         let now = Utc::now().naive_utc();
 
-        // Create the update query
-        let mut query = Query::update();
-        query.table(Users::Table)
-            .value(Users::UpdatedAt, now.to_string());
-
-        // Add optional fields if they exist
+        // Update fields if they exist
         if let Some(full_name) = &self.user.full_name {
-            query.value(Users::FullName, full_name.clone());
+            user.full_name = full_name.clone();
         }
 
         if let Some(state) = &self.user.state {
-            query.value(Users::State, state.to_string());
+            user.state = state.clone();
         }
 
         if let Some(username) = &self.user.username {
-            query.value(Users::Username, username.clone());
+            user.username = username.clone();
         }
 
         if let Some(pin) = &self.user.pin {
-            query.value(Users::PinHash, pin.clone());
+            user.pin_hash = pin.clone();
         }
 
-        // Add WHERE condition
-        query.and_where(Expr::col(Users::Id).eq(self.user.id.to_string()));
+        // Always update the updated_at timestamp
+        user.updated_at = now;
 
-        // Generate the SQL query
-        let sql = query.to_string(SqliteQueryBuilder);
-
-        // Execute the update
-        service.db_adapter.execute(&sql).await?;
+        // Generate and execute the update query
+        let update_stmt = user.update();
+        service.db_adapter.update_one::<User>(&update_stmt).await?;
 
         // Retrieve the updated user
         let mut query_builder = Query::select();
@@ -172,14 +140,8 @@ impl Command for DeleteUserCommand {
     type Output = i32;
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        // Build delete query with SeaQuery
-        let delete_query = Query::delete()
-            .from_table(Users::Table)
-            .and_where(Expr::col(Users::Id).eq(self.id.to_string()))
-            .to_string(SqliteQueryBuilder);
-
-        // Execute the delete query
-        let affected_rows = service.db_adapter.execute(&delete_query).await?;
+        let delete_stmt = User::delete_by_id(self.id);
+        let affected_rows = service.db_adapter.delete(&delete_stmt).await?;
 
         Ok(affected_rows as i32)
     }

@@ -5,6 +5,7 @@ use std::hash::Hash;
 use uuid::Uuid;
 
 use crate::{adapters::outgoing::database::FromRow, error::{Error, Result}};
+use lightning_macros::SeaQueryType;
 
 #[derive(
     Debug,
@@ -20,7 +21,7 @@ use crate::{adapters::outgoing::database::FromRow, error::{Error, Result}};
 
 #[graphql_scalar]
 #[graphql(transparent)]
-#[derive(Hash, Display)]
+#[derive(Hash, Display, SeaQueryType)]
 pub struct DbUuid(Uuid);
 
 impl From<Uuid> for DbUuid {

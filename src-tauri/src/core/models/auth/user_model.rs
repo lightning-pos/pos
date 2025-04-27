@@ -1,15 +1,15 @@
 use chrono::NaiveDateTime;
 use derive_more::derive::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use lightning_macros::SeaQueryModel;
+use lightning_macros::{SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
 use crate::{
-    core::types::db_uuid::DbUuid,
     adapters::outgoing::database::FromRow,
-    error::{Error, Result},
+    core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid},
+    error::{Error, Result}
 };
 
-#[derive(Debug, SeaQueryModel)]
+#[derive(Debug, SeaQueryModel, SeaQueryCrud)]
 pub struct User {
     pub id: DbUuid,
     pub username: String,
@@ -80,7 +80,7 @@ impl FromRow<libsql::Row> for User {
     }
 }
 
-#[derive(Debug, Display, Clone, PartialEq, GraphQLEnum)]
+#[derive(Debug, Clone, Display, PartialEq, GraphQLEnum, SeaQueryEnum)]
 pub enum UserState {
     Active,
     Inactive,

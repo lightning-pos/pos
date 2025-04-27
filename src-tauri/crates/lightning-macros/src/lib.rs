@@ -29,3 +29,64 @@ use proc_macro::TokenStream;
 pub fn sea_query_model_derive(input: TokenStream) -> TokenStream {
     macros::sea_query_model::sea_query_model_derive(input)
 }
+
+/// Generates SeaQueryCrud implementation for a struct.
+///
+/// This macro will:
+/// 1. Generate insert, update, and delete methods for the struct
+/// 2. Use the primary key field(s) for WHERE clauses in update and delete
+///
+/// # Example
+///
+/// ```rust
+/// #[derive(Debug, SeaQueryCrud)]
+/// #[sea_query(table = "users")]
+/// pub struct User {
+///     #[sea_query(primary_key)]
+///     pub id: DbUuid,
+///     pub username: String,
+///     // ...other fields
+/// }
+/// ```
+#[proc_macro_derive(SeaQueryCrud, attributes(sea_query))]
+pub fn sea_query_crud_derive(input: TokenStream) -> TokenStream {
+    macros::sea_query_crud::sea_query_crud_derive(input)
+}
+
+/// Marks an enum for use with sea_query.
+///
+/// This macro is a marker that indicates the enum should be compatible with sea_query.
+/// The actual implementations for From<Enum> and From<&Enum> for sea_query::Value should be
+/// provided in the sea_query_value_impls.rs file to avoid conflicts.
+///
+/// # Example
+///
+/// ```rust
+/// #[derive(Debug, Display, Clone, PartialEq, GraphQLEnum, SeaQueryEnum)]
+/// pub enum UserState {
+///     Active,
+///     Inactive,
+///     Locked,
+/// }
+/// ```
+#[proc_macro_derive(SeaQueryEnum)]
+pub fn sea_query_enum_derive(input: TokenStream) -> TokenStream {
+    macros::sea_query_enum::sea_query_enum_derive(input)
+}
+
+/// Marks a newtype wrapper for use with sea_query.
+///
+/// This macro is a marker that indicates the newtype wrapper should be compatible with sea_query.
+/// The actual implementations for From<Type> and From<&Type> for sea_query::Value should be
+/// provided in the sea_query_value_impls.rs file to avoid conflicts.
+///
+/// # Example
+///
+/// ```rust
+/// #[derive(Debug, Clone, SeaQueryType)]
+/// pub struct DbUuid(uuid::Uuid);
+/// ```
+#[proc_macro_derive(SeaQueryType)]
+pub fn sea_query_type_derive(input: TokenStream) -> TokenStream {
+    macros::sea_query_type::sea_query_type_derive(input)
+}
