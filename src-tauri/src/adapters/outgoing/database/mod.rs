@@ -13,6 +13,9 @@ use crate::{
     error::Result,
 };
 
+// Re-export FromLibsqlValue
+pub use crate::adapters::outgoing::database::libsql_adapter::FromLibsqlValue;
+
 /// A marker trait for database rows
 pub trait DatabaseRow {}
 

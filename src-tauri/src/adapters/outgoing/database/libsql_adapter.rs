@@ -14,8 +14,8 @@ use crate::{
 // Implement DatabaseRow for libsql::Row
 impl DatabaseRow for libsql::Row {}
 
-pub trait FromValue: Sized + Send {
-    fn from_libsql_value(value: &libsql::Value) -> Result<Self>;
+pub trait FromLibsqlValue: Sized + Send {
+    fn from_libsql_value(value: libsql::Value) -> Result<Self>;
 }
 
 /// LibSQLAdapter implements the DatabaseAdapter trait for LibSQL

@@ -4,7 +4,7 @@ use juniper::{GraphQLEnum, GraphQLInputObject};
 use lightning_macros::{SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
 use crate::{
-    adapters::outgoing::database::FromRow,
+    adapters::outgoing::database::{FromLibsqlValue, FromRow},
     core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid},
     error::{Error, Result}
 };
@@ -23,55 +23,32 @@ pub struct User {
 
 impl FromRow<libsql::Row> for User {
     fn from_row(row: &libsql::Row) -> Result<Self> {
-        // Get the column values by index
-        let id_str = row.get::<String>(0)
-            .map_err(|e| Error::DatabaseError(format!("Failed to get id: {}", e)))?;
-        let id = DbUuid::parse_str(&id_str)
-            .map_err(|e| Error::DatabaseError(format!("Failed to parse id as UUID: {}", e)))?;
 
-        let username = row.get::<String>(1)
-            .map_err(|e| Error::DatabaseError(format!("Failed to get username: {}", e)))?;
+        let id = DbUuid::from_libsql_value(row.get_value(0)?)?;
 
-        let pin_hash = row.get::<String>(2)
-            .map_err(|e| Error::DatabaseError(format!("Failed to get pin_hash: {}", e)))?;
+        let username = String::from_libsql_value(row.get_value(1)?)?;
 
-        let full_name = row.get::<String>(3)
-            .map_err(|e| Error::DatabaseError(format!("Failed to get full_name: {}", e)))?;
+        let pin_hash = String::from_libsql_value(row.get_value(2)?)?;
 
-        let state_str = row.get::<String>(4)
-            .map_err(|e| Error::DatabaseError(format!("Failed to get state: {}", e)))?;
-        let state = match state_str.as_str() {
-            "Active" => UserState::Active,
-            "Inactive" => UserState::Inactive,
-            "Locked" => UserState::Locked,
-            _ => return Err(Error::DatabaseError(format!("Invalid user state: {}", state_str))),
-        };
+        let full_name = String::from_libsql_value(row.get_value(3)?)?;
 
-        // last_login_at is optional (column 5)
-        let last_login_at = match row.get::<String>(5) {
-            Ok(timestamp_str) => {
-                Some(NaiveDateTime::parse_from_str(&timestamp_str, "%Y-%m-%d %H:%M:%S%.f")
-                    .map_err(|e| Error::DatabaseError(format!("Failed to parse last_login_at: {}", e)))?
-                )
-            },
+        let state = UserState::from_libsql_value(row.get_value(4)?)?;
+
+        let last_login_at = match row.get_value(5) {
+            Ok(libsql::Value::Null) => None,
+            Ok(timestamp_str) => Some(NaiveDateTime::from_libsql_value(timestamp_str)?),
             Err(_) => None,
         };
 
-        let created_at_str = row.get::<String>(6)
-            .map_err(|e| Error::DatabaseError(format!("Failed to get created_at: {}", e)))?;
-        let created_at = NaiveDateTime::parse_from_str(&created_at_str, "%Y-%m-%d %H:%M:%S%.f")
-            .map_err(|e| Error::DatabaseError(format!("Failed to parse created_at: {}", e)))?;
+        let created_at = NaiveDateTime::from_libsql_value(row.get_value(6)?)?;
 
-        let updated_at_str = row.get::<String>(7)
-            .map_err(|e| Error::DatabaseError(format!("Failed to get updated_at: {}", e)))?;
-        let updated_at = NaiveDateTime::parse_from_str(&updated_at_str, "%Y-%m-%d %H:%M:%S%.f")
-            .map_err(|e| Error::DatabaseError(format!("Failed to parse updated_at: {}", e)))?;
+        let updated_at = NaiveDateTime::from_libsql_value(row.get_value(7)?)?;
 
         Ok(User {
             id,
-            username: username.to_string(),
-            pin_hash: pin_hash.to_string(),
-            full_name: full_name.to_string(),
+            username,
+            pin_hash,
+            full_name,
             state,
             last_login_at,
             created_at,
@@ -85,6 +62,20 @@ pub enum UserState {
     Active,
     Inactive,
     Locked,
+}
+
+impl FromLibsqlValue for UserState {
+    fn from_libsql_value(value: libsql::Value) -> Result<Self> {
+        match value {
+            libsql::Value::Text(s) => match s.as_str() {
+                "Active" => Ok(UserState::Active),
+                "Inactive" => Ok(UserState::Inactive),
+                "Locked" => Ok(UserState::Locked),
+                _ => Err(Error::DatabaseError("Invalid user state value in database".to_string())),
+            },
+            _ => Err(Error::DatabaseError("Invalid user state value type in database".to_string())),
+        }
+    }
 }
 
 #[derive(Debug, Clone, GraphQLInputObject)]

@@ -1,10 +1,13 @@
 use bigdecimal::BigDecimal;
+use chrono::NaiveDateTime;
 use std::str::FromStr;
 
 use crate::{
     adapters::outgoing::database::FromRow,
     error::{Error, Result},
 };
+
+use super::FromLibsqlValue;
 
 // Implementation of FromRow for BigDecimal
 impl FromRow<libsql::Row> for BigDecimal {
@@ -32,6 +35,28 @@ impl FromRow<libsql::Row> for i64 {
                 value_str.parse::<i64>()
                     .map_err(|e| Error::DatabaseError(format!("Failed to parse i64: {}", e)))
             }
+        }
+    }
+}
+
+impl FromLibsqlValue for String {
+    fn from_libsql_value(value: libsql::Value) -> Result<Self> {
+        match value {
+            libsql::Value::Text(s) => Ok(s.clone()),
+            _ => Err(Error::DatabaseError("Invalid string value type in database".to_string())),
+        }
+    }
+}
+
+impl FromLibsqlValue for NaiveDateTime {
+    fn from_libsql_value(value: libsql::Value) -> Result<Self> {
+        match value {
+            libsql::Value::Text(s) => {
+                println!("NaiveDateTime value: {}", s);
+                NaiveDateTime::parse_from_str(&s, "%Y-%m-%d %H:%M:%S%.f")
+                    .map_err(|e| Error::DatabaseError(format!("Failed to parse NaiveDateTime: {}", e)))
+            },
+            _ => Err(Error::DatabaseError("Invalid NaiveDateTime value type in database".to_string())),
         }
     }
 }

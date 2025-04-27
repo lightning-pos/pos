@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 use uuid::Uuid;
 
-use crate::{adapters::outgoing::database::FromRow, error::{Error, Result}};
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, error::{Error, Result}};
 use lightning_macros::SeaQueryType;
 
 #[derive(
@@ -18,7 +18,6 @@ use lightning_macros::SeaQueryType;
     Serialize,
     Deserialize,
 )]
-
 #[graphql_scalar]
 #[graphql(transparent)]
 #[derive(Hash, Display, SeaQueryType)]
@@ -37,7 +36,16 @@ impl DbUuid {
 }
 
 impl FromRow<libsql::Row> for DbUuid {
-    fn from_row(row: &libsql::Row) -> Result<Self> {
+    fn from_row(_row: &libsql::Row) -> Result<Self> {
         todo!()
+    }
+}
+
+impl FromLibsqlValue for DbUuid {
+    fn from_libsql_value(value: libsql::Value) -> Result<Self> {
+        match value {
+            libsql::Value::Text(s) => DbUuid::parse_str(&s),
+            _ => Err(Error::DatabaseError("Invalid UUID value type in database".to_string())),
+        }
     }
 }
