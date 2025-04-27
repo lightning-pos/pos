@@ -27,9 +27,11 @@ pub struct TaxGroupUpdateInput {
     pub description: Option<Option<String>>, // Double optional for nullable field
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct TaxGroupTax {
+    #[sea_query(primary_key)]
     pub tax_group_id: DbUuid,
+    #[sea_query(primary_key)]
     pub tax_id: DbUuid,
 }
 
