@@ -90,3 +90,23 @@ pub fn sea_query_enum_derive(input: TokenStream) -> TokenStream {
 pub fn sea_query_type_derive(input: TokenStream) -> TokenStream {
     macros::sea_query_type::sea_query_type_derive(input)
 }
+
+/// Automatically implements FromLibsqlValue for enums.
+///
+/// This macro will generate an implementation of FromLibsqlValue for an enum,
+/// allowing it to be directly converted from libsql::Value.
+///
+/// # Example
+///
+/// ```rust
+/// #[derive(Debug, Clone, Display, PartialEq, GraphQLEnum, LibsqlEnum)]
+/// pub enum UserState {
+///     Active,
+///     Inactive,
+///     Locked,
+/// }
+/// ```
+#[proc_macro_derive(LibsqlEnum)]
+pub fn libsql_enum_derive(input: TokenStream) -> TokenStream {
+    macros::libsql_enum::libsql_enum_derive(input)
+}

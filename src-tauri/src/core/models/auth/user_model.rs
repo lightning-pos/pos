@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use derive_more::derive::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
-use lightning_macros::{SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
+use lightning_macros::{SeaQueryCrud, SeaQueryEnum, SeaQueryModel, LibsqlEnum};
 
 use crate::{
     adapters::outgoing::database::{FromLibsqlValue, FromRow},
@@ -36,7 +36,7 @@ impl FromRow<libsql::Row> for User {
 
         let last_login_at = match row.get_value(5) {
             Ok(libsql::Value::Null) => None,
-            Ok(timestamp_str) => Some(NaiveDateTime::from_libsql_value(timestamp_str)?),
+            Ok(value) => Some(NaiveDateTime::from_libsql_value(value)?),
             Err(_) => None,
         };
 
@@ -57,25 +57,11 @@ impl FromRow<libsql::Row> for User {
     }
 }
 
-#[derive(Debug, Clone, Display, PartialEq, GraphQLEnum, SeaQueryEnum)]
+#[derive(Debug, Clone, Display, PartialEq, GraphQLEnum, SeaQueryEnum, LibsqlEnum)]
 pub enum UserState {
     Active,
     Inactive,
     Locked,
-}
-
-impl FromLibsqlValue for UserState {
-    fn from_libsql_value(value: libsql::Value) -> Result<Self> {
-        match value {
-            libsql::Value::Text(s) => match s.as_str() {
-                "Active" => Ok(UserState::Active),
-                "Inactive" => Ok(UserState::Inactive),
-                "Locked" => Ok(UserState::Locked),
-                _ => Err(Error::DatabaseError("Invalid user state value in database".to_string())),
-            },
-            _ => Err(Error::DatabaseError("Invalid user state value type in database".to_string())),
-        }
-    }
 }
 
 #[derive(Debug, Clone, GraphQLInputObject)]
