@@ -6,6 +6,7 @@ use crate::{
     adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
+        db::SeaQueryCrudTrait,
         models::catalog::discount_model::{
             Discount, DiscountNewInput, DiscountState, DiscountUpdateInput, Discounts,
         },
@@ -56,36 +57,7 @@ impl Command for CreateDiscountCommand {
         let now = Utc::now().naive_utc();
         let discount_id: DbUuid = Uuid::now_v7().into();
 
-        // Build the insert query using a SQL string
-        let insert_sql = format!(
-            "INSERT INTO discounts (id, name, description, discount_type, value, scope, state, start_date, end_date, created_at, updated_at) \
-             VALUES ('{}', '{}', {}, '{}', '{}', '{}', '{}', {}, {}, '{}', '{}')",
-            discount_id.to_string(),
-            self.discount.name.clone(),
-            match &self.discount.description {
-                Some(desc) => format!("'{}'", desc),
-                None => "NULL".to_string(),
-            },
-            self.discount.discount_type.to_string(),
-            self.discount.value.to_string(),
-            self.discount.scope.to_string(),
-            self.discount.state.unwrap_or(DiscountState::Active).to_string(),
-            match &self.discount.start_date {
-                Some(date) => format!("'{}'", date),
-                None => "NULL".to_string(),
-            },
-            match &self.discount.end_date {
-                Some(date) => format!("'{}'", date),
-                None => "NULL".to_string(),
-            },
-            now.to_string(),
-            now.to_string()
-        );
-
-        // Execute the insert query
-        service.db_adapter.execute(&insert_sql).await?;
-
-        // Create and return the new discount object
+        // Create a new discount instance
         let new_discount = Discount {
             id: discount_id,
             name: self.discount.name.clone(),
@@ -100,6 +72,10 @@ impl Command for CreateDiscountCommand {
             updated_at: now,
         };
 
+        // Generate and execute the insert query
+        let insert_stmt = new_discount.insert();
+        service.db_adapter.insert_one::<Discount>(&insert_stmt).await?;
+
         Ok(new_discount)
     }
 }
@@ -112,69 +88,69 @@ impl Command for UpdateDiscountCommand {
         let mut select_query = Query::select();
         let check_stmt = select_query
             .from(Discounts::Table)
-            .column(Discounts::Id)
+            .columns([
+                Discounts::Id,
+                Discounts::Name,
+                Discounts::Description,
+                Discounts::DiscountType,
+                Discounts::Value,
+                Discounts::Scope,
+                Discounts::State,
+                Discounts::StartDate,
+                Discounts::EndDate,
+                Discounts::CreatedAt,
+                Discounts::UpdatedAt,
+            ])
             .and_where(Expr::col(Discounts::Id).eq(self.discount.id.to_string()));
 
-        let existing = service.db_adapter.query_optional::<Discount>(&check_stmt).await?;
-        if existing.is_none() {
+        let existing_discount = service.db_adapter.query_optional::<Discount>(&check_stmt).await?;
+        if existing_discount.is_none() {
             return Err(Error::NotFoundError);
         }
 
-        // Build update query with SeaQuery
+        // Get the existing discount data and update it
+        let mut discount = existing_discount.unwrap();
         let now = Utc::now().naive_utc();
 
-        // Create the update query
-        let mut update_query = Query::update();
-        let update_stmt = update_query.table(Discounts::Table)
-            .value(Discounts::UpdatedAt, now.to_string());
-
-        // Add optional fields if they exist
+        // Update fields if they exist
         if let Some(name) = &self.discount.name {
-            update_stmt.value(Discounts::Name, name.clone());
+            discount.name = name.clone();
         }
 
         if let Some(description) = &self.discount.description {
-            match description {
-                Some(desc) => update_stmt.value(Discounts::Description, desc.clone()),
-                None => update_stmt.value(Discounts::Description, sea_query::Value::String(None)),
-            };
+            discount.description = description.clone();
         }
 
         if let Some(discount_type) = &self.discount.discount_type {
-            update_stmt.value(Discounts::DiscountType, discount_type.to_string());
+            discount.discount_type = *discount_type;
         }
 
         if let Some(value) = &self.discount.value {
-            update_stmt.value(Discounts::Value, value.to_string());
+            discount.value = *value;
         }
 
         if let Some(scope) = &self.discount.scope {
-            update_stmt.value(Discounts::Scope, scope.to_string());
+            discount.scope = *scope;
         }
 
         if let Some(state) = &self.discount.state {
-            update_stmt.value(Discounts::State, state.to_string());
+            discount.state = *state;
         }
 
         if let Some(start_date) = &self.discount.start_date {
-            match start_date {
-                Some(date) => update_stmt.value(Discounts::StartDate, date.to_string()),
-                None => update_stmt.value(Discounts::StartDate, sea_query::Value::String(None)),
-            };
+            discount.start_date = start_date.clone();
         }
 
         if let Some(end_date) = &self.discount.end_date {
-            match end_date {
-                Some(date) => update_stmt.value(Discounts::EndDate, date.to_string()),
-                None => update_stmt.value(Discounts::EndDate, sea_query::Value::String(None)),
-            };
+            discount.end_date = end_date.clone();
         }
 
-        // Add WHERE condition
-        update_stmt.and_where(Expr::col(Discounts::Id).eq(self.discount.id.to_string()));
+        // Always update the updated_at timestamp
+        discount.updated_at = now;
 
-        // Execute the update
-        service.db_adapter.update_many(&update_stmt).await?;
+        // Generate and execute the update query
+        let update_stmt = discount.update();
+        service.db_adapter.update_one::<Discount>(&update_stmt).await?;
 
         // Retrieve the updated discount
         let mut select_query = Query::select();
@@ -195,9 +171,9 @@ impl Command for UpdateDiscountCommand {
             ])
             .and_where(Expr::col(Discounts::Id).eq(self.discount.id.to_string()));
 
-        let discount = service.db_adapter.query_one::<Discount>(&select_stmt).await?;
+        let updated_discount = service.db_adapter.query_one::<Discount>(&select_stmt).await?;
 
-        Ok(discount)
+        Ok(updated_discount)
     }
 }
 
@@ -205,13 +181,8 @@ impl Command for DeleteDiscountCommand {
     type Output = usize;
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        // Build delete query with SeaQuery
-        let mut delete_query = Query::delete();
-        let delete_stmt = delete_query
-            .from_table(Discounts::Table)
-            .and_where(Expr::col(Discounts::Id).eq(self.id.to_string()));
-
-        // Execute the delete query
+        // Use the delete_by_id helper method from SeaQueryCrudTrait
+        let delete_stmt = Discount::delete_by_id(self.id);
         let affected_rows = service.db_adapter.delete(&delete_stmt).await?;
 
         if affected_rows == 0 {
@@ -462,9 +433,7 @@ mod tests {
             discount: update_info,
         };
         let result = update_cmd.exec(&mut service).await;
-
-        // This should fail because the initial query in the command fails
-        assert!(matches!(result, Err(Error::LibsqlError(_)))); // Or potentially NotFoundError depending on how LibsqlError maps
+        assert!(matches!(result, Err(Error::NotFoundError)));
     }
 
     #[tokio::test]
