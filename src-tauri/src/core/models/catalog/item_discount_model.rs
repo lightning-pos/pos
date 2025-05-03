@@ -1,7 +1,7 @@
 use juniper::GraphQLInputObject;
 use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
 
 #[derive(Debug, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct ItemDiscount {

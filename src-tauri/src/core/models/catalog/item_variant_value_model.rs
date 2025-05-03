@@ -22,7 +22,7 @@
 use juniper::GraphQLInputObject;
 use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid};
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
 
 /// Junction table connecting item variants to variant values.
 ///

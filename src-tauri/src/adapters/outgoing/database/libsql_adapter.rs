@@ -15,7 +15,7 @@ use crate::{
 impl DatabaseRow for libsql::Row {}
 
 pub trait FromLibsqlValue: Sized + Send {
-    fn from_libsql_value(value: libsql::Value) -> Result<Self>;
+    fn from_libsql_value(value: libsql::Value) -> Result<Option<Self>>;
 }
 
 /// LibSQLAdapter implements the DatabaseAdapter trait for LibSQL
@@ -215,9 +215,10 @@ impl DatabaseAdapter for LibSqlAdapter {
             .map_err(|e| Error::DatabaseError(format!("Failed to get next row: {}", e)))?;
 
         // Check if we got a row
+
+        println!("yoyo row {:?}", row);
         match row {
             Some(row) => {
-                // Convert the row to the model type using the FromRow trait
                 T::from_row(&row)
             },
             None => Err(Error::DatabaseError("Failed to retrieve inserted row".to_string())),

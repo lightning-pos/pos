@@ -1,27 +1,27 @@
 use derive_more::derive::Display;
 use juniper::graphql_scalar;
 use sea_query::{Nullable, Value as SeaValue};
-use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 use uuid::Uuid;
 
 use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, error::{Error, Result}};
-use lightning_macros::SeaQueryType;
+use lightning_macros::{LibsqlType, SeaQueryType};
 
 #[derive(
     Debug,
     Clone,
     Copy,
+    Display,
+    Hash,
     PartialEq,
     Eq,
     PartialOrd,
     Ord,
-    Serialize,
-    Deserialize,
+    SeaQueryType,
+    LibsqlType
 )]
 #[graphql_scalar]
 #[graphql(transparent)]
-#[derive(Hash, Display, SeaQueryType)]
 pub struct DbUuid(Uuid);
 
 impl From<Uuid> for DbUuid {
@@ -40,15 +40,6 @@ impl FromRow<libsql::Row> for DbUuid {
     fn from_row(row: &libsql::Row) -> Result<Self> {
         match row.get(0) {
             Ok(libsql::Value::Text(s)) => DbUuid::parse_str(&s),
-            _ => Err(Error::DatabaseError("Invalid UUID value type in database".to_string())),
-        }
-    }
-}
-
-impl FromLibsqlValue for DbUuid {
-    fn from_libsql_value(value: libsql::Value) -> Result<Self> {
-        match value {
-            libsql::Value::Text(s) => DbUuid::parse_str(&s),
             _ => Err(Error::DatabaseError("Invalid UUID value type in database".to_string())),
         }
     }

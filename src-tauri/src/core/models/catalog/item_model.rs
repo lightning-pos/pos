@@ -3,7 +3,7 @@ use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
 use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel, LibsqlEnum};
 
-use crate::{adapters::outgoing::database::FromLibsqlValue, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
 
 #[derive(Debug, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct Item {

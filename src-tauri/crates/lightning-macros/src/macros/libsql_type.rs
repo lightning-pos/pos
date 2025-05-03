@@ -25,7 +25,7 @@ pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
 
     // Check if the inner type is a primitive that can be directly cast
     let is_primitive = is_primitive_type(inner_type);
-    
+
     // Check if this is the Percentage type
     let is_percentage = type_name.to_string() == "Percentage";
 
@@ -34,24 +34,24 @@ pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
         // Special handling for Percentage type
         quote! {
             impl FromLibsqlValue for #type_name {
-                fn from_libsql_value(value: libsql::Value) -> crate::error::Result<Self> {
+                fn from_libsql_value(value: libsql::Value) -> crate::error::Result<Option<Self>> {
                     match value {
                         libsql::Value::Integer(i) => {
                             // For integer values, use directly as basis points
-                            Ok(#type_name(i as #inner_type))
+                            Ok(Some(#type_name(i as #inner_type)))
                         },
                         libsql::Value::Real(f) => {
                             // For float values, convert to basis points
                             let basis_points = (f * Self::BASIS_POINTS as f64).round() as #inner_type;
-                            Ok(#type_name(basis_points))
+                            Ok(Some(#type_name(basis_points)))
                         },
                         libsql::Value::Text(s) => {
                             // For text values, parse using from_str
-                            Self::from_str(&s).map_err(|e| crate::error::Error::DatabaseError(e))
+                            Self::from_str(&s).map_err(|e| crate::error::Error::DatabaseError(e)).map(Some)
                         },
                         libsql::Value::Null => {
                             // Default to 0% for NULL values
-                            Ok(#type_name(0))
+                            Ok(None)
                         },
                         _ => Err(crate::error::Error::DatabaseError(
                             format!("Invalid {} value type in database", stringify!(#type_name))
@@ -64,12 +64,12 @@ pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
         // For primitive types, we can use direct conversion
         quote! {
             impl FromLibsqlValue for #type_name {
-                fn from_libsql_value(value: libsql::Value) -> crate::error::Result<Self> {
+                fn from_libsql_value(value: libsql::Value) -> crate::error::Result<Option<Self>> {
                     match value {
                         libsql::Value::Text(s) => {
                             // For text values, try to parse as the inner type
                             match s.parse::<#inner_type>() {
-                                Ok(val) => Ok(#type_name(val)),
+                                Ok(val) => Ok(Some(#type_name(val))),
                                 Err(_) => Err(crate::error::Error::DatabaseError(
                                     format!("Cannot parse '{}' as {}", s, stringify!(#inner_type))
                                 )),
@@ -77,12 +77,13 @@ pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
                         },
                         libsql::Value::Integer(i) => {
                             // For integer values, convert directly if possible
-                            Ok(#type_name(i as #inner_type))
+                            Ok(Some(#type_name(i as #inner_type)))
                         },
                         libsql::Value::Real(f) => {
                             // For float values, convert if possible
-                            Ok(#type_name(f as #inner_type))
+                            Ok(Some(#type_name(f as #inner_type)))
                         },
+                        libsql::Value::Null => Ok(None),
                         _ => Err(crate::error::Error::DatabaseError(
                             format!("Invalid {} value type in database", stringify!(#type_name))
                         )),
@@ -94,12 +95,13 @@ pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
         // Special handling for UUID types
         quote! {
             impl FromLibsqlValue for #type_name {
-                fn from_libsql_value(value: libsql::Value) -> crate::error::Result<Self> {
+                fn from_libsql_value(value: libsql::Value) -> crate::error::Result<Option<Self>> {
                     match value {
                         libsql::Value::Text(s) => {
                             // For UUIDs, use the parse_str method
-                            Self::parse_str(&s)
+                            Self::parse_str(&s).map(Some)
                         },
+                        libsql::Value::Null => Ok(None),
                         _ => Err(crate::error::Error::DatabaseError(
                             format!("Invalid {} value type in database", stringify!(#type_name))
                         )),
@@ -111,12 +113,12 @@ pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
         // For other types, provide a more generic implementation
         quote! {
             impl FromLibsqlValue for #type_name {
-                fn from_libsql_value(value: libsql::Value) -> crate::error::Result<Self> {
+                fn from_libsql_value(value: libsql::Value) -> crate::error::Result<Option<Self>> {
                     match value {
                         libsql::Value::Text(s) => {
                             // For text, use from_str if available
                             match Self::from_str(&s) {
-                                Ok(val) => Ok(val),
+                                Ok(val) => Ok(Some(val)),
                                 Err(e) => Err(crate::error::Error::DatabaseError(
                                     format!("Error parsing {}: {}", stringify!(#type_name), e)
                                 )),
@@ -124,8 +126,9 @@ pub fn libsql_type_derive(input: TokenStream) -> TokenStream {
                         },
                         libsql::Value::Integer(i) => {
                             // For integers, use From if available
-                            Ok(Self::from(i))
+                            Ok(Some(Self::from(i)))
                         },
+                        libsql::Value::Null => Ok(None),
                         _ => Err(crate::error::Error::DatabaseError(
                             format!("Invalid {} value type in database", stringify!(#type_name))
                         )),

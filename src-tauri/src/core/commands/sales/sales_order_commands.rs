@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Expr, Query};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use rand::Rng;
 use uuid::Uuid;
 
@@ -202,6 +202,8 @@ impl Command for CreateSalesOrderCommand {
                     now.to_string().into(),
                     now.to_string().into(),
                 ]);
+
+            println!("yoyo {}", item_insert_stmt.to_string(SqliteQueryBuilder));
 
             db.insert_one::<SalesOrderItem>(&item_insert_stmt).await?;
         }

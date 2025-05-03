@@ -1,8 +1,7 @@
 use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
 
-use crate::core::db::SeaQueryCrudTrait;
-use crate::core::types::db_uuid::DbUuid;
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
 use crate::core::types::percentage::Percentage;
 use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 

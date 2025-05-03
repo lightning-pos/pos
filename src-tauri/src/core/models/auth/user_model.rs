@@ -4,7 +4,7 @@ use juniper::{GraphQLEnum, GraphQLInputObject};
 use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
 use crate::{
-    adapters::outgoing::database::FromLibsqlValue,
+    adapters::outgoing::database::{FromLibsqlValue, FromRow},
     core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid},
 };
 

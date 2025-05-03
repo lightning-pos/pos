@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
 use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid, types::money::Money};
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
 
 #[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct SalesOrderItem {

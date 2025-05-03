@@ -31,7 +31,7 @@ use chrono::NaiveDateTime;
 use juniper::GraphQLInputObject;
 use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}};
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
 
 /// Represents a specific variant of an item with its own SKU and price adjustment.
 ///
