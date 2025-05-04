@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::{quote, format_ident};
-use syn::{parse_macro_input, DeriveInput, Data, Fields, Type};
+use syn::{parse_macro_input, DeriveInput};
 use inflector::Inflector;
 
 /// A derive macro that generates a SeaQuery Iden enum for a struct and optional input structs.
@@ -60,13 +60,50 @@ pub fn sea_query_model_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let struct_name = input.ident.clone();
 
-    // Parse configuration options from attributes
+    let (generate_new_input, generate_update_input) = parse_sea_query_model_attrs(&input.attrs);
+
+    let enum_name = format_ident!("{}", struct_name.to_string().to_plural());
+
+    let fields = extract_named_fields(&input.data);
+
+    let (variants, arms, all_column_variants, new_input_fields, update_input_fields) =
+        process_fields(&fields, &struct_name);
+
+    let new_input_name = format_ident!("{}NewInput", struct_name);
+    let update_input_name = format_ident!("{}UpdateInput", struct_name);
+
+    let mut expanded = generate_iden_enum_and_impl(
+        &enum_name,
+        &variants,
+        &arms,
+        &all_column_variants,
+    );
+
+    if generate_new_input {
+        expanded = quote! {
+            #expanded
+            #[derive(Debug, Clone, juniper::GraphQLInputObject)]
+            pub struct #new_input_name {
+                #(#new_input_fields),*
+            }
+        };
+    }
+    if generate_update_input {
+        expanded = quote! {
+            #expanded
+            #[derive(Debug, Clone, juniper::GraphQLInputObject)]
+            pub struct #update_input_name {
+                #(#update_input_fields),*
+            }
+        };
+    }
+    TokenStream::from(expanded)
+}
+
+fn parse_sea_query_model_attrs(attrs: &[syn::Attribute]) -> (bool, bool) {
     let mut generate_new_input = false;
     let mut generate_update_input = false;
-
-    // Simple string-based parsing for attributes
-    for attr in &input.attrs {
-        // Convert the entire attribute to a string for simple parsing
+    for attr in attrs {
         let attr_str = format!("{:?}", attr);
         if attr_str.contains("sea_query_model") {
             if attr_str.contains("new_input") {
@@ -77,100 +114,87 @@ pub fn sea_query_model_derive(input: TokenStream) -> TokenStream {
             }
         }
     }
+    (generate_new_input, generate_update_input)
+}
 
-    // Default to plural form of struct name (e.g., User -> Users)
-    let enum_name = format_ident!("{}", struct_name.to_string().to_plural());
-
-    // Default table: snake_case(struct_name) + pluralized
-    let table_name = struct_name.to_string().to_snake_case().to_plural();
-
-    // Extract named fields
-    let fields = match input.data {
-        Data::Struct(ds) => {
-            if let Fields::Named(named) = ds.fields {
-                named.named
+fn extract_named_fields(data: &syn::Data) -> syn::punctuated::Punctuated<syn::Field, syn::token::Comma> {
+    match data {
+        syn::Data::Struct(ds) => {
+            if let syn::Fields::Named(named) = &ds.fields {
+                named.named.clone()
             } else {
                 panic!("SeaQueryModel only supports named fields");
             }
         }
         _ => panic!("SeaQueryModel can only be used on structs"),
-    };
+    }
+}
 
+fn process_fields(
+    fields: &syn::punctuated::Punctuated<syn::Field, syn::token::Comma>,
+    struct_name: &syn::Ident,
+) -> (
+    Vec<proc_macro2::TokenStream>,
+    Vec<proc_macro2::TokenStream>,
+    Vec<proc_macro2::TokenStream>,
+    Vec<proc_macro2::TokenStream>,
+    Vec<proc_macro2::TokenStream>,
+) {
+    let enum_name = format_ident!("{}", struct_name.to_string().to_plural());
+    let table_name = struct_name.to_string().to_snake_case().to_plural();
     let mut variants = vec![quote! { Table }];
     let mut arms = vec![quote! { #enum_name::Table => #table_name }];
     let mut all_column_variants = Vec::new();
-
-    // Collect fields for NewInput and UpdateInput structs
     let mut new_input_fields = Vec::new();
     let mut update_input_fields = Vec::new();
-    let new_input_name = format_ident!("{}{}", struct_name, "NewInput");
-    let update_input_name = format_ident!("{}{}", struct_name, "UpdateInput");
-
     for field in fields.iter() {
         let ident = field.ident.as_ref().unwrap();
         let field_name = ident.to_string();
         let pascal = field_name.to_pascal_case();
         let var_ident = format_ident!("{}", pascal);
         let field_type = &field.ty;
-
-        // Add to Iden enum
         variants.push(quote! { #var_ident });
         arms.push(quote! { #enum_name::#var_ident => #field_name });
         all_column_variants.push(quote! { #enum_name::#var_ident });
-
-        // Skip id, created_at, updated_at for NewInput
         if field_name != "id" && field_name != "created_at" && field_name != "updated_at" {
-            // For NewInput, use the original type
             new_input_fields.push(quote! {
                 pub #ident: #field_type
             });
         }
-
-        // For UpdateInput
         if field_name == "id" {
-            // id is required in UpdateInput
             update_input_fields.push(quote! {
                 pub #ident: #field_type
             });
         } else if field_name != "created_at" && field_name != "updated_at" {
-            // Make all other fields optional in UpdateInput
-            // Check if the type is already an Option<T>
-            let is_option = if let Type::Path(type_path) = field_type {
-                if let Some(segment) = type_path.path.segments.first() {
-                    segment.ident == "Option"
-                } else {
-                    false
-                }
-            } else {
-                false
-            };
-
-            if is_option {
-                // If already Option<T>, wrap in another Option
-                update_input_fields.push(quote! {
-                    pub #ident: Option<#field_type>
-                });
-            } else {
-                // If not Option<T>, make it Option<T>
-                update_input_fields.push(quote! {
-                    pub #ident: Option<#field_type>
-                });
-            }
+            update_input_fields.push(quote! {
+                pub #ident: Option<#field_type>
+            });
         }
     }
+    (
+        variants,
+        arms,
+        all_column_variants,
+        new_input_fields,
+        update_input_fields,
+    )
+}
 
-    // Build the base implementation for the Iden enum
-    let mut expanded = quote! {
+fn generate_iden_enum_and_impl(
+    enum_name: &proc_macro2::Ident,
+    variants: &[proc_macro2::TokenStream],
+    arms: &[proc_macro2::TokenStream],
+    all_column_variants: &[proc_macro2::TokenStream],
+) -> proc_macro2::TokenStream {
+    quote! {
         pub enum #enum_name {
             #(#variants),*
         }
-
         impl #enum_name {
             pub fn all_columns() -> Vec<Self> {
                 vec![#(#all_column_variants),*]
             }
         }
-
         impl sea_query::Iden for #enum_name {
             fn unquoted(&self, s: &mut dyn sea_query::Write) {
                 let _ = s.write_str(
@@ -180,31 +204,6 @@ pub fn sea_query_model_derive(input: TokenStream) -> TokenStream {
                 );
             }
         }
-    };
-
-    // Add NewInput struct if specified
-    if generate_new_input {
-        expanded = quote! {
-            #expanded
-
-            #[derive(Debug, Clone, juniper::GraphQLInputObject)]
-            pub struct #new_input_name {
-                #(#new_input_fields),*
-            }
-        };
     }
-
-    // Add UpdateInput struct if specified
-    if generate_update_input {
-        expanded = quote! {
-            #expanded
-
-            #[derive(Debug, Clone, juniper::GraphQLInputObject)]
-            pub struct #update_input_name {
-                #(#update_input_fields),*
-            }
-        };
-    };
-
-    TokenStream::from(expanded)
 }
+
