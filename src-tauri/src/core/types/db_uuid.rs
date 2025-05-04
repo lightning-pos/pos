@@ -1,6 +1,5 @@
 use derive_more::derive::Display;
 use juniper::graphql_scalar;
-use sea_query::{Nullable, Value as SeaValue};
 use std::hash::Hash;
 use uuid::Uuid;
 
@@ -28,10 +27,6 @@ impl DbUuid {
     pub fn parse_str(s: &str) -> Result<Self> {
         Uuid::parse_str(s).map(DbUuid).map_err(Error::UuidError)
     }
-
-    pub fn to_sql(&self) -> String {
-        self.0.to_string()
-    }
 }
 
 impl From<Uuid> for DbUuid {
@@ -49,8 +44,4 @@ impl FromRow<libsql::Row> for DbUuid {
     }
 }
 
-impl Nullable for DbUuid {
-    fn null() -> SeaValue {
-        SeaValue::String(None)
-    }
-}
+

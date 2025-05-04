@@ -50,10 +50,6 @@ impl Percentage {
         }
     }
 
-    pub fn to_sql(&self) -> String {
-        self.0.to_string()
-    }
-
     /// Returns the raw basis points value
     pub fn basis_points(&self) -> i32 {
         self.0

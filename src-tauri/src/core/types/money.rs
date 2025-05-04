@@ -6,7 +6,6 @@ use std::{
 use bigdecimal::{BigDecimal, ToPrimitive};
 use juniper::{graphql_scalar, InputValue, ScalarValue, Value};
 use lightning_macros::{LibsqlType, SeaQueryType};
-use sea_query::{Nullable, Value as SeaValue};
 
 use crate::adapters::outgoing::database::FromLibsqlValue;
 
@@ -50,15 +49,6 @@ impl Money {
     }
 
     pub fn to_base_unit(&self) -> i64 {
-        self.0
-    }
-
-    pub fn to_sql(&self) -> String {
-        self.0.to_string()
-    }
-
-    /// Returns the raw cents value
-    pub fn cents(&self) -> i64 {
         self.0
     }
 
@@ -134,13 +124,6 @@ impl Div<i32> for Money {
 
     fn div(self, other: i32) -> Self::Output {
         Money(self.0 / other as i64)
-    }
-}
-
-// Implement Nullable trait for Money to support Option<Money> in SeaQuery
-impl Nullable for Money {
-    fn null() -> SeaValue {
-        SeaValue::Int(None)
     }
 }
 
