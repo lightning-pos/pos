@@ -47,7 +47,7 @@ impl Command for AddUserCommand {
         // Create new user
         let now = Utc::now().naive_utc();
         let user_id: DbUuid = Uuid::now_v7().into();
-        let pin_hash = self.user.pin.clone();
+        let pin_hash = self.user.pin_hash.clone();
 
         // Create a new user instance
         let new_user = User {
@@ -103,8 +103,8 @@ impl Command for UpdateUserCommand {
             user.username = username.clone();
         }
 
-        if let Some(pin) = &self.user.pin {
-            user.pin_hash = pin.clone();
+        if let Some(pin_hash) = &self.user.pin_hash {
+            user.pin_hash = pin_hash.clone();
         }
 
         // Always update the updated_at timestamp
@@ -150,8 +150,10 @@ mod tests {
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "newuser".to_string(),
-                pin: "newpin".to_string(),
+                pin_hash: "newpin".to_string(),
                 full_name: "New User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
 
@@ -169,8 +171,10 @@ mod tests {
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "updateuser".to_string(),
-                pin: "updatepin".to_string(),
+                pin_hash: "updatepin".to_string(),
                 full_name: "Update User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
         let user = add_user_command.exec(&mut service).await.unwrap();
@@ -181,7 +185,8 @@ mod tests {
                 full_name: Some("Updated User".to_string()),
                 state: Some(UserState::Inactive),
                 username: None,
-                pin: None,
+                pin_hash: None,
+                last_login_at: None,
             },
         };
 
@@ -200,8 +205,10 @@ mod tests {
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "testuser".to_string(),
-                pin: "testpin".to_string(),
+                pin_hash: "testpin".to_string(),
                 full_name: "Test User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
 
@@ -212,8 +219,10 @@ mod tests {
         let duplicate_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "testuser".to_string(),
-                pin: "anotherpin".to_string(),
+                pin_hash: "anotherpin".to_string(),
                 full_name: "Another User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
 
@@ -231,7 +240,8 @@ mod tests {
                 full_name: Some("Updated User".to_string()),
                 state: Some(UserState::Inactive),
                 username: None,
-                pin: None,
+                pin_hash: None,
+                last_login_at: None,
             },
         };
 
@@ -245,8 +255,10 @@ mod tests {
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "partialupdate".to_string(),
-                pin: "initialpin".to_string(),
+                pin_hash: "initialpin".to_string(),
                 full_name: "Initial Name".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
         let user = add_user_command.exec(&mut service).await.unwrap();
@@ -257,7 +269,8 @@ mod tests {
                 full_name: Some("Updated Name".to_string()),
                 state: None,
                 username: None,
-                pin: None,
+                pin_hash: None,
+                last_login_at: None,
             },
         };
 
@@ -276,8 +289,10 @@ mod tests {
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "deleteuser".to_string(),
-                pin: "deletepin".to_string(),
+                pin_hash: "deletepin".to_string(),
                 full_name: "Delete User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
         let user = add_user_command.exec(&mut service).await.unwrap();

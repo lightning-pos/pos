@@ -380,7 +380,7 @@ impl Command for VoidSalesOrderCommand {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::commands::sales::sales_charge_type_commands::CreateSalesChargeTypeCommand;
+    use crate::core::{commands::sales::sales_charge_type_commands::CreateSalesChargeTypeCommand, models::auth::user_model::UserState};
     use crate::core::commands::tests::setup_service;
     use tokio;
     use crate::{
@@ -432,8 +432,10 @@ mod tests {
         let command = AddUserCommand {
             user: UserNewInput {
                 username: format!("testuser{}", random_suffix),
-                pin: "1234".to_string(),
+                pin_hash: "1234".to_string(),
                 full_name: format!("Test User {}", random_suffix),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
         command.exec(service).await.unwrap().id

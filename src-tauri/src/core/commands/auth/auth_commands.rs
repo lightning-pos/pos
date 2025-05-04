@@ -70,7 +70,7 @@ mod tests {
                     user_commands::AddUserCommand,
                 }, tests::setup_service, Command
             },
-            models::auth::user_model::UserNewInput,
+            models::auth::user_model::{UserNewInput, UserState},
         },
         error::Error,
     };
@@ -81,8 +81,10 @@ mod tests {
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "testuser".to_string(),
-                pin: "password".to_string(),
+                pin_hash: "password".to_string(),
                 full_name: "Test User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
 

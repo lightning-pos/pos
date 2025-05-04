@@ -333,6 +333,7 @@ impl Command for GetSalesOrderPaymentsCommand {
 mod tests {
     use super::*;
     use crate::core::commands::tests::setup_service;
+    use crate::core::models::auth::user_model::UserState;
     use crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentState;
     use crate::core::{
         commands::{
@@ -393,8 +394,10 @@ mod tests {
         let command = AddUserCommand {
             user: UserNewInput {
                 username: format!("testuser{}", random_suffix),
-                pin: "1234".to_string(),
+                pin_hash: "1234".to_string(),
                 full_name: format!("Test User {}", random_suffix),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
         command.exec(service).await.unwrap().id

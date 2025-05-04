@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use derive_more::derive::Display;
-use juniper::{GraphQLEnum, GraphQLInputObject};
+use juniper::GraphQLEnum;
 use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
 use crate::{
@@ -9,6 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, SeaQueryModel, LibsqlFromRow, SeaQueryCrud)]
+#[sea_query_model(new_input, update_input)]
 pub struct User {
     pub id: DbUuid,
     pub username: String,
@@ -27,18 +28,3 @@ pub enum UserState {
     Locked,
 }
 
-#[derive(Debug, Clone, GraphQLInputObject)]
-pub struct UserNewInput {
-    pub username: String,
-    pub pin: String,
-    pub full_name: String,
-}
-
-#[derive(Debug, Clone, GraphQLInputObject)]
-pub struct UserUpdateInput {
-    pub id: DbUuid,
-    pub username: Option<String>,
-    pub pin: Option<String>,
-    pub full_name: Option<String>,
-    pub state: Option<UserState>,
-}

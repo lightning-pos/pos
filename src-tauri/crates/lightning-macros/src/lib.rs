@@ -25,7 +25,7 @@ use proc_macro::TokenStream;
 ///     // ...other fields
 /// }
 /// ```
-#[proc_macro_derive(SeaQueryModel)]
+#[proc_macro_derive(SeaQueryModel, attributes(sea_query_model))]
 pub fn sea_query_model_derive(input: TokenStream) -> TokenStream {
     macros::sea_query_model::sea_query_model_derive(input)
 }
