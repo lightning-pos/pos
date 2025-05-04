@@ -77,7 +77,7 @@ impl Command for UpdateUserCommand {
         let mut query_builder = Query::select();
         let check_query = query_builder
             .from(Users::Table)
-            .columns([Users::Id, Users::Username, Users::PinHash, Users::FullName, Users::State, Users::LastLoginAt, Users::CreatedAt, Users::UpdatedAt])
+            .columns(Users::all_columns())
             .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()));
 
         let existing_user = service.db_adapter.query_optional::<User>(&check_query).await?;
@@ -118,16 +118,7 @@ impl Command for UpdateUserCommand {
         let mut query_builder = Query::select();
         let select_query = query_builder
             .from(Users::Table)
-            .columns([
-                Users::Id,
-                Users::Username,
-                Users::PinHash,
-                Users::FullName,
-                Users::State,
-                Users::LastLoginAt,
-                Users::CreatedAt,
-                Users::UpdatedAt,
-            ])
+            .columns(Users::all_columns())
             .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()));
 
         let user = service.db_adapter.query_one::<User>(&select_query).await?;

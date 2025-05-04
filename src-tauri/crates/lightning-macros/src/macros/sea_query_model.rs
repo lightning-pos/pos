@@ -61,6 +61,7 @@ pub fn sea_query_model_derive(input: TokenStream) -> TokenStream {
 
     let mut variants = vec![quote! { Table }];
     let mut arms = vec![quote! { #enum_name::Table => #table_name }];
+    let mut all_column_variants = Vec::new();
 
     for field in fields.iter() {
         let ident = field.ident.as_ref().unwrap();
@@ -69,11 +70,18 @@ pub fn sea_query_model_derive(input: TokenStream) -> TokenStream {
         let var_ident = format_ident!("{}", pascal);
         variants.push(quote! { #var_ident });
         arms.push(quote! { #enum_name::#var_ident => #field_name });
+        all_column_variants.push(quote! { #enum_name::#var_ident });
     }
 
     let expanded = quote! {
         pub enum #enum_name {
             #(#variants),*
+        }
+
+        impl #enum_name {
+            pub fn all_columns() -> Vec<Self> {
+                vec![#(#all_column_variants),*]
+            }
         }
 
         impl sea_query::Iden for #enum_name {
@@ -86,6 +94,7 @@ pub fn sea_query_model_derive(input: TokenStream) -> TokenStream {
             }
         }
     };
+
 
     TokenStream::from(expanded)
 }
