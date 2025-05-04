@@ -37,7 +37,7 @@ impl Command for CreateItemGroupCommand {
             .column(ItemCategories::Id)
             .and_where(Expr::col(ItemCategories::Name).eq(self.category.name.clone()));
 
-        let existing = service.db_adapter.query_optional::<ItemCategory>(&select_stmt).await?;
+        let existing = service.db_adapter.query_optional::<DbUuid>(&select_stmt).await?;
 
         if existing.is_some() {
             return Err(Error::UniqueConstraintError);

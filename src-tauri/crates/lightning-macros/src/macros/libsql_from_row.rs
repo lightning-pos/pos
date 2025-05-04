@@ -19,19 +19,43 @@ pub fn libsql_from_row_derive(input: TokenStream) -> TokenStream {
         _ => panic!("LibsqlFromRow can only be applied to structs"),
     };
 
+    // Generate code to create a column name to index mapping
+    let column_map_setup = quote! {
+        // Create a map of column names to indices
+        let mut column_map = std::collections::HashMap::new();
+        let column_count = row.column_count();
+
+        for i in 0..column_count {
+            if let Some(name) = row.column_name(i) {
+                column_map.insert(name.to_string(), i as i32);
+            }
+        }
+
+        // Helper function to get a column value by name
+        let get_value_by_name = |name: &str| -> crate::error::Result<libsql::Value> {
+            let idx = column_map.get(name).ok_or_else(|| {
+                crate::error::Error::DatabaseError(format!("Column '{}' not found in row", name))
+            })?;
+            row.get_value(*idx).map_err(|e| {
+                crate::error::Error::DatabaseError(format!("Failed to get value for column '{}': {}", name, e))
+            })
+        };
+    };
+
     // Generate field conversions
     let mut field_conversions = Vec::new();
     let mut field_assignments = Vec::new();
 
-    for (i, field) in fields.iter().enumerate() {
+    for field in fields.iter() {
         let field_name = field.ident.as_ref().unwrap();
         let field_type = &field.ty;
+        let field_name_str = field_name.to_string();
 
         // Check if the field type is an Option
         if let Some(inner_type) = extract_option_inner_type(field_type) {
             // For Option types, we need special handling
             field_conversions.push(quote! {
-                let #field_name = match row.get_value(#i as i32) {
+                let #field_name = match get_value_by_name(#field_name_str) {
                     Ok(libsql::Value::Null) => None,
                     Ok(value) => {
                         let value_result = <#inner_type as FromLibsqlValue>::from_libsql_value(value)?;
@@ -46,9 +70,9 @@ pub fn libsql_from_row_derive(input: TokenStream) -> TokenStream {
         } else {
             // For non-Option types, we can use from_libsql_value directly
             field_conversions.push(quote! {
-                let value_result = <#field_type as FromLibsqlValue>::from_libsql_value(row.get_value(#i as i32)?)?;
+                let value_result = <#field_type as FromLibsqlValue>::from_libsql_value(get_value_by_name(#field_name_str)?)?;
                 let #field_name = value_result.ok_or_else(|| crate::error::Error::DatabaseError(
-                    format!("Column at index {} cannot be null for non-optional field", #i)
+                    format!("Column '{}' cannot be null for non-optional field", #field_name_str)
                 ))?;
             });
         }
@@ -62,6 +86,8 @@ pub fn libsql_from_row_derive(input: TokenStream) -> TokenStream {
     let gen = quote! {
         impl FromRow<libsql::Row> for #struct_name {
             fn from_row(row: &libsql::Row) -> crate::error::Result<Self> {
+                #column_map_setup
+
                 #(#field_conversions)*
 
                 Ok(#struct_name {

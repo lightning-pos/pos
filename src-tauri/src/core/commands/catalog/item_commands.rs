@@ -42,7 +42,7 @@ impl Command for CreateItemCommand {
             .column(ItemCategories::Id)
             .and_where(Expr::col(ItemCategories::Id).eq(self.item.category_id.to_string()));
 
-        let category = service.db_adapter.query_optional::<ItemCategory>(&category_stmt).await?;
+        let category = service.db_adapter.query_optional::<DbUuid>(&category_stmt).await?;
         if category.is_none() {
             return Err(Error::NotFoundError);
         }
@@ -56,7 +56,7 @@ impl Command for CreateItemCommand {
                     .column(Taxes::Id)
                     .and_where(Expr::col(Taxes::Id).eq(tax_id.to_string()));
 
-                let tax = service.db_adapter.query_optional::<Tax>(&tax_stmt).await?;
+                let tax = service.db_adapter.query_optional::<DbUuid>(&tax_stmt).await?;
                 if tax.is_none() {
                     return Err(Error::NotFoundError);
                 }
@@ -129,7 +129,7 @@ impl Command for UpdateItemCommand {
                 .column(ItemCategories::Id)
                 .and_where(Expr::col(ItemCategories::Id).eq(cat_id.to_string()));
 
-            let category = service.db_adapter.query_optional::<ItemCategory>(category_stmt).await?;
+            let category = service.db_adapter.query_optional::<DbUuid>(category_stmt).await?;
             if category.is_none() {
                 return Err(Error::NotFoundError);
             }
@@ -285,7 +285,7 @@ mod tests {
              VALUES ('{}', '{}', {}, NULL, '{}', '{}')",
             tax_id.to_string(),
             "Test Tax",
-            rate.basis_points(),  
+            rate.basis_points(),
             now.to_string(),
             now.to_string()
         );

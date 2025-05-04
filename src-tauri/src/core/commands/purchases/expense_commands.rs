@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Expr, Query};
+use sea_query::{Expr, Query, SqliteQueryBuilder};
 use uuid::Uuid;
 
 use crate::{
@@ -65,7 +65,7 @@ impl Command for CreateExpenseCommand {
             .values_panic([
                 new_id.to_string().into(),
                 self.expense.title.clone().into(),
-                self.expense.amount.to_string().into(),
+                self.expense.amount.to_base_unit().into(),
                 self.expense.expense_date.to_string().into(),
                 self.expense.category_id.to_string().into(),
                 self.expense.cost_center_id.to_string().into(),
@@ -73,6 +73,8 @@ impl Command for CreateExpenseCommand {
                 now.to_string().into(),
                 now.to_string().into(),
             ]);
+
+        println!("Inserting expense: {}", stmt.to_string(SqliteQueryBuilder));
 
         // Execute the query
         service.db_adapter.insert_many(&stmt).await?;
@@ -115,7 +117,7 @@ impl Command for UpdateExpenseCommand {
         }
 
         if let Some(amount) = &self.expense.amount {
-            update_stmt = update_stmt.value(Expenses::Amount, amount.to_string());
+            update_stmt = update_stmt.value(Expenses::Amount, amount.to_base_unit());
         }
 
         if let Some(expense_date) = &self.expense.expense_date {

@@ -50,6 +50,10 @@ impl Percentage {
         }
     }
 
+    pub fn to_sql(&self) -> String {
+        self.0.to_string()
+    }
+
     /// Returns the raw basis points value
     pub fn basis_points(&self) -> i32 {
         self.0
@@ -111,9 +115,6 @@ impl Div<i32> for Percentage {
         Self(self.0 / other)
     }
 }
-
-// The From<Percentage> and From<&Percentage> implementations are already provided by the SeaQueryType derive macro
-// The FromLibsqlValue implementation is already provided by the LibsqlType derive macro
 
 #[cfg(test)]
 mod tests {

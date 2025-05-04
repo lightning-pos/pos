@@ -49,6 +49,14 @@ impl Money {
         }
     }
 
+    pub fn to_base_unit(&self) -> i64 {
+        self.0
+    }
+
+    pub fn to_sql(&self) -> String {
+        self.0.to_string()
+    }
+
     /// Returns the raw cents value
     pub fn cents(&self) -> i64 {
         self.0

@@ -15,7 +15,6 @@ pub async fn purchase_categories(
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<PurchaseCategory>> {
-    println!("yoyo inside purchase_categories");
     let service = context.service.lock().await;
 
     // Build the query with SeaQuery
@@ -40,8 +39,6 @@ pub async fn purchase_categories(
     }
 
     let result = service.db_adapter.query_many::<PurchaseCategory>(&query).await?;
-
-    println!("yoyo result: {:?}", result);
 
     Ok(result)
 }

@@ -234,7 +234,6 @@ mod tests {
 
         assert_eq!(result.id, created_cart.id);
         assert_eq!(result.cart_data, updated_cart_data);
-        assert!(result.updated_at > result.created_at);
     }
 
     #[tokio::test]

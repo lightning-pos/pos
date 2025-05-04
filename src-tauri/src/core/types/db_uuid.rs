@@ -24,15 +24,19 @@ use lightning_macros::{LibsqlType, SeaQueryType};
 #[graphql(transparent)]
 pub struct DbUuid(Uuid);
 
-impl From<Uuid> for DbUuid {
-    fn from(uuid: Uuid) -> Self {
-        DbUuid(uuid)
-    }
-}
-
 impl DbUuid {
     pub fn parse_str(s: &str) -> Result<Self> {
         Uuid::parse_str(s).map(DbUuid).map_err(Error::UuidError)
+    }
+
+    pub fn to_sql(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl From<Uuid> for DbUuid {
+    fn from(uuid: Uuid) -> Self {
+        DbUuid(uuid)
     }
 }
 

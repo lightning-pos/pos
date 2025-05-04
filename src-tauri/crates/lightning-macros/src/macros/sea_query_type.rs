@@ -31,14 +31,14 @@ pub fn sea_query_type_derive(input: TokenStream) -> TokenStream {
         // Implement From<Type> for sea_query::Value
         impl From<#type_name> for sea_query::Value {
             fn from(value: #type_name) -> Self {
-                sea_query::Value::String(Some(Box::new(value.to_string())))
+                sea_query::Value::String(Some(Box::new(value.to_sql())))
             }
         }
 
         // Implement From<&Type> for sea_query::Value
         impl From<&#type_name> for sea_query::Value {
             fn from(value: &#type_name) -> Self {
-                sea_query::Value::String(Some(Box::new(value.to_string())))
+                sea_query::Value::String(Some(Box::new(value.to_sql())))
             }
         }
     };

@@ -50,7 +50,7 @@ impl Command for CreateSalesOrderPaymentCommand {
             .and_where(Expr::col(SalesOrders::Id).eq(self.payment.order_id.to_string()))
             .and_where(Expr::col(SalesOrders::OrderState).eq(SalesOrderState::Completed.to_string()));
 
-        let order = service.db_adapter.query_optional::<SalesOrder>(&check_stmt).await?;
+        let order = service.db_adapter.query_optional::<DbUuid>(&check_stmt).await?;
         if order.is_none() {
             return Err(Error::NotFoundError);
         }
@@ -96,7 +96,7 @@ impl Command for CreateSalesOrderPaymentCommand {
                 self.payment.order_id.to_string().into(),
                 self.payment.payment_method_id.to_string().into(),
                 self.payment.payment_date.to_string().into(),
-                self.payment.amount.to_string().into(),
+                self.payment.amount.to_base_unit().into(),
                 match &self.payment.reference_number {
                     Some(ref_num) => ref_num.clone().into(),
                     None => sea_query::Value::String(None).into(),
@@ -173,7 +173,7 @@ impl Command for UpdateSalesOrderPaymentCommand {
         }
 
         if let Some(amount) = &changeset.amount {
-            update_stmt.value(SalesOrderPayments::Amount, amount.to_string());
+            update_stmt.value(SalesOrderPayments::Amount, amount.to_base_unit());
         }
 
         if let Some(reference_number) = &changeset.reference_number {
@@ -300,7 +300,7 @@ impl Command for GetSalesOrderPaymentsCommand {
             .column(SalesOrders::Id)
             .and_where(Expr::col(SalesOrders::Id).eq(self.order_id.to_string()));
 
-        let order = service.db_adapter.query_optional::<SalesOrder>(&check_stmt).await?;
+        let order = service.db_adapter.query_optional::<DbUuid>(&check_stmt).await?;
         if order.is_none() {
             return Err(Error::NotFoundError);
         }

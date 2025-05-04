@@ -50,7 +50,7 @@ impl Command for CreateVariantValueCommand {
             ])
             .and_where(Expr::col(VariantTypes::Id).eq(self.variant_value.variant_type_id.to_string()));
 
-        let variant_type = service.db_adapter.query_optional::<crate::core::models::catalog::variant_type_model::VariantType>(&type_stmt).await?;
+        let variant_type = service.db_adapter.query_optional::<DbUuid>(&type_stmt).await?;
         if variant_type.is_none() {
             return Err(Error::NotFoundError);
         }

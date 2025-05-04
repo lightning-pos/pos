@@ -38,7 +38,7 @@ impl Command for AddUserCommand {
             .column(Users::Id)
             .and_where(Expr::col(Users::Username).eq(username.clone()));
 
-        let user = service.db_adapter.query_optional::<User>(&check_query).await?;
+        let user = service.db_adapter.query_optional::<DbUuid>(&check_query).await?;
 
         if user.is_some() {
             return Err(Error::UniqueConstraintError);

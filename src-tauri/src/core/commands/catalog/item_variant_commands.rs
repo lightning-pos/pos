@@ -54,10 +54,12 @@ impl Command for CreateItemVariantCommand {
         let mut item_query = Query::select();
         let item_stmt = item_query
             .from(Items::Table)
-            .columns([Items::Id])
+            .column(Items::Id)
             .and_where(Expr::col(Items::Id).eq(self.item_variant.item_id.to_string()));
 
-        let item = service.db_adapter.query_optional::<Item>(&item_stmt).await?;
+        let item = service.db_adapter.query_optional::<DbUuid>(&item_stmt).await?;
+
+        println!("Item: {:?}", item);
         if item.is_none() {
             return Err(Error::NotFoundError);
         }
@@ -102,6 +104,7 @@ impl Command for CreateItemVariantCommand {
             .and_where(Expr::col(ItemVariants::ItemId).eq(self.item_variant.item_id.to_string()));
 
         let is_first: i64 = service.db_adapter.query_one(&count_stmt).await?;
+        println!("Is first: {}", is_first);
 
         // If this is the first variant and is_default is not specified, make it default
         let is_default = self.item_variant.is_default.unwrap_or(is_first == 0);
@@ -116,6 +119,7 @@ impl Command for CreateItemVariantCommand {
                 .and_where(Expr::col(ItemVariants::IsDefault).eq(true.to_string()));
 
             service.db_adapter.update_many(&update_stmt).await?;
+            println!("Updated default variant");
         }
 
         let now = Utc::now().naive_utc();
@@ -147,13 +151,14 @@ impl Command for CreateItemVariantCommand {
                 new_item_variant.id.to_string().into(),
                 new_item_variant.item_id.to_string().into(),
                 new_item_variant.sku.clone().map_or_else(|| "NULL".into(), |s| s.into()),
-                new_item_variant.price_adjustment.map_or_else(|| "NULL".into(), |p| p.to_string().into()),
+                new_item_variant.price_adjustment.map_or_else(|| "NULL".into(), |p| p.to_base_unit().into()),
                 new_item_variant.is_default.to_string().into(),
                 new_item_variant.created_at.to_string().into(),
                 new_item_variant.updated_at.to_string().into(),
             ]);
 
         service.db_adapter.insert_many(&insert_stmt).await?;
+        println!("Inserted new item variant");
 
         // Associate variant values with this item variant
         for variant_value_id in &self.item_variant.variant_value_ids {
@@ -170,6 +175,7 @@ impl Command for CreateItemVariantCommand {
                 ]);
 
             service.db_adapter.insert_many(&junction_stmt).await?;
+            println!("Associated variant value: {}", variant_value_id);
         }
 
         Ok(new_item_variant)
@@ -220,7 +226,7 @@ impl Command for UpdateItemVariantCommand {
 
         if let Some(price_adjustment) = &self.item_variant.price_adjustment {
             match price_adjustment {
-                Some(p) => update_stmt = update_stmt.value(ItemVariants::PriceAdjustment, p.to_string()),
+                Some(p) => update_stmt = update_stmt.value(ItemVariants::PriceAdjustment, p.to_base_unit()),
                 None => update_stmt = update_stmt.value(ItemVariants::PriceAdjustment, "NULL"),
             };
         }
@@ -408,12 +414,11 @@ impl Command for AssignVariantValueCommand {
         let mut variant_query = Query::select();
         let variant_stmt = variant_query
             .from(ItemVariants::Table)
-            .columns([
-                ItemVariants::Id,
-            ])
+            .column(ItemVariants::Id)
             .and_where(Expr::col(ItemVariants::Id).eq(self.item_variant_id.to_string()));
 
-        let variant = service.db_adapter.query_optional::<ItemVariant>(&variant_stmt).await?;
+        let variant = service.db_adapter.query_optional::<DbUuid>(&variant_stmt).await?;
+        println!("Variant: {:?}", variant);
         if variant.is_none() {
             return Err(Error::NotFoundError);
         }
@@ -433,6 +438,7 @@ impl Command for AssignVariantValueCommand {
             .and_where(Expr::col(VariantValues::Id).eq(self.variant_value_id.to_string()));
 
         let new_variant_value = service.db_adapter.query_optional::<VariantValue>(&value_stmt).await?;
+        println!("New variant value: {:?}", new_variant_value);
         if new_variant_value.is_none() {
             return Err(Error::NotFoundError);
         }
@@ -448,6 +454,7 @@ impl Command for AssignVariantValueCommand {
             .and_where(Expr::col(ItemVariantValues::VariantValueId).eq(self.variant_value_id.to_string()));
 
         let count: i64 = service.db_adapter.query_one(&exists_stmt).await?;
+        println!("Count: {}", count);
         if count > 0 {
             return Ok(0); // Association already exists
         }
@@ -462,7 +469,7 @@ impl Command for AssignVariantValueCommand {
             ])
             .and_where(Expr::col(ItemVariantValues::ItemVariantId).eq(self.item_variant_id.to_string()));
 
-        let variant_value_ids = service.db_adapter.query_many::<ItemVariantValue>(&values_stmt).await?;
+        let variant_value_ids = service.db_adapter.query_many::<DbUuid>(&values_stmt).await?;
 
         // For each variant value, check its type
         for item_variant_value in variant_value_ids {
@@ -472,11 +479,11 @@ impl Command for AssignVariantValueCommand {
                 .columns([
                     VariantValues::VariantTypeId,
                 ])
-                .and_where(Expr::col(VariantValues::Id).eq(item_variant_value.variant_value_id.to_string()));
+                .and_where(Expr::col(VariantValues::Id).eq(item_variant_value.to_string()));
 
-            let existing_value: VariantValue = service.db_adapter.query_one(&value_type_stmt).await?;
+            let existing_value = service.db_adapter.query_one::<DbUuid>(&value_type_stmt).await?;
 
-            if existing_value.variant_type_id == new_variant_value.variant_type_id {
+            if existing_value == new_variant_value.variant_type_id {
                 // Cannot have multiple values from the same variant type
                 return Err(Error::AlreadyExistsError);
             }
@@ -838,8 +845,11 @@ mod tests {
     async fn test_prevent_duplicate_variant_types_in_assign() {
         let mut service = setup_service().await;
         let item = create_test_item(&mut service).await;
+        println!("Created item: {:?}", item);
         let variant_type1 = create_test_variant_type(&mut service).await;
+        println!("Created variant type: {:?}", variant_type1);
         let variant_value1 = create_test_variant_value(&mut service, variant_type1.id).await;
+        println!("Created variant value: {:?}", variant_value1);
 
         // Create a variant with one value
         let command = CreateItemVariantCommand {
@@ -853,9 +863,11 @@ mod tests {
         };
 
         let item_variant = command.exec(&mut service).await.unwrap();
+        println!("Created item variant: {:?}", item_variant);
 
         // Try to assign another value from the same type
         let variant_value2 = create_test_variant_value(&mut service, variant_type1.id).await;
+        println!("Created variant value 2: {:?}", variant_value2);
         let assign_command = AssignVariantValueCommand {
             item_variant_id: item_variant.id,
             variant_value_id: variant_value2.id,
@@ -863,6 +875,7 @@ mod tests {
 
         // This should fail with AlreadyExistsError
         let result = assign_command.exec(&mut service).await;
+        println!("Result: {:?}", result);
         assert!(result.is_err());
         match result {
             Err(Error::AlreadyExistsError) => {} // Expected error

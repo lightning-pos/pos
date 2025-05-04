@@ -1,5 +1,5 @@
 use chrono::Utc;
-use sea_query::{Expr, Query, SqliteQueryBuilder};
+use sea_query::{Expr, Query};
 use rand::Rng;
 use uuid::Uuid;
 
@@ -133,11 +133,11 @@ impl Command for CreateSalesOrderCommand {
                     Some(addr) => addr.clone().into(),
                     None => sea_query::Value::String(None).into(),
                 },
-                new_sales_order.net_amount.to_string().into(),
-                new_sales_order.disc_amount.to_string().into(),
-                new_sales_order.taxable_amount.to_string().into(),
-                new_sales_order.tax_amount.to_string().into(),
-                new_sales_order.total_amount.to_string().into(),
+                new_sales_order.net_amount.to_base_unit().into(),
+                new_sales_order.disc_amount.to_base_unit().into(),
+                new_sales_order.taxable_amount.to_base_unit().into(),
+                new_sales_order.tax_amount.to_base_unit().into(),
+                new_sales_order.total_amount.to_base_unit().into(),
                 new_sales_order.order_state.to_string().into(),
                 new_sales_order.payment_state.to_string().into(),
                 match &new_sales_order.notes {
@@ -194,16 +194,14 @@ impl Command for CreateSalesOrderCommand {
                         Some(sku) => sku.clone().into(),
                         None => sea_query::Value::String(None).into(),
                     },
-                    item.price_amount.to_string().into(),
-                    item.disc_amount.to_string().into(),
-                    item.taxable_amount.to_string().into(),
-                    item.tax_amount.to_string().into(),
-                    item.total_amount.to_string().into(),
+                    item.price_amount.to_base_unit().into(),
+                    item.disc_amount.to_base_unit().into(),
+                    item.taxable_amount.to_base_unit().into(),
+                    item.tax_amount.to_base_unit().into(),
+                    item.total_amount.to_base_unit().into(),
                     now.to_string().into(),
                     now.to_string().into(),
                 ]);
-
-            println!("yoyo {}", item_insert_stmt.to_string(SqliteQueryBuilder));
 
             db.insert_one::<SalesOrderItem>(&item_insert_stmt).await?;
         }
@@ -232,8 +230,8 @@ impl Command for CreateSalesOrderCommand {
                         order_id.to_string().into(),
                         charge.charge_type_id.to_string().into(),
                         charge.charge_type_name.clone().into(),
-                        charge.amount.to_string().into(),
-                        charge.tax_amount.to_string().into(),
+                        charge.amount.to_base_unit().into(),
+                        charge.tax_amount.to_base_unit().into(),
                         match charge.tax_group_id {
                             Some(id) => id.to_string().into(),
                             None => sea_query::Value::String(None).into(),

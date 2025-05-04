@@ -51,7 +51,7 @@ impl Command for CreateTaxCommand {
                     .columns([Items::Id])
                     .and_where(Expr::col(Items::Id).eq(item_id.to_string()));
 
-                let item = service.db_adapter.query_optional::<Item>(&item_query).await?;
+                let item = service.db_adapter.query_optional::<DbUuid>(&item_query).await?;
                 if item.is_none() {
                     return Err(Error::NotFoundError);
                 }
@@ -213,7 +213,7 @@ impl Command for AssignTaxToItemCommand {
             .columns([Items::Id])
             .and_where(Expr::col(Items::Id).eq(self.item_tax.item_id.to_string()));
 
-        let item = service.db_adapter.query_optional::<Item>(&item_query).await?;
+        let item = service.db_adapter.query_optional::<DbUuid>(&item_query).await?;
         if item.is_none() {
             return Err(Error::NotFoundError);
         }
@@ -225,7 +225,7 @@ impl Command for AssignTaxToItemCommand {
             .columns([Taxes::Id])
             .and_where(Expr::col(Taxes::Id).eq(self.item_tax.tax_id.to_string()));
 
-        let tax = service.db_adapter.query_optional::<Tax>(&tax_query).await?;
+        let tax = service.db_adapter.query_optional::<DbUuid>(&tax_query).await?;
         if tax.is_none() {
             return Err(Error::NotFoundError);
         }

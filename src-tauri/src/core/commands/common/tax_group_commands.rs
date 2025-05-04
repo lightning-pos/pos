@@ -52,7 +52,7 @@ impl Command for CreateTaxGroupCommand {
                     .columns([Taxes::Id])
                     .and_where(Expr::col(Taxes::Id).eq(tax_id.to_string()));
 
-                let tax = service.db_adapter.query_optional::<Tax>(&tax_query).await?;
+                let tax = service.db_adapter.query_optional::<DbUuid>(&tax_query).await?;
                 if tax.is_none() {
                     return Err(Error::NotFoundError);
                 }
@@ -237,7 +237,7 @@ impl Command for AssignTaxToGroupCommand {
             .columns([TaxGroups::Id])
             .and_where(Expr::col(TaxGroups::Id).eq(self.tax_group_id.to_string()));
 
-        let tax_group = service.db_adapter.query_optional::<TaxGroup>(&tax_group_stmt).await?;
+        let tax_group = service.db_adapter.query_optional::<DbUuid>(&tax_group_stmt).await?;
         if tax_group.is_none() {
             return Err(Error::NotFoundError);
         }
@@ -249,7 +249,7 @@ impl Command for AssignTaxToGroupCommand {
             .columns([Taxes::Id])
             .and_where(Expr::col(Taxes::Id).eq(self.tax_id.to_string()));
 
-        let tax = service.db_adapter.query_optional::<Tax>(&tax_stmt).await?;
+        let tax = service.db_adapter.query_optional::<DbUuid>(&tax_stmt).await?;
         if tax.is_none() {
             return Err(Error::NotFoundError);
         }
