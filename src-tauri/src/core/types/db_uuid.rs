@@ -24,7 +24,7 @@ use lightning_macros::{LibsqlType, SeaQueryType};
 pub struct DbUuid(Uuid);
 
 impl DbUuid {
-    pub fn parse_str(s: &str) -> Result<Self> {
+    pub fn from_str(s: &str) -> Result<Self> {
         Uuid::parse_str(s).map(DbUuid).map_err(Error::UuidError)
     }
 }
@@ -38,7 +38,7 @@ impl From<Uuid> for DbUuid {
 impl FromRow<libsql::Row> for DbUuid {
     fn from_row(row: &libsql::Row) -> Result<Self> {
         match row.get(0) {
-            Ok(libsql::Value::Text(s)) => DbUuid::parse_str(&s),
+            Ok(libsql::Value::Text(s)) => DbUuid::from_str(&s),
             _ => Err(Error::DatabaseError("Invalid UUID value type in database".to_string())),
         }
     }
