@@ -1,10 +1,8 @@
-use sea_query::{Expr, Query};
-
 use crate::{
     adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
-        models::auth::user_model::{User, Users},
+        models::auth::user_model::{self, User},
     },
     error::{Error, Result},
 };
@@ -20,24 +18,8 @@ impl Command for LoginCommand {
     type Output = ();
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        // Build the query using sea-query
-        let mut query_builder = Query::select();
-        let query = query_builder
-            .from(Users::Table)
-            .columns([
-                Users::Id,
-                Users::Username,
-                Users::PinHash,
-                Users::FullName,
-                Users::State,
-                Users::LastLoginAt,
-                Users::CreatedAt,
-                Users::UpdatedAt,
-            ])
-            .and_where(Expr::col(Users::Username).eq(self.username.clone()));
-
-        // Execute the query using the database adapter
-        let user = service.db_adapter.query_optional::<User>(&query).await?;
+        let check_query = user_model::queries::find_by_username(&self.username);
+        let user = service.db_adapter.query_optional::<User>(&check_query).await?;
 
         match user {
             Some(user) => {
@@ -98,6 +80,7 @@ mod tests {
         };
 
         let result = login_command.exec(&mut service).await;
+        println!("result: {:#?}", result);
         assert!(result.is_ok());
         assert!(service.state.current_user.is_some());
         assert_eq!(service.state.current_user.unwrap(), user.id);

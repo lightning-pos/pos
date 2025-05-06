@@ -1,15 +1,8 @@
-use chrono::Utc;
-use sea_query::{Expr, Query};
-use uuid::Uuid;
-
 use crate::{
     adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
-        db::SeaQueryCrudTrait,
-        models::auth::user_model::{
-            User, UserNewInput, UserState, UserUpdateInput, Users,
-        },
+        models::auth::user_model::{self, User, UserNewInput, UserUpdateInput},
         types::db_uuid::DbUuid,
     },
     error::{Error, Result},
@@ -32,38 +25,15 @@ impl Command for AddUserCommand {
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let username = &self.user.username;
-        let mut query_builder = Query::select();
-        let check_query = query_builder
-            .from(Users::Table)
-            .column(Users::Id)
-            .and_where(Expr::col(Users::Username).eq(username.clone()));
-
+        let check_query = user_model::queries::find_by_username(username);
         let user = service.db_adapter.query_optional::<DbUuid>(&check_query).await?;
 
         if user.is_some() {
             return Err(Error::UniqueConstraintError);
         }
 
-        // Create new user
-        let now = Utc::now().naive_utc();
-        let user_id: DbUuid = Uuid::now_v7().into();
-        let pin_hash = self.user.pin_hash.clone();
-
-        // Create a new user instance
-        let new_user = User {
-            id: user_id,
-            username: self.user.username.clone(),
-            pin_hash,
-            full_name: self.user.full_name.clone(),
-            state: UserState::Active,
-            last_login_at: None,
-            created_at: now,
-            updated_at: now,
-        };
-
-        // Generate and execute the insert query
-        let insert_stmt = new_user.insert();
-        service.db_adapter.insert_one::<User>(&insert_stmt).await?;
+        let insert_query = user_model::queries::insert(&self.user);
+        let new_user = service.db_adapter.insert_one::<User>(&insert_query).await?;
 
         Ok(new_user)
     }
@@ -74,56 +44,16 @@ impl Command for UpdateUserCommand {
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Check if user exists using SeaQuery
-        let mut query_builder = Query::select();
-        let check_query = query_builder
-            .from(Users::Table)
-            .columns(Users::all_columns())
-            .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()));
-
+        let check_query = user_model::queries::find_by_id(&self.user.id);
         let existing_user = service.db_adapter.query_optional::<User>(&check_query).await?;
 
         if existing_user.is_none() {
             return Err(Error::NotFoundError);
         }
 
-        // Get the existing user data and update it
-        let mut user = existing_user.unwrap();
-        let now = Utc::now().naive_utc();
-
-        // Update fields if they exist
-        if let Some(full_name) = &self.user.full_name {
-            user.full_name = full_name.clone();
-        }
-
-        if let Some(state) = &self.user.state {
-            user.state = state.clone();
-        }
-
-        if let Some(username) = &self.user.username {
-            user.username = username.clone();
-        }
-
-        if let Some(pin_hash) = &self.user.pin_hash {
-            user.pin_hash = pin_hash.clone();
-        }
-
-        // Always update the updated_at timestamp
-        user.updated_at = now;
-
-        // Generate and execute the update query
-        let update_stmt = user.update();
-        service.db_adapter.update_one::<User>(&update_stmt).await?;
-
-        // Retrieve the updated user
-        let mut query_builder = Query::select();
-        let select_query = query_builder
-            .from(Users::Table)
-            .columns(Users::all_columns())
-            .and_where(Expr::col(Users::Id).eq(self.user.id.to_string()));
-
-        let user = service.db_adapter.query_one::<User>(&select_query).await?;
-
-        Ok(user)
+        let update_query = user_model::queries::update(&self.user);
+        let updated_user = service.db_adapter.update_one::<User>(&update_query).await?;
+        Ok(updated_user)
     }
 }
 
@@ -131,7 +61,7 @@ impl Command for DeleteUserCommand {
     type Output = i32;
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let delete_stmt = User::delete_by_id(self.id);
+        let delete_stmt = user_model::queries::delete_by_id(&self.id);
         let affected_rows = service.db_adapter.delete(&delete_stmt).await?;
 
         Ok(affected_rows as i32)
@@ -140,7 +70,9 @@ impl Command for DeleteUserCommand {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::commands::tests::setup_service;
+    use uuid::Uuid;
+
+    use crate::core::{commands::tests::setup_service, models::auth::user_model::UserState};
 
     use super::*;
 
@@ -191,7 +123,6 @@ mod tests {
         };
 
         let result = update_user_command.exec(&mut service).await;
-        println!("Update result: {:?}", result);
         assert!(result.is_ok());
         let updated_user = result.unwrap();
         assert_eq!(updated_user.id, user.id);
@@ -277,6 +208,7 @@ mod tests {
         let result = update_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         let updated_user = result.unwrap();
+        println!("Updated user: {:#?}", updated_user);
         assert_eq!(updated_user.id, user.id);
         assert_eq!(updated_user.full_name, "Updated Name");
         assert_eq!(updated_user.state, UserState::Active); // State should remain unchanged
