@@ -29,5 +29,5 @@ pub async fn delete_user(id: DbUuid, context: &AppState) -> FieldResult<i32> {
     let cmd = DeleteUserCommand { id };
     let mut service = context.service.lock().await;
     let res = cmd.exec(&mut service).await?;
-    Ok(res)
+    Ok(res as i32)
 }

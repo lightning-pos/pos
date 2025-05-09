@@ -27,4 +27,3 @@ pub enum UserState {
     Inactive,
     Locked,
 }
-

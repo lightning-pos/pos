@@ -1,9 +1,9 @@
 use crate::{
-    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
-        models::auth::user_model::{self, User, UserNewInput, UserUpdateInput},
-        types::db_uuid::DbUuid,
+        models::auth::user_model::{User, UserNewInput, UserUpdateInput},
+        repositories::user_repository,
+        types::db_uuid::DbUuid
     },
     error::{Error, Result},
 };
@@ -25,17 +25,13 @@ impl Command for AddUserCommand {
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let username = &self.user.username;
-        let check_query = user_model::queries::find_by_username(username);
-        let user = service.db_adapter.query_optional::<DbUuid>(&check_query).await?;
+        let user = user_repository::get_user_by_username(service, username).await?;
 
         if user.is_some() {
             return Err(Error::UniqueConstraintError);
         }
 
-        let insert_query = user_model::queries::insert(&self.user);
-        let new_user = service.db_adapter.insert_one::<User>(&insert_query).await?;
-
-        Ok(new_user)
+        user_repository::insert_user(service, self.user.clone()).await
     }
 }
 
@@ -44,27 +40,21 @@ impl Command for UpdateUserCommand {
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         // Check if user exists using SeaQuery
-        let check_query = user_model::queries::find_by_id(&self.user.id);
-        let existing_user = service.db_adapter.query_optional::<User>(&check_query).await?;
+        let existing_user = user_repository::get_user_by_id(service, self.user.id).await?;
 
         if existing_user.is_none() {
             return Err(Error::NotFoundError);
         }
 
-        let update_query = user_model::queries::update(&self.user);
-        let updated_user = service.db_adapter.update_one::<User>(&update_query).await?;
-        Ok(updated_user)
+        user_repository::update_user(service, self.user.clone()).await
     }
 }
 
 impl Command for DeleteUserCommand {
-    type Output = i32;
+    type Output = u64;
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let delete_stmt = user_model::queries::delete_by_id(&self.id);
-        let affected_rows = service.db_adapter.delete(&delete_stmt).await?;
-
-        Ok(affected_rows as i32)
+        user_repository::delete_user(service, self.id).await
     }
 }
 
