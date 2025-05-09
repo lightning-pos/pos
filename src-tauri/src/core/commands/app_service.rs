@@ -42,60 +42,112 @@ impl AppService {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use once_cell::sync::Lazy;
+    use std::time::Instant;
+    use std::sync::{Arc, Mutex};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::path::Path;
+    use std::fs;
 
-    pub async fn setup_service() -> AppService {
-        // Create a simple in-memory database for tests
-        let test_db_path = ":memory:";
+    // Counter for unique database file names
+    static DB_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-        // Create the database and get a connection
-        let db = libsql::Builder::new_local(test_db_path)
-            // .skip_saftey_assert(true)
-            .build()
-            .await
-            .expect("Failed to build in-memory libsql database for tests");
+    // Embed SQL migrations at compile time using include_str!
+    static CONSOLIDATED_SCHEMA: &str = include_str!("../../../migrations/2025-04-10-000000_consolidated_schema/up.sql");
+    static FIX_FOREIGN_KEY_CONSTRAINTS: &str = include_str!("../../../migrations/2025-04-12-165429_fix_foreign_key_constraints/up.sql");
+    static MAKE_SALES_ORDER_USER_FIELDS_REQUIRED: &str = include_str!("../../../migrations/2025-04-12-170507_make_sales_order_user_fields_required/up.sql");
 
-        let conn = db.connect().expect("Failed to connect to libsql database");
+    // Combined SQL for faster execution - combined at compile time
+    static COMBINED_MIGRATION_SQL: Lazy<String> = Lazy::new(|| {
+        format!("{CONSOLIDATED_SCHEMA}\n{FIX_FOREIGN_KEY_CONSTRAINTS}\n{MAKE_SALES_ORDER_USER_FIELDS_REQUIRED}")
+    });
 
-        println!("Running migrations for test database");
+    // Template database with migrations already applied
+    static TEMPLATE_DB: Lazy<Arc<Mutex<Option<String>>>> = Lazy::new(|| {
+        Arc::new(Mutex::new(None))
+    });
 
-        // Define migration directories in order
-        let migration_dirs = [
-            "migrations/2025-04-10-000000_consolidated_schema",
-            "migrations/2025-04-12-165429_fix_foreign_key_constraints",
-            "migrations/2025-04-12-170507_make_sales_order_user_fields_required",
-        ];
+    // Initialize template database once
+    async fn get_or_create_template_db() -> String {
+        let mut template = TEMPLATE_DB.lock().unwrap();
 
-        // Execute each migration file
-        for dir in migration_dirs.iter() {
-            let up_sql_path = format!("{}/up.sql", dir);
-            println!("Applying migration: {}", up_sql_path);
-
-            // Read the SQL file content
-            let sql = match std::fs::read_to_string(&up_sql_path) {
-                Ok(content) => content,
-                Err(e) => {
-                    eprintln!("Failed to read migration file {}: {}", up_sql_path, e);
-                    panic!("Failed to read migration file: {}", e);
-                }
-            };
-
-            // Execute the entire SQL file at once
-            // This handles complex SQL syntax like triggers with BEGIN/END blocks
-            match conn.execute_batch(&sql).await {
-                Ok(_) => println!("Successfully applied migration: {}", up_sql_path),
-                Err(e) => {
-                    eprintln!("Failed to apply migration {}: {}", up_sql_path, e);
-                    panic!("Failed to apply migration: {}", e);
-                }
-            }
+        if let Some(template_path) = template.as_ref() {
+            return template_path.clone();
         }
 
-        println!("All migrations applied successfully");
+        // Create a temporary directory for test databases if it doesn't exist
+        let temp_dir = Path::new("./temp_test_db");
+        if !temp_dir.exists() {
+            fs::create_dir_all(temp_dir).expect("Failed to create temp directory for test databases");
+        }
 
-        // Create the AppService with the initialized database
-        AppService {
+        // Create template database file
+        let template_path = temp_dir.join("template.db").to_str().unwrap().to_string();
+
+        // Remove existing file if it exists
+        if Path::new(&template_path).exists() {
+            fs::remove_file(&template_path).expect("Failed to remove existing template database");
+        }
+
+        // Create and initialize the template database
+        let db = libsql::Builder::new_local(&template_path)
+            .build()
+            .await
+            .expect("Failed to build template database");
+
+        let conn = db.connect().expect("Failed to connect to template database");
+
+        // Apply migrations to the template
+        if let Err(e) = conn.execute_batch(&COMBINED_MIGRATION_SQL).await {
+            panic!("Failed to apply migrations to template: {}", e);
+        }
+
+        // Close connection to ensure file is properly written
+        drop(conn);
+        drop(db);
+
+        // Store template path
+        *template = Some(template_path.clone());
+
+        template_path
+    }
+
+    pub async fn setup_service() -> AppService {
+
+        // Get or create template database
+        let template_path = get_or_create_template_db().await;
+
+        // Create a unique database file for this test
+        let test_id = DB_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let temp_dir = Path::new("./temp_test_db");
+        let test_db_path = temp_dir.join(format!("test_{}.db", test_id)).to_str().unwrap().to_string();
+
+        // Copy template database to test database
+        fs::copy(&template_path, &test_db_path).expect("Failed to copy template database");
+
+        // Open the copied database
+        let db = libsql::Builder::new_local(&test_db_path)
+            .build()
+            .await
+            .expect("Failed to build test database from template");
+
+        let conn = db.connect().expect("Failed to connect to test database");
+
+        // Create AppService with the initialized database
+        let service = AppService {
             db_adapter: LibSqlAdapter::new(conn),
             state: SessionState { current_user: None },
+        };
+
+        service
+    }
+
+    // Clean up test databases after all tests have run
+    #[ctor::dtor]
+    fn cleanup_test_databases() {
+        let temp_dir = Path::new("./temp_test_db");
+        if temp_dir.exists() {
+            let _ = fs::remove_dir_all(temp_dir);
         }
     }
 }

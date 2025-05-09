@@ -2231,10 +2231,12 @@ version = "0.1.0"
 dependencies = [
  "bigdecimal",
  "chrono",
+ "ctor",
  "derive_more 1.0.0",
  "juniper",
  "libsql",
  "lightning-macros",
+ "once_cell",
  "rand 0.8.5",
  "sea-query",
  "serde",
