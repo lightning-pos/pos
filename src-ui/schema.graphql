@@ -25,7 +25,7 @@ enum DiscountType {
   FIXED_AMOUNT
 }
 
-enum ItemGroupState {
+enum ItemCategoryState {
   ACTIVE
   INACTIVE
   DELETED
@@ -168,22 +168,21 @@ input ExpenseUpdateInput {
   description: String
 }
 
-input ItemDiscountNewInput {
-  itemId: DbUuid!
-  discountId: DbUuid!
-}
-
-input ItemGroupNew {
+input ItemCategoryNew {
   name: String!
   description: String
 }
 
-input ItemGroupUpdate {
+input ItemCategoryUpdate {
   id: DbUuid!
   name: String
   description: String
-  state: ItemGroupState
-  updatedAt: LocalDateTime
+  state: ItemCategoryState
+}
+
+input ItemDiscountNewInput {
+  itemId: DbUuid!
+  discountId: DbUuid!
 }
 
 input ItemTaxNewInput {
@@ -191,6 +190,16 @@ input ItemTaxNewInput {
   taxId: DbUuid!
 }
 
+"""
+  Input type for creating a new item variant.
+
+  This includes both the variant properties and the IDs of variant values to associate.
+  The system validates that only one value per variant type is included.
+
+  # Fields
+  - `variant_value_ids`: List of variant value IDs to associate with this variant
+    (e.g., ["size-small-id", "color-red-id"])
+"""
 input ItemVariantNewInput {
   itemId: DbUuid!
   sku: String
@@ -199,6 +208,19 @@ input ItemVariantNewInput {
   variantValueIds: [DbUuid!]!
 }
 
+"""
+  Input type for updating an existing item variant.
+
+  Uses nested Options to handle nullable fields in updates:
+  - The outer Option determines if the field should be updated
+  - The inner Option (for nullable fields) determines if the value should be null
+
+  # Fields
+  - `id`: ID of the variant to update
+  - `sku`: Optional SKU update (Option<Option<String>>)
+  - `price_adjustment`: Optional price adjustment update
+  - `is_default`: Whether to set this as the default variant
+"""
 input ItemVariantUpdateInput {
   id: DbUuid!
   sku: String
@@ -336,21 +358,23 @@ input UpdateItem {
   state: ItemState
   price: Money
   categoryId: DbUuid
-  updatedAt: LocalDateTime
 }
 
 input UserNewInput {
   username: String!
-  pin: String!
+  pinHash: String!
   fullName: String!
+  state: UserState!
+  lastLoginAt: LocalDateTime
 }
 
 input UserUpdateInput {
   id: DbUuid!
   username: String
-  pin: String
+  pinHash: String
   fullName: String
   state: UserState
+  lastLoginAt: LocalDateTime
 }
 
 input VariantTypeNewInput {
@@ -485,26 +509,25 @@ type Item {
   price: Money!
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
-  category: ItemGroup!
+  category: ItemCategory!
   taxes: [Tax!]!
   variants: [ItemVariant!]!
   hasVariants: Boolean!
   defaultVariant: ItemVariant
 }
 
-"A relationship between an item and a discount"
-type ItemDiscountObject {
-  itemId: DbUuid!
-  discountId: DbUuid!
-}
-
-type ItemGroup {
+type ItemCategory {
   id: DbUuid!
   name: String!
   description: String
-  state: ItemGroupState!
+  state: ItemCategoryState!
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
+}
+
+type ItemDiscount {
+  itemId: DbUuid!
+  discountId: DbUuid!
 }
 
 type ItemVariant {
@@ -528,8 +551,8 @@ type Mutation {
   createItem(item: NewItem!): Item!
   updateItem(item: UpdateItem!): Item!
   deleteItem(id: DbUuid!): Int!
-  createItemCategory(newCategory: ItemGroupNew!): ItemGroup!
-  updateItemCategory(category: ItemGroupUpdate!): ItemGroup!
+  createItemCategory(newCategory: ItemCategoryNew!): ItemCategory!
+  updateItemCategory(category: ItemCategoryUpdate!): ItemCategory!
   deleteItemCategory(id: DbUuid!): Int!
   createPurchaseCategory(name: String!, description: String, state: PurchaseCategoryState): PurchaseCategory!
   updatePurchaseCategory(id: DbUuid!, name: String, description: String, state: PurchaseCategoryState): PurchaseCategory!
@@ -590,7 +613,7 @@ type Mutation {
   deleteItemVariant(id: DbUuid!): Int!
   assignVariantValueToItemVariant(itemVariantId: DbUuid!, variantValueId: DbUuid!): Int!
   removeVariantValueFromItemVariant(itemVariantId: DbUuid!, variantValueId: DbUuid!): Int!
-  addItemDiscount(itemDiscount: ItemDiscountNewInput!): ItemDiscountObject!
+  addItemDiscount(itemDiscount: ItemDiscountNewInput!): ItemDiscount!
   removeItemDiscount(itemId: DbUuid!, discountId: DbUuid!): Boolean!
 }
 
@@ -617,8 +640,8 @@ type PurchaseCategory {
 
 type Query {
   apiVersion: String!
-  itemCategories(first: Int, offset: Int): [ItemGroup!]!
-  itemsCategory(id: DbUuid!): ItemGroup!
+  itemCategories(first: Int, offset: Int): [ItemCategory!]!
+  itemsCategory(id: DbUuid!): ItemCategory!
   items(first: Int, offset: Int): [Item!]!
   item(id: DbUuid!): Item!
   purchaseCategories(first: Int, offset: Int): [PurchaseCategory!]!
@@ -677,8 +700,8 @@ type Query {
   variantValue(id: DbUuid!): VariantValue!
   itemVariants(itemId: DbUuid, first: Int, offset: Int): [ItemVariant!]!
   itemVariant(id: DbUuid!): ItemVariant!
-  itemDiscounts(itemId: DbUuid!): [ItemDiscountObject!]!
-  discountItems(discountId: DbUuid!): [ItemDiscountObject!]!
+  itemDiscounts(itemId: DbUuid!): [ItemDiscount!]!
+  discountItems(discountId: DbUuid!): [ItemDiscount!]!
 }
 
 type SalesChargeType {
@@ -812,15 +835,4 @@ type VariantValue {
   createdAt: LocalDateTime!
   updatedAt: LocalDateTime!
   variantType: VariantType!
-}
-
-"A relationship between an item and a discount"
-type ItemDiscountObject {
-  itemId: DbUuid!
-  discountId: DbUuid!
-}
-
-input ItemDiscountNewInput {
-  itemId: DbUuid!
-  discountId: DbUuid!
 }

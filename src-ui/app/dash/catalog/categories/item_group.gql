@@ -20,7 +20,7 @@ query getCategory($id: DbUuid!) {
     }
 }
 
-mutation createCategory($input: ItemGroupNew!) {
+mutation createCategory($input: ItemCategoryNew!) {
     createItemCategory(newCategory: $input) {
         id
         name
@@ -31,7 +31,7 @@ mutation createCategory($input: ItemGroupNew!) {
     }
 }
 
-mutation updateCategory($input: ItemGroupUpdate!) {
+mutation updateCategory($input: ItemCategoryUpdate!) {
     updateItemCategory(category: $input) {
         id
         name

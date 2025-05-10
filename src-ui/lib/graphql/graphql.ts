@@ -235,7 +235,7 @@ export type ExpenseUpdateInput = {
 
 export type Item = {
   __typename?: 'Item';
-  category: ItemGroup;
+  category: ItemCategory;
   createdAt: Scalars['LocalDateTime']['output'];
   defaultVariant?: Maybe<ItemVariant>;
   description?: Maybe<Scalars['String']['output']>;
@@ -250,45 +250,43 @@ export type Item = {
   variants: Array<ItemVariant>;
 };
 
-export type ItemDiscountNewInput = {
-  discountId: Scalars['DbUuid']['input'];
-  itemId: Scalars['DbUuid']['input'];
-};
-
-/** A relationship between an item and a discount */
-export type ItemDiscountObject = {
-  __typename?: 'ItemDiscountObject';
-  discountId: Scalars['DbUuid']['output'];
-  itemId: Scalars['DbUuid']['output'];
-};
-
-export type ItemGroup = {
-  __typename?: 'ItemGroup';
+export type ItemCategory = {
+  __typename?: 'ItemCategory';
   createdAt: Scalars['LocalDateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['DbUuid']['output'];
   name: Scalars['String']['output'];
-  state: ItemGroupState;
+  state: ItemCategoryState;
   updatedAt: Scalars['LocalDateTime']['output'];
 };
 
-export type ItemGroupNew = {
+export type ItemCategoryNew = {
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
 };
 
-export enum ItemGroupState {
+export enum ItemCategoryState {
   Active = 'ACTIVE',
   Deleted = 'DELETED',
   Inactive = 'INACTIVE'
 }
 
-export type ItemGroupUpdate = {
+export type ItemCategoryUpdate = {
   description?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['DbUuid']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
-  state?: InputMaybe<ItemGroupState>;
-  updatedAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
+  state?: InputMaybe<ItemCategoryState>;
+};
+
+export type ItemDiscount = {
+  __typename?: 'ItemDiscount';
+  discountId: Scalars['DbUuid']['output'];
+  itemId: Scalars['DbUuid']['output'];
+};
+
+export type ItemDiscountNewInput = {
+  discountId: Scalars['DbUuid']['input'];
+  itemId: Scalars['DbUuid']['input'];
 };
 
 export enum ItemNature {
@@ -320,6 +318,16 @@ export type ItemVariant = {
   variantValues: Array<VariantValue>;
 };
 
+/**
+ * Input type for creating a new item variant.
+ *
+ * This includes both the variant properties and the IDs of variant values to associate.
+ * The system validates that only one value per variant type is included.
+ *
+ * # Fields
+ * - `variant_value_ids`: List of variant value IDs to associate with this variant
+ *   (e.g., ["size-small-id", "color-red-id"])
+ */
 export type ItemVariantNewInput = {
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
   itemId: Scalars['DbUuid']['input'];
@@ -328,6 +336,19 @@ export type ItemVariantNewInput = {
   variantValueIds: Array<Scalars['DbUuid']['input']>;
 };
 
+/**
+ * Input type for updating an existing item variant.
+ *
+ * Uses nested Options to handle nullable fields in updates:
+ * - The outer Option determines if the field should be updated
+ * - The inner Option (for nullable fields) determines if the value should be null
+ *
+ * # Fields
+ * - `id`: ID of the variant to update
+ * - `sku`: Optional SKU update (Option<Option<String>>)
+ * - `price_adjustment`: Optional price adjustment update
+ * - `is_default`: Whether to set this as the default variant
+ */
 export type ItemVariantUpdateInput = {
   id: Scalars['DbUuid']['input'];
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
@@ -338,7 +359,7 @@ export type ItemVariantUpdateInput = {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  addItemDiscount: ItemDiscountObject;
+  addItemDiscount: ItemDiscount;
   addUser: User;
   assignTaxToGroup: Scalars['Int']['output'];
   assignTaxToItem: Scalars['Int']['output'];
@@ -351,7 +372,7 @@ export type Mutation = {
   createDiscount: Discount;
   createExpense: Expense;
   createItem: Item;
-  createItemCategory: ItemGroup;
+  createItemCategory: ItemCategory;
   createItemVariant: ItemVariant;
   createPaymentMethod: PaymentMethod;
   createPurchaseCategory: PurchaseCategory;
@@ -396,7 +417,7 @@ export type Mutation = {
   updateDiscount: Discount;
   updateExpense: Expense;
   updateItem: Item;
-  updateItemCategory: ItemGroup;
+  updateItemCategory: ItemCategory;
   updateItemVariant: ItemVariant;
   updatePaymentMethod: PaymentMethod;
   updatePurchaseCategory: PurchaseCategory;
@@ -484,7 +505,7 @@ export type MutationCreateItemArgs = {
 
 
 export type MutationCreateItemCategoryArgs = {
-  newCategory: ItemGroupNew;
+  newCategory: ItemCategoryNew;
 };
 
 
@@ -718,7 +739,7 @@ export type MutationUpdateItemArgs = {
 
 
 export type MutationUpdateItemCategoryArgs = {
-  category: ItemGroupUpdate;
+  category: ItemCategoryUpdate;
 };
 
 
@@ -858,18 +879,18 @@ export type Query = {
   customerByPhone: Customer;
   customers: Array<Customer>;
   discount: Discount;
-  discountItems: Array<ItemDiscountObject>;
+  discountItems: Array<ItemDiscount>;
   discounts: Array<Discount>;
   expense: Expense;
   expenses: Array<Expense>;
   expensesByCategory: Array<Expense>;
   item: Item;
-  itemCategories: Array<ItemGroup>;
-  itemDiscounts: Array<ItemDiscountObject>;
+  itemCategories: Array<ItemCategory>;
+  itemDiscounts: Array<ItemDiscount>;
   itemVariant: ItemVariant;
   itemVariants: Array<ItemVariant>;
   items: Array<Item>;
-  itemsCategory: ItemGroup;
+  itemsCategory: ItemCategory;
   paymentMethod: PaymentMethod;
   paymentMethods: Array<PaymentMethod>;
   purchaseCategories: Array<PurchaseCategory>;
@@ -1405,7 +1426,6 @@ export type UpdateItem = {
   nature?: InputMaybe<ItemNature>;
   price?: InputMaybe<Scalars['Money']['input']>;
   state?: InputMaybe<ItemState>;
-  updatedAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
 };
 
 export type User = {
@@ -1421,7 +1441,9 @@ export type User = {
 
 export type UserNewInput = {
   fullName: Scalars['String']['input'];
-  pin: Scalars['String']['input'];
+  lastLoginAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
+  pinHash: Scalars['String']['input'];
+  state: UserState;
   username: Scalars['String']['input'];
 };
 
@@ -1434,7 +1456,8 @@ export enum UserState {
 export type UserUpdateInput = {
   fullName?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['DbUuid']['input'];
-  pin?: InputMaybe<Scalars['String']['input']>;
+  lastLoginAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
+  pinHash?: InputMaybe<Scalars['String']['input']>;
   state?: InputMaybe<UserState>;
   username?: InputMaybe<Scalars['String']['input']>;
 };
@@ -1497,28 +1520,28 @@ export type GetCategoriesQueryVariables = Exact<{
 }>;
 
 
-export type GetCategoriesQuery = { __typename?: 'Query', itemCategories: Array<{ __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }> };
+export type GetCategoriesQuery = { __typename?: 'Query', itemCategories: Array<{ __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string }> };
 
 export type GetCategoryQueryVariables = Exact<{
   id: Scalars['DbUuid']['input'];
 }>;
 
 
-export type GetCategoryQuery = { __typename?: 'Query', itemsCategory: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string } };
+export type GetCategoryQuery = { __typename?: 'Query', itemsCategory: { __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string } };
 
 export type CreateCategoryMutationVariables = Exact<{
-  input: ItemGroupNew;
+  input: ItemCategoryNew;
 }>;
 
 
-export type CreateCategoryMutation = { __typename?: 'Mutation', createItemCategory: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string } };
+export type CreateCategoryMutation = { __typename?: 'Mutation', createItemCategory: { __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string } };
 
 export type UpdateCategoryMutationVariables = Exact<{
-  input: ItemGroupUpdate;
+  input: ItemCategoryUpdate;
 }>;
 
 
-export type UpdateCategoryMutation = { __typename?: 'Mutation', updateItemCategory: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string } };
+export type UpdateCategoryMutation = { __typename?: 'Mutation', updateItemCategory: { __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string } };
 
 export type DeleteCategoryMutationVariables = Exact<{
   id: Scalars['DbUuid']['input'];
@@ -1570,19 +1593,19 @@ export type GetItemsQueryVariables = Exact<{
 }>;
 
 
-export type GetItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> }> };
+export type GetItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> }> };
 
 export type GetItemQueryVariables = Exact<{
   id: Scalars['DbUuid']['input'];
 }>;
 
 
-export type GetItemQuery = { __typename?: 'Query', item: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> } };
+export type GetItemQuery = { __typename?: 'Query', item: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> } };
 
 export type GetItemCategoriesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetItemCategoriesQuery = { __typename?: 'Query', itemCategories: Array<{ __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }> };
+export type GetItemCategoriesQuery = { __typename?: 'Query', itemCategories: Array<{ __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string }> };
 
 export type GetItemTaxesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1594,14 +1617,14 @@ export type CreateItemMutationVariables = Exact<{
 }>;
 
 
-export type CreateItemMutation = { __typename?: 'Mutation', createItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> } };
+export type CreateItemMutation = { __typename?: 'Mutation', createItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> } };
 
 export type UpdateItemMutationVariables = Exact<{
   input: UpdateItem;
 }>;
 
 
-export type UpdateItemMutation = { __typename?: 'Mutation', updateItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> } };
+export type UpdateItemMutation = { __typename?: 'Mutation', updateItem: { __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> } };
 
 export type DeleteItemMutationVariables = Exact<{
   id: Scalars['DbUuid']['input'];
@@ -1615,21 +1638,21 @@ export type GetItemDiscountsQueryVariables = Exact<{
 }>;
 
 
-export type GetItemDiscountsQuery = { __typename?: 'Query', itemDiscounts: Array<{ __typename?: 'ItemDiscountObject', itemId: string, discountId: string }> };
+export type GetItemDiscountsQuery = { __typename?: 'Query', itemDiscounts: Array<{ __typename?: 'ItemDiscount', itemId: string, discountId: string }> };
 
 export type GetDiscountItemsQueryVariables = Exact<{
   discountId: Scalars['DbUuid']['input'];
 }>;
 
 
-export type GetDiscountItemsQuery = { __typename?: 'Query', discountItems: Array<{ __typename?: 'ItemDiscountObject', itemId: string, discountId: string }> };
+export type GetDiscountItemsQuery = { __typename?: 'Query', discountItems: Array<{ __typename?: 'ItemDiscount', itemId: string, discountId: string }> };
 
 export type AddItemDiscountMutationVariables = Exact<{
   itemDiscount: ItemDiscountNewInput;
 }>;
 
 
-export type AddItemDiscountMutation = { __typename?: 'Mutation', addItemDiscount: { __typename?: 'ItemDiscountObject', itemId: string, discountId: string } };
+export type AddItemDiscountMutation = { __typename?: 'Mutation', addItemDiscount: { __typename?: 'ItemDiscount', itemId: string, discountId: string } };
 
 export type RemoveItemDiscountMutationVariables = Exact<{
   itemId: Scalars['DbUuid']['input'];
@@ -1804,7 +1827,7 @@ export type GetPosCategoriesQueryVariables = Exact<{
 }>;
 
 
-export type GetPosCategoriesQuery = { __typename?: 'Query', itemCategories: Array<{ __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }> };
+export type GetPosCategoriesQuery = { __typename?: 'Query', itemCategories: Array<{ __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string }> };
 
 export type GetPosItemsQueryVariables = Exact<{
   first: Scalars['Int']['input'];
@@ -1812,7 +1835,7 @@ export type GetPosItemsQueryVariables = Exact<{
 }>;
 
 
-export type GetPosItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemGroup', id: string, name: string, description?: string | null, state: ItemGroupState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> }> };
+export type GetPosItemsQuery = { __typename?: 'Query', items: Array<{ __typename?: 'Item', id: string, name: string, description?: string | null, nature: ItemNature, state: ItemState, price: string, createdAt: string, updatedAt: string, hasVariants: boolean, category: { __typename?: 'ItemCategory', id: string, name: string, description?: string | null, state: ItemCategoryState, createdAt: string, updatedAt: string }, taxes: Array<{ __typename?: 'Tax', id: string, name: string, rate: string, description?: string | null, createdAt: string, updatedAt: string }>, variants: Array<{ __typename?: 'ItemVariant', id: string, sku?: string | null, priceAdjustment?: string | null, isDefault: boolean, finalPrice: string, variantValues: Array<{ __typename?: 'VariantValue', id: string, value: string, variantType: { __typename?: 'VariantType', id: string, name: string } }> }> }> };
 
 export type GetPosTaxesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -2319,9 +2342,13 @@ export class TypedDocumentString<TResult, TVariables>
   implements DocumentTypeDecoration<TResult, TVariables>
 {
   __apiType?: DocumentTypeDecoration<TResult, TVariables>['__apiType'];
+  private value: string;
+  public __meta__?: Record<string, any> | undefined;
 
-  constructor(private value: string, public __meta__?: Record<string, any> | undefined) {
+  constructor(value: string, __meta__?: Record<string, any> | undefined) {
     super(value);
+    this.value = value;
+    this.__meta__ = __meta__;
   }
 
   toString(): string & DocumentTypeDecoration<TResult, TVariables> {
@@ -2364,7 +2391,7 @@ export const GetCategoryDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<GetCategoryQuery, GetCategoryQueryVariables>;
 export const CreateCategoryDocument = new TypedDocumentString(`
-    mutation createCategory($input: ItemGroupNew!) {
+    mutation createCategory($input: ItemCategoryNew!) {
   createItemCategory(newCategory: $input) {
     id
     name
@@ -2376,7 +2403,7 @@ export const CreateCategoryDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<CreateCategoryMutation, CreateCategoryMutationVariables>;
 export const UpdateCategoryDocument = new TypedDocumentString(`
-    mutation updateCategory($input: ItemGroupUpdate!) {
+    mutation updateCategory($input: ItemCategoryUpdate!) {
   updateItemCategory(category: $input) {
     id
     name
