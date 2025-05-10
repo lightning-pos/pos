@@ -10,12 +10,12 @@ pub struct AppState {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub async fn run() {
     // Initialize the database path
     let db_path = "minnal.db";
 
     // Create the app service - it will automatically use Turso if credentials are available
-    let app_service = AppService::new(db_path);
+    let app_service = AppService::new(db_path).await;
 
     // Create the app state with the service
     let app_state = AppState {
