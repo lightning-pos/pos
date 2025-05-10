@@ -6,30 +6,30 @@ use crate::{
             },
             Command,
         },
-        models::catalog::item_group_model::{ItemGroup, ItemGroupNew, ItemGroupUpdate},
+        models::catalog::item_group_model::{ItemCategory, ItemCategoryNew, ItemCategoryUpdate},
         types::db_uuid::DbUuid,
     },
     AppState,
 };
 use juniper::FieldResult;
 
-pub fn create_item_category(category: ItemGroupNew, context: &AppState) -> FieldResult<ItemGroup> {
-    let mut service = context.service.lock().unwrap();
-    let res = CreateItemGroupCommand { category }.exec(&mut service)?;
+pub async fn create_item_category(category: ItemCategoryNew, context: &AppState) -> FieldResult<ItemCategory> {
+    let mut service = context.service.lock().await;
+    let res = CreateItemGroupCommand { category }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn update_item_category(
-    category: ItemGroupUpdate,
+pub async fn update_item_category(
+    category: ItemCategoryUpdate,
     context: &AppState,
-) -> FieldResult<ItemGroup> {
-    let mut service = context.service.lock().unwrap();
-    let res = UpdateItemGroupCommand { category }.exec(&mut service)?;
+) -> FieldResult<ItemCategory> {
+    let mut service = context.service.lock().await;
+    let res = UpdateItemGroupCommand { category }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn delete_item_category(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let res = DeleteItemGroupCommand { id }.exec(&mut service)?;
+pub async fn delete_item_category(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+    let mut service = context.service.lock().await;
+    let res = DeleteItemGroupCommand { id }.exec(&mut service).await?;
     Ok(res)
 }

@@ -22,14 +22,6 @@ lightning-macros = { path = "crates/lightning-macros" }
 bigdecimal = { version = "0.4", features = ["serde"] }
 chrono = { version = "0.4.39", features = ["serde"] }
 derive_more = { version = "1.0.0", features = ["display", "from", "from_str"] }
-diesel = { version = "2.2.6", features = [
-    "sqlite",
-    "returning_clauses_for_sqlite_3_35", # Required for DDL returning clauses
-    "chrono",                            # Required for chrono ser/de
-    "numeric",                           # Required for bigdecimal
-] }
-diesel-derive-enum = { version = "2.1.0", features = ["sqlite"] }
-diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
 juniper = { version = "0.16.1", features = [
     "chrono",
     "uuid",
@@ -42,7 +34,12 @@ tauri-plugin-fs = "2.0.1"
 uuid = { version = "1.11.1", features = ["v7"] }
 rand = "0.8"
 libsql = { version = "0.9.3" }
-tokio = { version = "1.44.2" }
+tokio = { version = "1.44.2", features = ["rt", "rt-multi-thread", "macros"] }
+sea-query = { version = "0.32.3", features = [
+    "with-uuid",
+    "with-chrono",
+    "thread-safe",
+] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

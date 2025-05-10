@@ -8,23 +8,23 @@ use crate::core::models::catalog::variant_type_model::VariantType;
 use crate::core::types::db_uuid::DbUuid;
 use crate::AppState;
 
-pub fn get_variant_type(id: DbUuid, context: &AppState) -> FieldResult<VariantType> {
-    let mut service = context.service.lock().unwrap();
+pub async fn get_variant_type(id: DbUuid, context: &AppState) -> FieldResult<VariantType> {
+    let mut service = context.service.lock().await;
 
     let command = GetVariantTypeCommand { id };
-    let variant_type = command.exec(&mut service)?;
+    let variant_type = command.exec(&mut service).await?;
     Ok(variant_type)
 }
 
-pub fn get_variant_types(
+pub async fn get_variant_types(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<VariantType>> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
 
     let command = ListVariantTypesCommand;
-    let variant_types = command.exec(&mut service)?;
+    let variant_types = command.exec(&mut service).await?;
 
     // Apply pagination in memory since our command doesn't support it directly
     let offset_val = offset.unwrap_or(0) as usize;
@@ -43,10 +43,10 @@ pub fn get_variant_types(
     Ok(paginated_types)
 }
 
-pub fn get_total_variant_types(context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
+pub async fn get_total_variant_types(context: &AppState) -> FieldResult<i32> {
+    let mut service = context.service.lock().await;
 
     let command = ListVariantTypesCommand;
-    let variant_types = command.exec(&mut service)?;
+    let variant_types = command.exec(&mut service).await?;
     Ok(variant_types.len() as i32)
 }

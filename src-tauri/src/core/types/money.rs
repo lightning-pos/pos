@@ -4,18 +4,12 @@ use std::{
 };
 
 use bigdecimal::{BigDecimal, ToPrimitive};
-use diesel::{
-    deserialize::{self, FromSql},
-    expression::AsExpression,
-    serialize::{self, IsNull, Output, ToSql},
-    sql_types::BigInt,
-    sqlite::{Sqlite, SqliteValue},
-    Queryable,
-};
 use juniper::{graphql_scalar, InputValue, ScalarValue, Value};
+use lightning_macros::{LibsqlType, SeaQueryType};
 
-#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, AsExpression)]
-#[diesel(sql_type = BigInt)]
+use crate::adapters::outgoing::database::FromLibsqlValue;
+
+#[derive(Debug, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, SeaQueryType, LibsqlType)]
 #[graphql_scalar(parse_token(String))]
 pub struct Money(i64);
 
@@ -54,8 +48,7 @@ impl Money {
         }
     }
 
-    /// Returns the raw cents value
-    pub fn cents(&self) -> i64 {
+    pub fn to_base_unit(&self) -> i64 {
         self.0
     }
 
@@ -131,28 +124,6 @@ impl Div<i32> for Money {
 
     fn div(self, other: i32) -> Self::Output {
         Money(self.0 / other as i64)
-    }
-}
-
-impl FromSql<BigInt, Sqlite> for Money {
-    fn from_sql(bytes: SqliteValue<'_, '_, '_>) -> deserialize::Result<Self> {
-        let i = <i64 as FromSql<BigInt, Sqlite>>::from_sql(bytes)?;
-        Ok(Money(i))
-    }
-}
-
-impl ToSql<BigInt, Sqlite> for Money {
-    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Sqlite>) -> serialize::Result {
-        out.set_value(self.0);
-        Ok(IsNull::No)
-    }
-}
-
-impl Queryable<BigInt, Sqlite> for Money {
-    type Row = i64;
-
-    fn build(row: i64) -> deserialize::Result<Self> {
-        Ok(Money(row))
     }
 }
 

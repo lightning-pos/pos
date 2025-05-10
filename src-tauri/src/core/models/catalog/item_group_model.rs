@@ -1,38 +1,38 @@
-use crate::{core::types::db_uuid::DbUuid, schema::item_categories};
+use crate::{
+    adapters::outgoing::database::{FromLibsqlValue, FromRow},
+    core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid},
+};
 use chrono::NaiveDateTime;
-use diesel::prelude::{AsChangeset, Insertable, Queryable, Selectable};
-use diesel_derive_enum::DbEnum;
+use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
-#[derive(Debug, Queryable, Insertable, Selectable)]
-#[diesel(table_name = item_categories)]
-pub struct ItemGroup {
+#[derive(Debug, SeaQueryModel, LibsqlFromRow, SeaQueryCrud)]
+pub struct ItemCategory {
     pub id: DbUuid,
     pub name: String,
     pub description: Option<String>,
-    pub state: ItemGroupState,
+    pub state: ItemCategoryState,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
 
 #[derive(Debug, Clone, GraphQLInputObject)]
-pub struct ItemGroupNew {
+pub struct ItemCategoryNew {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]
-#[diesel(table_name = item_categories)]
-pub struct ItemGroupUpdate {
+#[derive(Debug, Clone, GraphQLInputObject)]
+pub struct ItemCategoryUpdate {
     pub id: DbUuid,
     pub name: Option<String>,
     pub description: Option<Option<String>>,
-    pub state: Option<ItemGroupState>,
-    pub updated_at: Option<NaiveDateTime>,
+    pub state: Option<ItemCategoryState>,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum)]
-pub enum ItemGroupState {
+#[derive(Debug, Clone, Copy, GraphQLEnum, Display, SeaQueryEnum, LibsqlEnum)]
+pub enum ItemCategoryState {
     Active,
     Inactive,
     Deleted,

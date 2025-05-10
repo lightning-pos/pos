@@ -19,14 +19,10 @@
 //! - No additional metadata is stored at this level
 //! - All variant-specific data is stored in the ItemVariant table
 
-use diesel::{prelude::Insertable, Associations, Queryable};
 use juniper::GraphQLInputObject;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::core::models::catalog::{
-    item_variant_model::ItemVariant, variant_value_model::VariantValue,
-};
-use crate::core::types::db_uuid::DbUuid;
-use crate::schema::item_variant_values;
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
 
 /// Junction table connecting item variants to variant values.
 ///
@@ -45,12 +41,11 @@ use crate::schema::item_variant_values;
 /// # Validation
 /// The system enforces that each item variant can only have one value from each variant type.
 /// This validation happens in the command layer, not at the database level.
-#[derive(Debug, Clone, Queryable, Insertable, Associations)]
-#[diesel(table_name = item_variant_values)]
-#[diesel(belongs_to(ItemVariant, foreign_key = item_variant_id))]
-#[diesel(belongs_to(VariantValue, foreign_key = variant_value_id))]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct ItemVariantValue {
+    #[sea_query(primary_key)]
     pub item_variant_id: DbUuid,
+    #[sea_query(primary_key)]
     pub variant_value_id: DbUuid,
 }
 

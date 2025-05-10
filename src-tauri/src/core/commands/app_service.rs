@@ -1,12 +1,12 @@
-use diesel::{sqlite::Sqlite, Connection, SqliteConnection};
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use std::error::Error;
+use libsql::Connection;
 
-use crate::core::types::db_uuid::DbUuid;
+use crate::{
+    adapters::outgoing::database::{DatabaseAdapter, LibSqlAdapter},
+    core::{db::migrations, types::db_uuid::DbUuid},
+};
 
-pub struct AppService {
-    pub conn: SqliteConnection,
-    pub libsql_conn: Option<libsql::Connection>,
+pub struct AppService<DB: DatabaseAdapter = LibSqlAdapter> {
+    pub db_adapter: DB,
     pub state: SessionState,
 }
 
@@ -15,47 +15,63 @@ pub struct SessionState {
 }
 
 impl AppService {
-    pub fn new(conn_path: &str) -> Self {
+    pub async fn new(conn_path: &str) -> Self {
         let state = SessionState { current_user: None };
-        let mut conn = SqliteConnection::establish(conn_path).unwrap();
-        let migration_result = Self::run_migrations(&mut conn);
+        let turso_url = std::env::var("TURSO_URL").expect("Failed to get TURSO_URL");
+        let turso_token = std::env::var("TURSO_TOKEN").expect("Failed to get TURSO_TOKEN");
 
-        match migration_result {
-            Ok(_) => println!("Migration successful"),
-            Err(e) => println!("Migration failed: {}", e),
-        }
+        let db = libsql::Builder::new_synced_database(conn_path, turso_url, turso_token)
+                .build()
+                .await
+                .expect("Failed to build synced libsql database");
+
+        let conn = db.connect().expect("Failed to connect to libsql database");
+
+        Self::apply_migrations(&conn).await;
+
+        let db_adapter = LibSqlAdapter::new(db, conn);
 
         Self {
-            conn,
-            libsql_conn: None,
+            db_adapter,
             state,
         }
     }
 
-    pub async fn init_libsql_db(&mut self, conn_path: &str) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        let url = std::env::var("TURSO_URL").ok().unwrap();
-        let token = std::env::var("TURSO_TOKEN").ok().unwrap();
 
-        let libsql_db = libsql::Builder::new_synced_database(
-            conn_path.to_string(),
-            url.to_string(),
-            token.to_string()
-        ).build().await.unwrap();
+    #[cfg(test)]
+    pub async fn new_test(conn_path: &str) -> Self {
+        let db = libsql::Builder::new_local(&conn_path)
+            .build()
+            .await
+            .expect("Failed to build test database from template");
 
-        let libsql_conn = libsql_db.connect().unwrap();
+        let conn = db.connect().expect("Failed to connect to test database");
 
-        self.libsql_conn = Some(libsql_conn);
-        Ok(())
+        Self::apply_migrations(&conn).await;
+
+        let db_adapter = LibSqlAdapter::new(db, conn);
+
+        Self {
+            db_adapter,
+            state: SessionState { current_user: None },
+        }
     }
 
-    fn run_migrations(
-        connection: &mut impl MigrationHarness<Sqlite>,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
-
-        connection.run_pending_migrations(MIGRATIONS)?;
-
-        Ok(())
+    pub async fn apply_migrations(conn: &Connection) {
+        // Run migrations using our custom implementation
+        match migrations::run_migrations(conn).await {
+            Ok(applied) => {
+                if applied {
+                    eprintln!("Migrations applied successfully");
+                } else {
+                    eprintln!("No new migrations to apply");
+                }
+            }
+            Err(e) => {
+                eprintln!("Migration failed: {}", e);
+                panic!()
+            }
+        }
     }
 }
 
@@ -63,7 +79,7 @@ impl AppService {
 pub mod tests {
     use super::*;
 
-    pub fn setup_service() -> AppService {
-        AppService::new(":memory:")
+    pub async fn setup_service() -> AppService {
+        AppService::new_test(":memory:").await
     }
 }

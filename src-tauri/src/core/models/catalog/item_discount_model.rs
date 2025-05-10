@@ -1,19 +1,13 @@
-use diesel::{prelude::Insertable, Associations, Queryable};
 use juniper::GraphQLInputObject;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::core::models::catalog::{
-    discount_model::Discount,
-    item_model::Item,
-};
-use crate::core::types::db_uuid::DbUuid;
-use crate::schema::item_discounts;
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
 
-#[derive(Debug, Clone, Queryable, Insertable, Associations)]
-#[diesel(belongs_to(Item, foreign_key = item_id))]
-#[diesel(belongs_to(Discount, foreign_key = discount_id))]
-#[diesel(table_name = item_discounts)]
+#[derive(Debug, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct ItemDiscount {
+    #[sea_query(primary_key)]
     pub item_id: DbUuid,
+    #[sea_query(primary_key)]
     pub discount_id: DbUuid,
 }
 

@@ -1,11 +1,11 @@
-use crate::{core::types::db_uuid::DbUuid, schema::purchase_categories};
 use chrono::NaiveDateTime;
-use diesel::prelude::{AsChangeset, Insertable, Queryable, Selectable};
-use diesel_derive_enum::DbEnum;
+use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
-#[derive(Debug, Queryable, Insertable, Selectable)]
-#[diesel(table_name = purchase_categories)]
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
+
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct PurchaseCategory {
     pub id: DbUuid,
     pub name: String,
@@ -22,8 +22,7 @@ pub struct PurchaseCategoryNew {
     pub state: Option<PurchaseCategoryState>,
 }
 
-#[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]
-#[diesel(table_name = purchase_categories)]
+#[derive(Debug, Clone, GraphQLInputObject)]
 pub struct PurchaseCategoryUpdate {
     pub id: DbUuid,
     pub name: Option<String>,
@@ -32,7 +31,7 @@ pub struct PurchaseCategoryUpdate {
     pub updated_at: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum PurchaseCategoryState {
     Active,
     Inactive,

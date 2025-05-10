@@ -1,17 +1,10 @@
 use chrono::NaiveDateTime;
-use diesel::{
-    prelude::{Insertable, Queryable},
-    Selectable,
-};
 use juniper::GraphQLInputObject;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::{
-    core::types::{db_uuid::DbUuid, money::Money},
-    schema::sales_order_items,
-};
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
 
-#[derive(Debug, Queryable, Selectable, Insertable)]
-#[diesel(table_name = sales_order_items)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct SalesOrderItem {
     pub id: DbUuid,
     pub order_id: DbUuid,

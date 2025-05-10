@@ -5,19 +5,20 @@ use juniper::{DefaultScalarValue, EmptySubscription, ExecutionError, Variables};
 use tauri::State;
 
 #[tauri::command]
-pub fn graphql(
+pub async fn graphql(
     query: String,
     vars: Option<Variables<DefaultScalarValue>>,
     state: State<'_, AppState>,
 ) -> Result<(juniper::Value, Vec<ExecutionError<DefaultScalarValue>>)> {
     println!("yoyo query: {:?}", query);
-    juniper::execute_sync(
+    juniper::execute(
         &query,
         None,
         &Schema::new(Query, Mutation, EmptySubscription::new()),
         vars.as_ref().unwrap_or(&Variables::new()),
         &state,
     )
+    .await
     .map_err(|err| err.into())
 }
 

@@ -1,18 +1,11 @@
 use chrono::NaiveDateTime;
-use diesel::{
-    prelude::{AsChangeset, Insertable, Queryable},
-    Associations, Selectable,
-};
 use juniper::GraphQLInputObject;
 
-use crate::core::{
-    models::catalog::item_model::Item,
-    types::{db_uuid::DbUuid, percentage::Percentage},
-};
-use crate::schema::{item_taxes, taxes};
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
+use crate::core::types::percentage::Percentage;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-#[derive(Debug, Clone, Queryable, Selectable, Insertable)]
-#[diesel(table_name = taxes)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct Tax {
     pub id: DbUuid,
     pub name: String,
@@ -38,21 +31,11 @@ pub struct TaxUpdateInput {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, AsChangeset)]
-#[diesel(table_name = taxes)]
-pub struct TaxUpdateChangeset {
-    pub name: Option<String>,
-    pub rate: Option<Percentage>,
-    pub description: Option<String>,
-    pub updated_at: Option<NaiveDateTime>,
-}
-
-#[derive(Debug, Clone, Queryable, Insertable, Associations)]
-#[diesel(belongs_to(Tax, foreign_key = tax_id))]
-#[diesel(belongs_to(Item, foreign_key = item_id))]
-#[diesel(table_name = item_taxes)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct ItemTax {
+    #[sea_query(primary_key)]
     pub item_id: DbUuid,
+    #[sea_query(primary_key)]
     pub tax_id: DbUuid,
 }
 

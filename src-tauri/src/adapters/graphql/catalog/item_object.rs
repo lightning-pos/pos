@@ -1,21 +1,20 @@
 use chrono::NaiveDateTime;
-use diesel::prelude::*;
-use diesel::SelectableHelper;
+use sea_query::{Expr, Func, Query};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         models::{
             catalog::{
-                item_group_model::ItemGroup,
+                item_group_model::{ItemCategories, ItemCategory},
                 item_model::{Item, ItemNature, ItemState},
-                item_variant_model::ItemVariant,
+                item_variant_model::{ItemVariant, ItemVariants},
             },
-            common::tax_model::Tax,
+            common::tax_model::{ItemTaxes, Tax, Taxes},
         },
         types::{db_uuid::DbUuid, money::Money},
     },
-    schema::{item_categories, item_taxes, item_variants, taxes},
     AppState,
 };
 
@@ -53,57 +52,123 @@ impl Item {
         self.updated_at
     }
 
-    pub fn category(&self, context: &AppState) -> FieldResult<ItemGroup> {
-        let mut service = context.service.lock().unwrap();
-        let res = item_categories::table
-            .find(&self.category_id)
-            .select(ItemGroup::as_select())
-            .get_result(&mut service.conn)?;
-        Ok(res)
+    pub async fn category(&self, context: &AppState) -> FieldResult<ItemCategory> {
+        let service = context.service.lock().await;
+
+        let mut query_builder = Query::select();
+        let query = query_builder
+            .from(ItemCategories::Table)
+            .columns([
+                ItemCategories::Id,
+                ItemCategories::Name,
+                ItemCategories::Description,
+                ItemCategories::State,
+                ItemCategories::CreatedAt,
+                ItemCategories::UpdatedAt,
+            ])
+            .and_where(Expr::col(ItemCategories::Id).eq(self.category_id.to_string()));
+        let result = service.db_adapter.query_one::<ItemCategory>(&query).await?;
+        Ok(result)
     }
 
-    pub fn taxes(&self, context: &AppState) -> FieldResult<Vec<Tax>> {
-        let mut service = context.service.lock().unwrap();
+    pub async fn taxes(&self, context: &AppState) -> FieldResult<Vec<Tax>> {
+        let service = context.service.lock().await;
 
-        let tax_ids = item_taxes::table
-            .filter(item_taxes::item_id.eq(self.id))
-            .select(item_taxes::tax_id)
-            .load::<DbUuid>(&mut service.conn)?;
+        // First, get the tax IDs for this item
+        let mut tax_ids_query_builder = Query::select();
+        let tax_ids_query = tax_ids_query_builder
+            .from(ItemTaxes::Table)
+            .column(ItemTaxes::TaxId)
+            .and_where(Expr::col(ItemTaxes::ItemId).eq(self.id.to_string()));
 
-        let taxes = taxes::table
-            .filter(taxes::id.eq_any(tax_ids))
-            .select(Tax::as_select())
-            .load::<Tax>(&mut service.conn)?;
+        let tax_ids = service.db_adapter.query_many::<DbUuid>(&tax_ids_query).await?;
+
+        // If no tax IDs found, return empty vector
+        if tax_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Convert tax IDs to strings for the IN clause
+        let tax_id_strings: Vec<String> = tax_ids.iter().map(|id| id.to_string()).collect();
+
+        // Then get the taxes with those IDs
+        let mut taxes_query_builder = Query::select();
+        let taxes_query = taxes_query_builder
+            .from(Taxes::Table)
+            .columns([
+                Taxes::Id,
+                Taxes::Name,
+                Taxes::Rate,
+                Taxes::Description,
+                Taxes::CreatedAt,
+                Taxes::UpdatedAt,
+            ])
+            .and_where(Expr::col(Taxes::Id).is_in(tax_id_strings));
+
+        let taxes = service.db_adapter.query_many::<Tax>(&taxes_query).await?;
 
         Ok(taxes)
     }
 
-    pub fn variants(&self, context: &AppState) -> FieldResult<Vec<ItemVariant>> {
-        let mut service = context.service.lock().unwrap();
-        let variants = item_variants::table
-            .filter(item_variants::item_id.eq(self.id))
-            .select(ItemVariant::as_select())
-            .load::<ItemVariant>(&mut service.conn)?;
+    pub async fn variants(&self, context: &AppState) -> FieldResult<Vec<ItemVariant>> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
+            .from(ItemVariants::Table)
+            .columns([
+                ItemVariants::Id,
+                ItemVariants::ItemId,
+                ItemVariants::Sku,
+                ItemVariants::PriceAdjustment,
+                ItemVariants::IsDefault,
+                ItemVariants::CreatedAt,
+                ItemVariants::UpdatedAt,
+            ])
+            .and_where(Expr::col(ItemVariants::ItemId).eq(self.id.to_string()));
+
+        let variants = service.db_adapter.query_many::<ItemVariant>(&query).await?;
+
         Ok(variants)
     }
 
-    pub fn has_variants(&self, context: &AppState) -> FieldResult<bool> {
-        let mut service = context.service.lock().unwrap();
-        let count: i64 = item_variants::table
-            .filter(item_variants::item_id.eq(self.id))
-            .count()
-            .get_result(&mut service.conn)?;
+    pub async fn has_variants(&self, context: &AppState) -> FieldResult<bool> {
+        let service = context.service.lock().await;
+
+        // Count query to check if variants exist
+        let mut count_query_builder = Query::select();
+        let count_query = count_query_builder
+            .from(ItemVariants::Table)
+            .expr(Func::count(Expr::col(ItemVariants::Id)))
+            .and_where(Expr::col(ItemVariants::ItemId).eq(self.id.to_string()));
+
+        let count = service.db_adapter.query_one::<i64>(&count_query).await?;
+
         Ok(count > 0)
     }
 
-    pub fn default_variant(&self, context: &AppState) -> FieldResult<Option<ItemVariant>> {
-        let mut service = context.service.lock().unwrap();
-        let default_variant = item_variants::table
-            .filter(item_variants::item_id.eq(self.id))
-            .filter(item_variants::is_default.eq(true))
-            .select(ItemVariant::as_select())
-            .first::<ItemVariant>(&mut service.conn)
-            .optional()?;
+    pub async fn default_variant(&self, context: &AppState) -> FieldResult<Option<ItemVariant>> {
+        let service = context.service.lock().await;
+
+        let mut query_builder = Query::select();
+        let query = query_builder
+            .from(ItemVariants::Table)
+            .columns([
+                ItemVariants::Id,
+                ItemVariants::ItemId,
+                ItemVariants::Sku,
+                ItemVariants::PriceAdjustment,
+                ItemVariants::IsDefault,
+                ItemVariants::CreatedAt,
+                ItemVariants::UpdatedAt,
+            ])
+            .and_where(Expr::col(ItemVariants::ItemId).eq(self.id.to_string()))
+            .and_where(Expr::col(ItemVariants::IsDefault).eq(true));
+
+        let default_variant = service.db_adapter.query_optional::<ItemVariant>(&query).await?;
+
         Ok(default_variant)
     }
 }
+
+pub fn assert_send<T: Send>(_: &T ) {}

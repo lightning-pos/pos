@@ -14,20 +14,20 @@ use crate::{
     AppState,
 };
 
-pub fn create_channel(input: ChannelNewInput, context: &AppState) -> FieldResult<Channel> {
-    let mut service = context.service.lock().unwrap();
-    let res = CreateChannelCommand { channel: input }.exec(&mut service)?;
+pub async fn create_channel(input: ChannelNewInput, context: &AppState) -> FieldResult<Channel> {
+    let mut service = context.service.lock().await;
+    let res = CreateChannelCommand { channel: input }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn update_channel(input: ChannelUpdateInput, context: &AppState) -> FieldResult<Channel> {
-    let mut service = context.service.lock().unwrap();
-    let res = UpdateChannelCommand { channel: input }.exec(&mut service)?;
+pub async fn update_channel(input: ChannelUpdateInput, context: &AppState) -> FieldResult<Channel> {
+    let mut service = context.service.lock().await;
+    let res = UpdateChannelCommand { channel: input }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn delete_channel(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let res = DeleteChannelCommand { id }.exec(&mut service)?;
+pub async fn delete_channel(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+    let mut service = context.service.lock().await;
+    let res = DeleteChannelCommand { id }.exec(&mut service).await?;
     Ok(res)
 }

@@ -1,12 +1,18 @@
 use chrono::NaiveDateTime;
-use diesel::prelude::*;
+use sea_query::{Expr, Query};
 use juniper::{graphql_object, FieldResult};
 
-use crate::core::models::catalog::variant_type_model::VariantType;
-use crate::core::models::catalog::variant_value_model::VariantValue;
-use crate::core::types::db_uuid::DbUuid;
-use crate::schema::variant_types;
-use crate::AppState;
+use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::catalog::{
+            variant_type_model::{VariantType, VariantTypes},
+            variant_value_model::VariantValue,
+        },
+        types::db_uuid::DbUuid,
+    },
+    AppState,
+};
 
 #[graphql_object(context = AppState)]
 impl VariantValue {
@@ -30,12 +36,23 @@ impl VariantValue {
         self.updated_at
     }
 
-    pub fn variant_type(&self, context: &AppState) -> FieldResult<VariantType> {
-        let mut service = context.service.lock().unwrap();
-        let variant_type = variant_types::table
-            .find(&self.variant_type_id)
-            .select(VariantType::as_select())
-            .get_result::<VariantType>(&mut service.conn)?;
+    pub async fn variant_type(&self, context: &AppState) -> FieldResult<VariantType> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
+            .from(VariantTypes::Table)
+            .columns([
+                VariantTypes::Id,
+                VariantTypes::Name,
+                VariantTypes::Description,
+                VariantTypes::CreatedAt,
+                VariantTypes::UpdatedAt,
+            ])
+            .and_where(Expr::col(VariantTypes::Id).eq(self.variant_type_id.to_string()));
+
+        let variant_type = service.db_adapter.query_one::<VariantType>(&query).await?;
+
         Ok(variant_type)
     }
 }

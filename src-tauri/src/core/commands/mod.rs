@@ -6,6 +6,8 @@ pub mod finance;
 pub mod purchases;
 pub mod sales;
 
+use std::future::Future;
+
 pub use app_service::*;
 pub use auth::*;
 pub use catalog::*;
@@ -18,5 +20,5 @@ use crate::error::Result;
 
 pub trait Command {
     type Output;
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output>;
+    fn exec(&self, service: &mut AppService) -> impl Future<Output = Result<Self::Output>> + Send;
 }

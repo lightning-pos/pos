@@ -1,15 +1,10 @@
 use chrono::NaiveDateTime;
-use diesel::{
-    prelude::{AsChangeset, Insertable, Queryable},
-    Selectable,
-};
 use juniper::GraphQLInputObject;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::core::types::db_uuid::DbUuid;
-use crate::schema::suppliers;
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::db_uuid::DbUuid}};
 
-#[derive(Debug, Queryable, Selectable, Insertable)]
-#[diesel(table_name = suppliers)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct Supplier {
     pub id: DbUuid,
     pub name: String,
@@ -32,14 +27,4 @@ pub struct SupplierUpdateInput {
     pub name: Option<String>,
     pub address: Option<Option<String>>,
     pub phone: Option<Option<String>>,
-}
-
-#[derive(Debug, Clone, AsChangeset)]
-#[diesel(table_name = suppliers)]
-pub struct SupplierUpdateChangeset {
-    pub id: DbUuid,
-    pub name: Option<String>,
-    pub address: Option<Option<String>>,
-    pub phone: Option<Option<String>>,
-    pub updated_at: NaiveDateTime,
 }

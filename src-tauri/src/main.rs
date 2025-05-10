@@ -3,14 +3,15 @@
 
 use lightning_pos::adapters;
 
+#[tokio::main]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-fn main() {
+async fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 && args[1] == "export-schema" {
         export_schema();
         return;
     }
-    lightning_pos::run();
+    lightning_pos::run().await;
 }
 
 fn export_schema() {

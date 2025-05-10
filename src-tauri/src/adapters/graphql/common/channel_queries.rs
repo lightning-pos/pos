@@ -1,35 +1,73 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::common::channel_model::Channel, types::db_uuid::DbUuid},
-    schema::channels,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::common::channel_model::{Channel, Channels},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
-pub fn get_channel(id: DbUuid, context: &AppState) -> FieldResult<Channel> {
-    let conn = &mut context.service.lock().unwrap().conn;
-    let channel = channels::table
-        .filter(channels::id.eq(id))
-        .select(Channel::as_select())
-        .get_result(conn)?;
+pub async fn get_channel(id: DbUuid, context: &AppState) -> FieldResult<Channel> {
+    let service = context.service.lock().await;
+
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(Channels::Table)
+        .columns([
+            Channels::Id,
+            Channels::Name,
+            Channels::Description,
+            Channels::IsActive,
+            Channels::CreatedAt,
+            Channels::UpdatedAt,
+        ])
+        .and_where(Expr::col(Channels::Id).eq(id.to_string()));
+
+    let channel = service.db_adapter.query_one::<Channel>(&query).await?;
 
     Ok(channel)
 }
 
-pub fn get_channels(context: &AppState) -> FieldResult<Vec<Channel>> {
-    let conn = &mut context.service.lock().unwrap().conn;
-    let channels_list = channels::table.select(Channel::as_select()).load(conn)?;
+pub async fn get_channels(context: &AppState) -> FieldResult<Vec<Channel>> {
+    let service = context.service.lock().await;
+
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(Channels::Table)
+        .columns([
+            Channels::Id,
+            Channels::Name,
+            Channels::Description,
+            Channels::IsActive,
+            Channels::CreatedAt,
+            Channels::UpdatedAt,
+        ]);
+
+    let channels_list = service.db_adapter.query_many::<Channel>(&query).await?;
 
     Ok(channels_list)
 }
 
-pub fn get_active_channels(context: &AppState) -> FieldResult<Vec<Channel>> {
-    let conn = &mut context.service.lock().unwrap().conn;
-    let channels_list = channels::table
-        .filter(channels::is_active.eq(true))
-        .select(Channel::as_select())
-        .load(conn)?;
+pub async fn get_active_channels(context: &AppState) -> FieldResult<Vec<Channel>> {
+    let service = context.service.lock().await;
+
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(Channels::Table)
+        .columns([
+            Channels::Id,
+            Channels::Name,
+            Channels::Description,
+            Channels::IsActive,
+            Channels::CreatedAt,
+            Channels::UpdatedAt,
+        ])
+        .and_where(Expr::col(Channels::IsActive).eq(true));
+
+    let channels_list = service.db_adapter.query_many::<Channel>(&query).await?;
 
     Ok(channels_list)
 }

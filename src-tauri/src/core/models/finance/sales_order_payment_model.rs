@@ -1,13 +1,11 @@
 use chrono::NaiveDateTime;
-use diesel::prelude::{AsChangeset, Insertable, Queryable, Selectable};
-use diesel_derive_enum::DbEnum;
+use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
-use crate::core::types::{db_uuid::DbUuid, money::Money};
-use crate::schema::sales_order_payments;
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
 
-#[derive(Debug, Queryable, Selectable, Insertable)]
-#[diesel(table_name = sales_order_payments)]
+#[derive(Debug, Clone, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct SalesOrderPayment {
     pub id: DbUuid,
     pub order_id: DbUuid,
@@ -43,22 +41,10 @@ pub struct SalesOrderPaymentUpdateInput {
     pub state: Option<SalesOrderPaymentState>,
 }
 
-#[derive(Debug, Clone, AsChangeset)]
-#[diesel(table_name = sales_order_payments)]
-pub struct SalesOrderPaymentUpdateChangeset {
-    pub id: DbUuid,
-    pub payment_method_id: Option<DbUuid>,
-    pub payment_date: Option<NaiveDateTime>,
-    pub amount: Option<Money>,
-    pub reference_number: Option<Option<String>>,
-    pub notes: Option<Option<String>>,
-    pub state: Option<SalesOrderPaymentState>,
-    pub updated_at: NaiveDateTime,
-}
-
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum SalesOrderPaymentState {
     Completed,
     Failed,
     Voided,
 }
+

@@ -1,17 +1,14 @@
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
-    adapters::graphql::catalog::{
-        item_discount::ItemDiscountObject,
-        variants::{item_variant_mutations, variant_type_mutations, variant_value_mutations},
-    },
+    adapters::graphql::catalog::variants::{item_variant_mutations, variant_type_mutations, variant_value_mutations},
     core::{
         models::{
             auth::user_model::{User, UserNewInput, UserUpdateInput},
             catalog::{
                 discount_model::{Discount, DiscountNewInput, DiscountUpdateInput},
-                item_discount_model::ItemDiscountNewInput,
-                item_group_model::{ItemGroup, ItemGroupNew, ItemGroupUpdate},
+                item_discount_model::{ItemDiscount, ItemDiscountNewInput},
+                item_group_model::{ItemCategory, ItemCategoryNew, ItemCategoryUpdate},
                 item_model::{Item, NewItem, UpdateItem},
                 item_variant_model::{ItemVariant, ItemVariantNewInput, ItemVariantUpdateInput},
                 variant_type_model::{VariantType, VariantTypeNewInput, VariantTypeUpdateInput},
@@ -52,59 +49,59 @@ use super::Mutation;
 
 #[graphql_object(context = AppState)]
 impl Mutation {
-    fn login(username: String, password: String, context: &AppState) -> FieldResult<bool> {
-        super::auth::auth_mutations::login(username, password, context)?;
+    async fn login(username: String, password: String, context: &AppState) -> FieldResult<bool> {
+        super::auth::auth_mutations::login(username, password, context).await?;
         Ok(true)
     }
 
-    fn logout(context: &AppState) -> FieldResult<bool> {
-        super::auth::auth_mutations::logout(context)?;
+    async fn logout(context: &AppState) -> FieldResult<bool> {
+        super::auth::auth_mutations::logout(context).await?;
         Ok(true)
     }
 
-    fn add_user(user: UserNewInput, context: &AppState) -> FieldResult<User> {
-        super::auth::user_mutations::add_user(user, context)
+    async fn add_user(user: UserNewInput, context: &AppState) -> FieldResult<User> {
+        super::auth::user_mutations::add_user(user, context).await
     }
 
-    fn update_user(user: UserUpdateInput, context: &AppState) -> FieldResult<User> {
-        super::auth::user_mutations::update_user(user, context)
+    async fn update_user(user: UserUpdateInput, context: &AppState) -> FieldResult<User> {
+        super::auth::user_mutations::update_user(user, context).await
     }
 
-    fn delete_user(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::auth::user_mutations::delete_user(id, context)
+    async fn delete_user(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::auth::user_mutations::delete_user(id, context).await
     }
 
-    fn create_item(item: NewItem, context: &AppState) -> FieldResult<Item> {
-        super::catalog::item_mutations::create_item(item, context)
+    async fn create_item(item: NewItem, context: &AppState) -> FieldResult<Item> {
+        super::catalog::item_mutations::create_item(item, context).await
     }
 
-    fn update_item(item: UpdateItem, context: &AppState) -> FieldResult<Item> {
-        super::catalog::item_mutations::update_item(item, context)
+    async fn update_item(item: UpdateItem, context: &AppState) -> FieldResult<Item> {
+        super::catalog::item_mutations::update_item(item, context).await
     }
 
-    fn delete_item(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::catalog::item_mutations::delete_item(id, context)
+    async fn delete_item(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::catalog::item_mutations::delete_item(id, context).await
     }
 
-    fn create_item_category(
-        new_category: ItemGroupNew,
+    async fn create_item_category(
+        new_category: ItemCategoryNew,
         context: &AppState,
-    ) -> FieldResult<ItemGroup> {
-        super::catalog::item_group_mutations::create_item_category(new_category, context)
+    ) -> FieldResult<ItemCategory> {
+        super::catalog::item_group_mutations::create_item_category(new_category, context).await
     }
 
-    fn update_item_category(
-        category: ItemGroupUpdate,
+    async fn update_item_category(
+        category: ItemCategoryUpdate,
         context: &AppState,
-    ) -> FieldResult<ItemGroup> {
-        super::catalog::item_group_mutations::update_item_category(category, context)
+    ) -> FieldResult<ItemCategory> {
+        super::catalog::item_group_mutations::update_item_category(category, context).await
     }
 
-    fn delete_item_category(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::catalog::item_group_mutations::delete_item_category(id, context)
+    async fn delete_item_category(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::catalog::item_group_mutations::delete_item_category(id, context).await
     }
 
-    fn create_purchase_category(
+    async fn create_purchase_category(
         &self,
         name: String,
         description: Option<String>,
@@ -116,10 +113,10 @@ impl Mutation {
             description,
             state,
             context,
-        )
+        ).await
     }
 
-    fn update_purchase_category(
+    async fn update_purchase_category(
         &self,
         id: DbUuid,
         name: Option<String>,
@@ -133,159 +130,159 @@ impl Mutation {
             description,
             state,
             context,
-        )
+        ).await
     }
 
-    fn delete_purchase_category(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
-        super::purchases::purchase_category_mutations::delete_purchase_category(id, context)
+    async fn delete_purchase_category(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
+        super::purchases::purchase_category_mutations::delete_purchase_category(id, context).await
     }
 
     // Sales Order Mutations
-    fn create_sales_order(
+    async fn create_sales_order(
         sales_order: SalesOrderNewInput,
         context: &AppState,
     ) -> FieldResult<SalesOrder> {
-        super::sales::sales_order_mutations::create_sales_order(sales_order, context)
+        super::sales::sales_order_mutations::create_sales_order(sales_order, context).await
     }
 
-    fn void_sales_order(id: DbUuid, context: &AppState) -> FieldResult<SalesOrder> {
-        super::sales::sales_order_mutations::void_sales_order(id, context)
+    async fn void_sales_order(id: DbUuid, context: &AppState) -> FieldResult<SalesOrder> {
+        super::sales::sales_order_mutations::void_sales_order(id, context).await
     }
 
     // Cart Mutations
-    fn create_cart(cart: CartNewInput, context: &AppState) -> FieldResult<Cart> {
-        super::sales::cart_mutations::create_cart(cart, context)
+    async fn create_cart(cart: CartNewInput, context: &AppState) -> FieldResult<Cart> {
+        super::sales::cart_mutations::create_cart(cart, context).await
     }
 
-    fn update_cart(cart: CartUpdateInput, context: &AppState) -> FieldResult<Cart> {
-        super::sales::cart_mutations::update_cart(cart, context)
+    async fn update_cart(cart: CartUpdateInput, context: &AppState) -> FieldResult<Cart> {
+        super::sales::cart_mutations::update_cart(cart, context).await
     }
 
-    fn delete_cart(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::sales::cart_mutations::delete_cart(id, context)
+    async fn delete_cart(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::sales::cart_mutations::delete_cart(id, context).await
     }
 
     // Customer Mutations
-    fn create_customer(customer: CustomerNewInput, context: &AppState) -> FieldResult<Customer> {
-        super::sales::customer_mutations::create_customer(customer, context)
+    async fn create_customer(customer: CustomerNewInput, context: &AppState) -> FieldResult<Customer> {
+        super::sales::customer_mutations::create_customer(customer, context).await
     }
 
-    fn update_customer(customer: CustomerUpdateInput, context: &AppState) -> FieldResult<Customer> {
-        super::sales::customer_mutations::update_customer(customer, context)
+    async fn update_customer(customer: CustomerUpdateInput, context: &AppState) -> FieldResult<Customer> {
+        super::sales::customer_mutations::update_customer(customer, context).await
     }
 
-    fn delete_customer(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::sales::customer_mutations::delete_customer(id, context)
+    async fn delete_customer(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::sales::customer_mutations::delete_customer(id, context).await
     }
 
     // Tax Mutations
-    fn create_tax(input: TaxNewInput, context: &AppState) -> FieldResult<Tax> {
-        super::common::tax_mutations::create_tax(input, context)
+    async fn create_tax(input: TaxNewInput, context: &AppState) -> FieldResult<Tax> {
+        super::common::tax_mutations::create_tax(input, context).await
     }
 
-    fn update_tax(input: TaxUpdateInput, context: &AppState) -> FieldResult<Tax> {
-        super::common::tax_mutations::update_tax(input, context)
+    async fn update_tax(input: TaxUpdateInput, context: &AppState) -> FieldResult<Tax> {
+        super::common::tax_mutations::update_tax(input, context).await
     }
 
-    fn delete_tax(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::common::tax_mutations::delete_tax(id, context)
+    async fn delete_tax(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::common::tax_mutations::delete_tax(id, context).await
     }
 
-    fn assign_tax_to_item(input: ItemTaxNewInput, context: &AppState) -> FieldResult<i32> {
-        super::common::tax_mutations::assign_tax_to_item(input, context)
+    async fn assign_tax_to_item(input: ItemTaxNewInput, context: &AppState) -> FieldResult<i32> {
+        super::common::tax_mutations::assign_tax_to_item(input, context).await
     }
 
-    fn remove_tax_from_item(
+    async fn remove_tax_from_item(
         item_id: DbUuid,
         tax_id: DbUuid,
         context: &AppState,
     ) -> FieldResult<i32> {
-        super::common::tax_mutations::remove_tax_from_item(item_id, tax_id, context)
+        super::common::tax_mutations::remove_tax_from_item(item_id, tax_id, context).await
     }
 
     // Tax Group Mutations
-    fn create_tax_group(input: TaxGroupNewInput, context: &AppState) -> FieldResult<TaxGroup> {
-        super::common::tax_group_mutations::create_tax_group(input, context)
+    async fn create_tax_group(input: TaxGroupNewInput, context: &AppState) -> FieldResult<TaxGroup> {
+        super::common::tax_group_mutations::create_tax_group(input, context).await
     }
 
-    fn update_tax_group(input: TaxGroupUpdateInput, context: &AppState) -> FieldResult<TaxGroup> {
-        super::common::tax_group_mutations::update_tax_group(input, context)
+    async fn update_tax_group(input: TaxGroupUpdateInput, context: &AppState) -> FieldResult<TaxGroup> {
+        super::common::tax_group_mutations::update_tax_group(input, context).await
     }
 
-    fn delete_tax_group(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::common::tax_group_mutations::delete_tax_group(id, context)
+    async fn delete_tax_group(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::common::tax_group_mutations::delete_tax_group(id, context).await
     }
 
-    fn assign_tax_to_group(
+    async fn assign_tax_to_group(
         tax_group_id: DbUuid,
         tax_id: DbUuid,
         context: &AppState,
     ) -> FieldResult<i32> {
-        super::common::tax_group_mutations::assign_tax_to_group(tax_group_id, tax_id, context)
+        super::common::tax_group_mutations::assign_tax_to_group(tax_group_id, tax_id, context).await
     }
 
-    fn remove_tax_from_group(
+    async fn remove_tax_from_group(
         tax_group_id: DbUuid,
         tax_id: DbUuid,
         context: &AppState,
     ) -> FieldResult<i32> {
-        super::common::tax_group_mutations::remove_tax_from_group(tax_group_id, tax_id, context)
+        super::common::tax_group_mutations::remove_tax_from_group(tax_group_id, tax_id, context).await
     }
 
     // Supplier Mutations
-    fn create_supplier(supplier: SupplierNewInput, context: &AppState) -> FieldResult<Supplier> {
-        super::purchases::supplier_mutations::create_supplier(supplier, context)
+    async fn create_supplier(supplier: SupplierNewInput, context: &AppState) -> FieldResult<Supplier> {
+        super::purchases::supplier_mutations::create_supplier(supplier, context).await
     }
 
-    fn update_supplier(supplier: SupplierUpdateInput, context: &AppState) -> FieldResult<Supplier> {
-        super::purchases::supplier_mutations::update_supplier(supplier, context)
+    async fn update_supplier(supplier: SupplierUpdateInput, context: &AppState) -> FieldResult<Supplier> {
+        super::purchases::supplier_mutations::update_supplier(supplier, context).await
     }
 
-    fn delete_supplier(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::purchases::supplier_mutations::delete_supplier(id, context)
+    async fn delete_supplier(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::purchases::supplier_mutations::delete_supplier(id, context).await
     }
 
     // Expense Mutations
-    fn create_expense(expense: ExpenseNewInput, context: &AppState) -> FieldResult<Expense> {
-        super::purchases::expense_mutations::create_expense(expense, context)
+    async fn create_expense(expense: ExpenseNewInput, context: &AppState) -> FieldResult<Expense> {
+        super::purchases::expense_mutations::create_expense(expense, context).await
     }
 
-    fn update_expense(expense: ExpenseUpdateInput, context: &AppState) -> FieldResult<Expense> {
-        super::purchases::expense_mutations::update_expense(expense, context)
+    async fn update_expense(expense: ExpenseUpdateInput, context: &AppState) -> FieldResult<Expense> {
+        super::purchases::expense_mutations::update_expense(expense, context).await
     }
 
-    fn delete_expense(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::purchases::expense_mutations::delete_expense(id, context)
+    async fn delete_expense(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::purchases::expense_mutations::delete_expense(id, context).await
     }
 
     // Channel Mutations
-    fn create_channel(input: ChannelNewInput, context: &AppState) -> FieldResult<Channel> {
-        super::common::channel_mutations::create_channel(input, context)
+    async fn create_channel(input: ChannelNewInput, context: &AppState) -> FieldResult<Channel> {
+        super::common::channel_mutations::create_channel(input, context).await
     }
 
-    fn update_channel(input: ChannelUpdateInput, context: &AppState) -> FieldResult<Channel> {
-        super::common::channel_mutations::update_channel(input, context)
+    async fn update_channel(input: ChannelUpdateInput, context: &AppState) -> FieldResult<Channel> {
+        super::common::channel_mutations::update_channel(input, context).await
     }
 
-    fn delete_channel(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::common::channel_mutations::delete_channel(id, context)
+    async fn delete_channel(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::common::channel_mutations::delete_channel(id, context).await
     }
 
     // Brand Mutations
-    fn create_brand(input: BrandNewInput, context: &AppState) -> FieldResult<Brand> {
-        super::common::brand_mutations::create_brand(input, context)
+    async fn create_brand(input: BrandNewInput, context: &AppState) -> FieldResult<Brand> {
+        super::common::brand_mutations::create_brand(input, context).await
     }
 
-    fn update_brand(input: BrandUpdateInput, context: &AppState) -> FieldResult<Brand> {
-        super::common::brand_mutations::update_brand(input, context)
+    async fn update_brand(input: BrandUpdateInput, context: &AppState) -> FieldResult<Brand> {
+        super::common::brand_mutations::update_brand(input, context).await
     }
 
-    fn delete_brand(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::common::brand_mutations::delete_brand(id, context)
+    async fn delete_brand(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::common::brand_mutations::delete_brand(id, context).await
     }
 
     // Cost Center Mutations
-    fn create_cost_center(
+    async fn create_cost_center(
         &self,
         name: String,
         code: String,
@@ -299,10 +296,10 @@ impl Mutation {
             description,
             state,
             context,
-        )
+        ).await
     }
 
-    fn update_cost_center(
+    async fn update_cost_center(
         &self,
         id: DbUuid,
         name: Option<String>,
@@ -318,15 +315,15 @@ impl Mutation {
             description,
             state,
             context,
-        )
+        ).await
     }
 
-    fn delete_cost_center(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
-        super::finance::cost_center_mutations::delete_cost_center(id, context)
+    async fn delete_cost_center(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
+        super::finance::cost_center_mutations::delete_cost_center(id, context).await
     }
 
     // Payment Method Mutations
-    fn create_payment_method(
+    async fn create_payment_method(
         &self,
         name: String,
         code: String,
@@ -340,10 +337,10 @@ impl Mutation {
             description,
             state,
             context,
-        )
+        ).await
     }
 
-    fn update_payment_method(
+    async fn update_payment_method(
         &self,
         id: DbUuid,
         name: Option<String>,
@@ -359,131 +356,131 @@ impl Mutation {
             description,
             state,
             context,
-        )
+        ).await
     }
 
-    fn delete_payment_method(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
-        super::finance::payment_method_mutations::delete_payment_method(id, context)
+    async fn delete_payment_method(&self, id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
+        super::finance::payment_method_mutations::delete_payment_method(id, context).await
     }
 
     // Sales Order Payment Mutations
-    fn create_sales_order_payment(
+    async fn create_sales_order_payment(
         &self,
         payment: crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentNewInput,
         context: &AppState,
     ) -> FieldResult<crate::core::models::finance::sales_order_payment_model::SalesOrderPayment>
     {
-        super::finance::sales_order_payment_mutations::create_sales_order_payment(context, payment)
+        super::finance::sales_order_payment_mutations::create_sales_order_payment(context, payment).await
     }
 
-    fn update_sales_order_payment(
+    async fn update_sales_order_payment(
         &self,
         payment: crate::core::models::finance::sales_order_payment_model::SalesOrderPaymentUpdateInput,
         context: &AppState,
     ) -> FieldResult<crate::core::models::finance::sales_order_payment_model::SalesOrderPayment>
     {
-        super::finance::sales_order_payment_mutations::update_sales_order_payment(context, payment)
+        super::finance::sales_order_payment_mutations::update_sales_order_payment(context, payment).await
     }
 
-    fn void_sales_order_payment(
+    async fn void_sales_order_payment(
         &self,
         id: DbUuid,
         context: &AppState,
     ) -> FieldResult<crate::core::models::finance::sales_order_payment_model::SalesOrderPayment>
     {
-        super::finance::sales_order_payment_mutations::void_sales_order_payment(context, id)
+        super::finance::sales_order_payment_mutations::void_sales_order_payment(context, id).await
     }
 
     // Discount Mutations
-    fn create_discount(discount: DiscountNewInput, context: &AppState) -> FieldResult<Discount> {
-        super::catalog::discount_mutations::create_discount(discount, context)
+    async fn create_discount(discount: DiscountNewInput, context: &AppState) -> FieldResult<Discount> {
+        super::catalog::discount_mutations::create_discount(discount, context).await
     }
 
-    fn update_discount(discount: DiscountUpdateInput, context: &AppState) -> FieldResult<Discount> {
-        super::catalog::discount_mutations::update_discount(discount, context)
+    async fn update_discount(discount: DiscountUpdateInput, context: &AppState) -> FieldResult<Discount> {
+        super::catalog::discount_mutations::update_discount(discount, context).await
     }
 
-    fn delete_discount(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        super::catalog::discount_mutations::delete_discount(id, context)
+    async fn delete_discount(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        super::catalog::discount_mutations::delete_discount(id, context).await
     }
 
     // Sales Charge Type Mutations
-    fn create_sales_charge_type(
+    async fn create_sales_charge_type(
         charge_type: SalesChargeTypeNewInput,
         context: &AppState,
     ) -> FieldResult<SalesChargeType> {
-        super::sales::sales_charge_type_mutations::create_sales_charge_type(charge_type, context)
+        super::sales::sales_charge_type_mutations::create_sales_charge_type(charge_type, context).await
     }
 
-    fn update_sales_charge_type(
+    async fn update_sales_charge_type(
         charge_type: SalesChargeTypeUpdateInput,
         context: &AppState,
     ) -> FieldResult<SalesChargeType> {
-        super::sales::sales_charge_type_mutations::update_sales_charge_type(charge_type, context)
+        super::sales::sales_charge_type_mutations::update_sales_charge_type(charge_type, context).await
     }
 
-    fn delete_sales_charge_type(id: DbUuid, context: &AppState) -> FieldResult<bool> {
-        super::sales::sales_charge_type_mutations::delete_sales_charge_type(id, context)
+    async fn delete_sales_charge_type(id: DbUuid, context: &AppState) -> FieldResult<bool> {
+        super::sales::sales_charge_type_mutations::delete_sales_charge_type(id, context).await
     }
 
     // Variant Type Mutations
-    fn create_variant_type(
+    async fn create_variant_type(
         input: VariantTypeNewInput,
         context: &AppState,
     ) -> FieldResult<VariantType> {
-        variant_type_mutations::create_variant_type(input, context)
+        variant_type_mutations::create_variant_type(input, context).await
     }
 
-    fn update_variant_type(
+    async fn update_variant_type(
         input: VariantTypeUpdateInput,
         context: &AppState,
     ) -> FieldResult<VariantType> {
-        variant_type_mutations::update_variant_type(input, context)
+        variant_type_mutations::update_variant_type(input, context).await
     }
 
-    fn delete_variant_type(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        variant_type_mutations::delete_variant_type(id, context)
+    async fn delete_variant_type(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        variant_type_mutations::delete_variant_type(id, context).await
     }
 
     // Variant Value Mutations
-    fn create_variant_value(
+    async fn create_variant_value(
         input: VariantValueNewInput,
         context: &AppState,
     ) -> FieldResult<VariantValue> {
-        variant_value_mutations::create_variant_value(input, context)
+        variant_value_mutations::create_variant_value(input, context).await
     }
 
-    fn update_variant_value(
+    async fn update_variant_value(
         input: VariantValueUpdateInput,
         context: &AppState,
     ) -> FieldResult<VariantValue> {
-        variant_value_mutations::update_variant_value(input, context)
+        variant_value_mutations::update_variant_value(input, context).await
     }
 
-    fn delete_variant_value(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        variant_value_mutations::delete_variant_value(id, context)
+    async fn delete_variant_value(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        variant_value_mutations::delete_variant_value(id, context).await
     }
 
     // Item Variant Mutations
-    fn create_item_variant(
+    async fn create_item_variant(
         input: ItemVariantNewInput,
         context: &AppState,
     ) -> FieldResult<ItemVariant> {
-        item_variant_mutations::create_item_variant(input, context)
+        item_variant_mutations::create_item_variant(input, context).await
     }
 
-    fn update_item_variant(
+    async fn update_item_variant(
         input: ItemVariantUpdateInput,
         context: &AppState,
     ) -> FieldResult<ItemVariant> {
-        item_variant_mutations::update_item_variant(input, context)
+        item_variant_mutations::update_item_variant(input, context).await
     }
 
-    fn delete_item_variant(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-        item_variant_mutations::delete_item_variant(id, context)
+    async fn delete_item_variant(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+        item_variant_mutations::delete_item_variant(id, context).await
     }
 
-    fn assign_variant_value_to_item_variant(
+    async fn assign_variant_value_to_item_variant(
         item_variant_id: DbUuid,
         variant_value_id: DbUuid,
         context: &AppState,
@@ -492,10 +489,10 @@ impl Mutation {
             item_variant_id,
             variant_value_id,
             context,
-        )
+        ).await
     }
 
-    fn remove_variant_value_from_item_variant(
+    async fn remove_variant_value_from_item_variant(
         item_variant_id: DbUuid,
         variant_value_id: DbUuid,
         context: &AppState,
@@ -504,22 +501,22 @@ impl Mutation {
             item_variant_id,
             variant_value_id,
             context,
-        )
+        ).await
     }
 
     // Item Discount Mutations
-    fn add_item_discount(
+    async fn add_item_discount(
         &self,
         item_discount: ItemDiscountNewInput,
         context: &AppState,
-    ) -> FieldResult<ItemDiscountObject> {
+    ) -> FieldResult<ItemDiscount> {
         super::catalog::item_discount::ItemDiscountMutation::add_item_discount(
             context,
             item_discount,
-        )
+        ).await
     }
 
-    fn remove_item_discount(
+    async fn remove_item_discount(
         &self,
         item_id: DbUuid,
         discount_id: DbUuid,
@@ -529,6 +526,6 @@ impl Mutation {
             context,
             item_id,
             discount_id,
-        )
+        ).await
     }
 }

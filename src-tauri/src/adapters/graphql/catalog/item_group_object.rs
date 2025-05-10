@@ -3,14 +3,14 @@ use juniper::graphql_object;
 
 use crate::{
     core::{
-        models::catalog::item_group_model::{ItemGroup, ItemGroupState},
+        models::catalog::item_group_model::{ItemCategory, ItemCategoryState},
         types::db_uuid::DbUuid,
     },
     AppState,
 };
 
 #[graphql_object(context = AppState)]
-impl ItemGroup {
+impl ItemCategory {
     pub fn id(&self) -> DbUuid {
         self.id
     }
@@ -23,7 +23,7 @@ impl ItemGroup {
         self.description.clone()
     }
 
-    pub fn state(&self) -> ItemGroupState {
+    pub fn state(&self) -> ItemCategoryState {
         self.state
     }
 

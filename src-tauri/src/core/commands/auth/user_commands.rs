@@ -1,20 +1,11 @@
-use chrono::Utc;
-use diesel::{
-    query_dsl::methods::FilterDsl, ExpressionMethods, OptionalExtension, RunQueryDsl,
-    SelectableHelper,
-};
-use uuid::Uuid;
-
 use crate::{
     core::{
         commands::{app_service::AppService, Command},
-        models::auth::user_model::{
-            User, UserNewInput, UserState, UserUpdateChangeset, UserUpdateInput,
-        },
-        types::db_uuid::DbUuid,
+        models::auth::user_model::{User, UserNewInput, UserUpdateInput},
+        repositories::user_repository,
+        types::db_uuid::DbUuid
     },
     error::{Error, Result},
-    schema::users,
 };
 
 pub struct AddUserCommand {
@@ -32,89 +23,63 @@ pub struct DeleteUserCommand {
 impl Command for AddUserCommand {
     type Output = User;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        // check if username exists
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
         let username = &self.user.username;
-        let user = users::table
-            .filter(users::username.eq(username))
-            .get_result::<User>(&mut service.conn)
-            .optional()?;
+        let user = user_repository::get_user_by_username(service, username).await?;
 
         if user.is_some() {
             return Err(Error::UniqueConstraintError);
         }
 
-        let pin_hash = self.user.pin.clone();
-        let new_user = User {
-            id: Uuid::now_v7().into(),
-            username: self.user.username.clone(),
-            pin_hash,
-            full_name: self.user.full_name.clone(),
-            state: UserState::Active,
-            last_login_at: None,
-            created_at: Utc::now().naive_utc(),
-            updated_at: Utc::now().naive_utc(),
-        };
-        let user = diesel::insert_into(users::table)
-            .values(&new_user)
-            .get_result::<User>(&mut service.conn)?;
-
-        Ok(user)
+        user_repository::insert_user(service, self.user.clone()).await
     }
 }
 
 impl Command for UpdateUserCommand {
     type Output = User;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        users::table
-            .filter(users::id.eq(&self.user.id))
-            .get_result::<User>(&mut service.conn)?;
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Check if user exists using SeaQuery
+        let existing_user = user_repository::get_user_by_id(service, self.user.id).await?;
 
-        let user = UserUpdateChangeset {
-            id: self.user.id,
-            full_name: self.user.full_name.clone(),
-            state: self.user.state.clone(),
-            username: self.user.username.clone(),
-            pin_hash: self.user.pin.clone(),
-            updated_at: Utc::now().naive_utc(),
-        };
+        if existing_user.is_none() {
+            return Err(Error::NotFoundError);
+        }
 
-        let user = diesel::update(users::table.filter(users::id.eq(&self.user.id)))
-            .set(&user)
-            .returning(User::as_returning())
-            .get_result(&mut service.conn)?;
-
-        Ok(user)
+        user_repository::update_user(service, self.user.clone()).await
     }
 }
 
 impl Command for DeleteUserCommand {
-    type Output = i32;
+    type Output = u64;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        let res = diesel::delete(users::table.filter(users::id.eq(&self.id)))
-            .execute(&mut service.conn)?;
-        Ok(res as i32)
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        user_repository::delete_user(service, self.id).await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use uuid::Uuid;
+
+    use crate::core::{commands::tests::setup_service, models::auth::user_model::UserState};
+
     use super::*;
 
-    #[test]
-    fn test_add_user_command() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_add_user_command() {
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "newuser".to_string(),
-                pin: "newpin".to_string(),
+                pin_hash: "newpin".to_string(),
                 full_name: "New User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
 
-        let result = add_user_command.exec(&mut service);
+        let result = add_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         let user = result.unwrap();
         assert_eq!(user.username, "newuser");
@@ -122,17 +87,19 @@ mod tests {
         assert_eq!(user.state, UserState::Active);
     }
 
-    #[test]
-    fn test_update_user_command() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_update_user_command() {
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "updateuser".to_string(),
-                pin: "updatepin".to_string(),
+                pin_hash: "updatepin".to_string(),
                 full_name: "Update User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
-        let user = add_user_command.exec(&mut service).unwrap();
+        let user = add_user_command.exec(&mut service).await.unwrap();
 
         let update_user_command = UpdateUserCommand {
             user: UserUpdateInput {
@@ -140,11 +107,12 @@ mod tests {
                 full_name: Some("Updated User".to_string()),
                 state: Some(UserState::Inactive),
                 username: None,
-                pin: None,
+                pin_hash: None,
+                last_login_at: None,
             },
         };
 
-        let result = update_user_command.exec(&mut service);
+        let result = update_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         let updated_user = result.unwrap();
         assert_eq!(updated_user.id, user.id);
@@ -152,36 +120,40 @@ mod tests {
         assert_eq!(updated_user.state, UserState::Inactive);
     }
 
-    #[test]
-    fn test_add_user_command_duplicate_username() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_add_user_command_duplicate_username() {
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "testuser".to_string(),
-                pin: "testpin".to_string(),
+                pin_hash: "testpin".to_string(),
                 full_name: "Test User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
 
-        let result = add_user_command.exec(&mut service);
+        let result = add_user_command.exec(&mut service).await;
         assert!(result.is_ok());
 
         // Try to add user with same username
         let duplicate_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "testuser".to_string(),
-                pin: "anotherpin".to_string(),
+                pin_hash: "anotherpin".to_string(),
                 full_name: "Another User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
 
-        let result = duplicate_user_command.exec(&mut service);
+        let result = duplicate_user_command.exec(&mut service).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_update_user_command_non_existent_user() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_update_user_command_non_existent_user() {
+        let mut service = setup_service().await;
         let non_existent_id = Uuid::now_v7().into();
         let update_user_command = UpdateUserCommand {
             user: UserUpdateInput {
@@ -189,25 +161,28 @@ mod tests {
                 full_name: Some("Updated User".to_string()),
                 state: Some(UserState::Inactive),
                 username: None,
-                pin: None,
+                pin_hash: None,
+                last_login_at: None,
             },
         };
 
-        let result = update_user_command.exec(&mut service);
+        let result = update_user_command.exec(&mut service).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_update_user_command_partial_update() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_update_user_command_partial_update() {
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "partialupdate".to_string(),
-                pin: "initialpin".to_string(),
+                pin_hash: "initialpin".to_string(),
                 full_name: "Initial Name".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
-        let user = add_user_command.exec(&mut service).unwrap();
+        let user = add_user_command.exec(&mut service).await.unwrap();
 
         let update_user_command = UpdateUserCommand {
             user: UserUpdateInput {
@@ -215,51 +190,55 @@ mod tests {
                 full_name: Some("Updated Name".to_string()),
                 state: None,
                 username: None,
-                pin: None,
+                pin_hash: None,
+                last_login_at: None,
             },
         };
 
-        let result = update_user_command.exec(&mut service);
+        let result = update_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         let updated_user = result.unwrap();
+        println!("Updated user: {:#?}", updated_user);
         assert_eq!(updated_user.id, user.id);
         assert_eq!(updated_user.full_name, "Updated Name");
         assert_eq!(updated_user.state, UserState::Active); // State should remain unchanged
         assert_eq!(updated_user.username, "partialupdate"); // Username should remain unchanged
     }
 
-    #[test]
-    fn test_delete_user_command() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_delete_user_command() {
+        let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
                 username: "deleteuser".to_string(),
-                pin: "deletepin".to_string(),
+                pin_hash: "deletepin".to_string(),
                 full_name: "Delete User".to_string(),
+                state: UserState::Active,
+                last_login_at: None,
             },
         };
-        let user = add_user_command.exec(&mut service).unwrap();
+        let user = add_user_command.exec(&mut service).await.unwrap();
 
         let delete_user_command = DeleteUserCommand { id: user.id };
-        let result = delete_user_command.exec(&mut service);
+        let result = delete_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 1); // 1 row affected
 
         // Attempt to delete the same user again
-        let result = delete_user_command.exec(&mut service);
+        let result = delete_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 0); // 0 rows affected, user no longer exists
     }
 
-    #[test]
-    fn test_delete_non_existent_user() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_delete_non_existent_user() {
+        let mut service = setup_service().await;
         let non_existent_id = Uuid::now_v7().into();
         let delete_user_command = DeleteUserCommand {
             id: non_existent_id,
         };
 
-        let result = delete_user_command.exec(&mut service);
+        let result = delete_user_command.exec(&mut service).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 0); // 0 rows affected, user doesn't exist
     }

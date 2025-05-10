@@ -1,36 +1,70 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::auth::user_model::User, types::db_uuid::DbUuid},
-    schema::users,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::auth::user_model::{User, Users},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
-pub fn users(
+pub async fn users(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<User>> {
-    let mut service = context.service.lock().unwrap();
-    let mut query = users::table.into_boxed();
+    // Build the query with SeaQuery
+    let mut query = Query::select();
+    let stmt = query
+        .from(Users::Table)
+        .columns([
+            Users::Id,
+            Users::Username,
+            Users::PinHash,
+            Users::FullName,
+            Users::State,
+            Users::LastLoginAt,
+            Users::CreatedAt,
+            Users::UpdatedAt,
+        ]);
+
+    // Apply pagination if parameters are provided
     if let Some(limit) = first {
-        query = query.limit(limit as i64);
+        stmt.limit(limit as u64);
     }
     if let Some(off) = offset {
-        query = query.offset(off as i64);
+        stmt.offset(off as u64);
     }
-    let result = query
-        .select(User::as_select())
-        .load::<User>(&mut service.conn)?;
+
+    // Execute the query
+    let service = context.service.lock().await;
+    let result = service.db_adapter.query_many::<User>(&stmt).await?;
+
     Ok(result)
 }
 
-pub fn user(id: DbUuid, context: &AppState) -> FieldResult<User> {
-    let mut service = context.service.lock().unwrap();
-    let result = users::table
-        .filter(users::id.eq(id))
-        .select(User::as_select())
-        .get_result(&mut service.conn)?;
+pub async fn user(id: DbUuid, context: &AppState) -> FieldResult<User> {
+    // Build the query with SeaQuery
+    let mut query = Query::select();
+    let stmt = query
+        .from(Users::Table)
+        .columns([
+            Users::Id,
+            Users::Username,
+            Users::PinHash,
+            Users::FullName,
+            Users::State,
+            Users::LastLoginAt,
+            Users::CreatedAt,
+            Users::UpdatedAt,
+        ])
+        .and_where(Expr::col(Users::Id).eq(id.to_string()));
+
+    // Execute the query
+    let service = context.service.lock().await;
+    let result = service.db_adapter.query_one::<User>(&stmt).await?;
+
     Ok(result)
 }

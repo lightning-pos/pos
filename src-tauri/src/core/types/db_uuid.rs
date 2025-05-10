@@ -1,33 +1,33 @@
-use diesel::{
-    deserialize::{self, FromSql, FromSqlRow},
-    expression::AsExpression,
-    serialize::{self, IsNull, Output, ToSql},
-    sql_types::Text,
-    sqlite::{Sqlite, SqliteValue},
-};
+use derive_more::derive::Display;
 use juniper::graphql_scalar;
-use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 use uuid::Uuid;
+
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, error::{Error, Result}};
+use lightning_macros::{LibsqlType, SeaQueryType};
 
 #[derive(
     Debug,
     Clone,
     Copy,
+    Display,
+    Hash,
     PartialEq,
     Eq,
     PartialOrd,
     Ord,
-    AsExpression,
-    FromSqlRow,
-    Serialize,
-    Deserialize,
+    SeaQueryType,
+    LibsqlType
 )]
-#[diesel(sql_type = Text)]
 #[graphql_scalar]
 #[graphql(transparent)]
-#[derive(Hash)]
 pub struct DbUuid(Uuid);
+
+impl DbUuid {
+    pub fn from_str(s: &str) -> Result<Self> {
+        Uuid::parse_str(s).map(DbUuid).map_err(Error::UuidError)
+    }
+}
 
 impl From<Uuid> for DbUuid {
     fn from(uuid: Uuid) -> Self {
@@ -35,16 +35,13 @@ impl From<Uuid> for DbUuid {
     }
 }
 
-impl FromSql<Text, Sqlite> for DbUuid {
-    fn from_sql(bytes: SqliteValue<'_, '_, '_>) -> deserialize::Result<Self> {
-        let id = <String as FromSql<Text, Sqlite>>::from_sql(bytes)?;
-        Ok(DbUuid::from(Uuid::parse_str(&id)?))
+impl FromRow<libsql::Row> for DbUuid {
+    fn from_row(row: &libsql::Row) -> Result<Self> {
+        match row.get(0) {
+            Ok(libsql::Value::Text(s)) => DbUuid::from_str(&s),
+            _ => Err(Error::DatabaseError("Invalid UUID value type in database".to_string())),
+        }
     }
 }
 
-impl ToSql<Text, Sqlite> for DbUuid {
-    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, Sqlite>) -> serialize::Result {
-        out.set_value(self.0.to_string());
-        Ok(IsNull::No)
-    }
-}
+

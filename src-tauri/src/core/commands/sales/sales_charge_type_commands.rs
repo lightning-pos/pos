@@ -1,14 +1,18 @@
 use chrono::Utc;
-use diesel::{Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Query};
 use uuid::Uuid;
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
-        models::sales::sales_charge_type_model::*,
+        models::sales::{
+            sales_charge_type_model::{SalesChargeType, SalesChargeTypeNewInput, SalesChargeTypeUpdateInput, SalesChargeTypes},
+            sales_order_charge_model::SalesOrderCharges,
+        },
+        types::db_uuid::DbUuid,
     },
-    error::Result,
-    schema::sales_charge_types,
+    error::{Error, Result},
 };
 
 // Commands
@@ -21,87 +25,150 @@ pub struct UpdateSalesChargeTypeCommand {
 }
 
 pub struct DeleteSalesChargeTypeCommand {
-    pub id: crate::core::types::db_uuid::DbUuid,
+    pub id: DbUuid,
 }
 
 // Command Implementations
 impl Command for CreateSalesChargeTypeCommand {
     type Output = SalesChargeType;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let new_charge_type = SalesChargeType {
-                id: Uuid::now_v7().into(),
-                name: self.charge_type.name.clone(),
-                description: self.charge_type.description.clone(),
-                created_at: now,
-                updated_at: now,
-            };
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        let now = Utc::now().naive_utc();
+        let new_id = Uuid::now_v7();
 
-            let res = diesel::insert_into(sales_charge_types::table)
-                .values(&new_charge_type)
-                .returning(SalesChargeType::as_returning())
-                .get_result(conn)?;
+        let new_charge_type = SalesChargeType {
+            id: new_id.into(),
+            name: self.charge_type.name.clone(),
+            description: self.charge_type.description.clone(),
+            created_at: now,
+            updated_at: now,
+        };
 
-            Ok(res)
-        })
+        // Build the insert query with SeaQuery
+        let mut insert_query = Query::insert();
+        let insert_stmt = insert_query
+            .into_table(SalesChargeTypes::Table)
+            .columns([
+                SalesChargeTypes::Id,
+                SalesChargeTypes::Name,
+                SalesChargeTypes::Description,
+                SalesChargeTypes::CreatedAt,
+                SalesChargeTypes::UpdatedAt,
+            ])
+            .values_panic([
+                new_id.to_string().into(),
+                self.charge_type.name.clone().into(),
+                self.charge_type.description.clone().into(),
+                now.to_string().into(),
+                now.to_string().into(),
+            ]);
+
+        // Execute the query
+        service.db_adapter.insert_one::<SalesChargeType>(&insert_stmt).await?;
+
+        // Return the newly created charge type
+        Ok(new_charge_type)
     }
 }
 
 impl Command for UpdateSalesChargeTypeCommand {
     type Output = SalesChargeType;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            let now = Utc::now().naive_utc();
-            let changeset = self.charge_type.clone().into_changeset(now);
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        let now = Utc::now().naive_utc();
+        let charge_type_id = self.charge_type.id;
 
-            let res = diesel::update(sales_charge_types::table)
-                .filter(sales_charge_types::id.eq(self.charge_type.id))
-                .set(changeset)
-                .returning(SalesChargeType::as_returning())
-                .get_result(conn)?;
+        // First, check if the charge type exists
+        let mut select_query = Query::select();
+        let select_stmt = select_query
+            .from(SalesChargeTypes::Table)
+            .columns([
+                SalesChargeTypes::Id,
+                SalesChargeTypes::Name,
+                SalesChargeTypes::Description,
+                SalesChargeTypes::CreatedAt,
+                SalesChargeTypes::UpdatedAt,
+            ])
+            .and_where(Expr::col(SalesChargeTypes::Id).eq(charge_type_id.to_string()));
 
-            Ok(res)
-        })
+        let existing = service.db_adapter.query_optional::<SalesChargeType>(&select_stmt).await?;
+
+        if existing.is_none() {
+            return Err(Error::NotFoundError);
+        }
+
+        // Build the update query with SeaQuery
+        let mut update_query = Query::update();
+        let update_stmt = update_query.table(SalesChargeTypes::Table);
+
+        // Only set fields that are provided in the update input
+        if let Some(name) = &self.charge_type.name {
+            update_stmt.value(SalesChargeTypes::Name, name.clone());
+        }
+
+        if let Some(description) = &self.charge_type.description {
+            match description {
+                Some(desc) => update_stmt.value(SalesChargeTypes::Description, desc.clone()),
+                None => update_stmt.value(SalesChargeTypes::Description, sea_query::Value::String(None)),
+            };
+        }
+
+        // Always update the updated_at timestamp
+        update_stmt.value(SalesChargeTypes::UpdatedAt, now.to_string());
+
+        // Add the WHERE clause
+        update_stmt.and_where(Expr::col(SalesChargeTypes::Id).eq(charge_type_id.to_string()));
+
+        // Execute the query
+        service.db_adapter.update_one::<SalesChargeType>(&update_stmt).await?;
+
+        // Get the updated charge type
+        let updated_charge_type = service.db_adapter.query_one::<SalesChargeType>(&select_stmt).await?;
+
+        Ok(updated_charge_type)
     }
 }
 
 impl Command for DeleteSalesChargeTypeCommand {
     type Output = bool;
 
-    fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
-        service.conn.transaction(|conn| {
-            // Check if the charge type is used in any sales order charges
-            let is_used = diesel::dsl::select(diesel::dsl::exists(
-                crate::schema::sales_order_charges::table
-                    .filter(crate::schema::sales_order_charges::charge_type_id.eq(self.id)),
-            ))
-            .get_result::<bool>(conn)?;
+    async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        // Check if the charge type is used in any sales order charges
+        let mut count_query = Query::select();
+        let count_stmt = count_query
+            .from(SalesOrderCharges::Table)
+            .expr_as(Expr::col(SalesOrderCharges::Id).count(), Alias::new("count"))
+            .and_where(Expr::col(SalesOrderCharges::ChargeTypeId).eq(self.id.to_string()));
 
-            if is_used {
-                return Err(crate::error::Error::HasChildrenError);
-            }
+        let count = service.db_adapter.query_one::<i64>(&count_stmt).await?;
 
-            // Delete the charge type
-            let deleted_count = diesel::delete(sales_charge_types::table)
-                .filter(sales_charge_types::id.eq(self.id))
-                .execute(conn)?;
+        if count > 0 {
+            return Err(Error::HasChildrenError);
+        }
 
-            Ok(deleted_count > 0)
-        })
+        // Build the delete query with SeaQuery
+        let mut delete_query = Query::delete();
+        let delete_stmt = delete_query
+            .from_table(SalesChargeTypes::Table)
+            .and_where(Expr::col(SalesChargeTypes::Id).eq(self.id.to_string()));
+
+        // Execute the query
+        let affected_rows = service.db_adapter.delete(&delete_stmt).await?;
+
+        Ok(affected_rows > 0)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::error::Error;
+    use crate::core::commands::tests::setup_service;
+    use sea_query::{Expr, Query};
+    use tokio;
 
-    #[test]
-    fn test_create_sales_charge_type() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_create_sales_charge_type() {
+        let mut service = setup_service().await;
 
         let input = SalesChargeTypeNewInput {
             name: "Service Charge".to_string(),
@@ -109,15 +176,15 @@ mod tests {
         };
 
         let cmd = CreateSalesChargeTypeCommand { charge_type: input };
-        let result = cmd.exec(&mut service).unwrap();
+        let result = cmd.exec(&mut service).await.unwrap();
 
         assert_eq!(result.name, "Service Charge");
         assert_eq!(result.description, Some("A charge for service".to_string()));
     }
 
-    #[test]
-    fn test_update_sales_charge_type() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_update_sales_charge_type() {
+        let mut service = setup_service().await;
 
         // Create first
         let input = SalesChargeTypeNewInput {
@@ -125,7 +192,7 @@ mod tests {
             description: None,
         };
         let cmd = CreateSalesChargeTypeCommand { charge_type: input };
-        let created = cmd.exec(&mut service).unwrap();
+        let created = cmd.exec(&mut service).await.unwrap();
 
         // Update
         let update_input = SalesChargeTypeUpdateInput {
@@ -136,7 +203,7 @@ mod tests {
         let update_cmd = UpdateSalesChargeTypeCommand {
             charge_type: update_input,
         };
-        let updated = update_cmd.exec(&mut service).unwrap();
+        let updated = update_cmd.exec(&mut service).await.unwrap();
 
         assert_eq!(updated.id, created.id);
         assert_eq!(updated.name, "Updated Charge");
@@ -151,15 +218,15 @@ mod tests {
         let update_cmd2 = UpdateSalesChargeTypeCommand {
             charge_type: update_input2,
         };
-        let updated2 = update_cmd2.exec(&mut service).unwrap();
+        let updated2 = update_cmd2.exec(&mut service).await.unwrap();
 
         assert_eq!(updated2.name, "Updated Charge");
         assert!(updated2.description.is_none());
     }
 
-    #[test]
-    fn test_update_non_existent_charge_type() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_update_non_existent_charge_type() {
+        let mut service = setup_service().await;
 
         let update_input = SalesChargeTypeUpdateInput {
             id: Uuid::now_v7().into(),
@@ -169,14 +236,14 @@ mod tests {
         let update_cmd = UpdateSalesChargeTypeCommand {
             charge_type: update_input,
         };
-        let result = update_cmd.exec(&mut service);
+        let result = update_cmd.exec(&mut service).await;
 
-        assert!(matches!(result, Err(Error::DieselError(_))));
+        assert!(result.is_err());
     }
 
-    #[test]
-    fn test_delete_sales_charge_type() {
-        let mut service = AppService::new(":memory:");
+    #[tokio::test]
+    async fn test_delete_sales_charge_type() {
+        let mut service = setup_service().await;
 
         // Create a charge type first
         let input = SalesChargeTypeNewInput {
@@ -184,25 +251,22 @@ mod tests {
             description: None,
         };
         let cmd = CreateSalesChargeTypeCommand { charge_type: input };
-        let created = cmd.exec(&mut service).unwrap();
+        let created = cmd.exec(&mut service).await.unwrap();
 
         // Delete it
         let delete_cmd = DeleteSalesChargeTypeCommand { id: created.id };
-        let result = delete_cmd.exec(&mut service).unwrap();
+        let result = delete_cmd.exec(&mut service).await.unwrap();
 
         assert!(result);
 
-        // Verify it's gone by trying to update it
-        let update_input = SalesChargeTypeUpdateInput {
-            id: created.id,
-            name: Some("Updated Name".to_string()),
-            description: None,
-        };
-        let update_cmd = UpdateSalesChargeTypeCommand {
-            charge_type: update_input,
-        };
-        let update_result = update_cmd.exec(&mut service);
+        // Verify it's gone
+        let mut check_query = Query::select();
+        let count_stmt = check_query
+            .from(SalesChargeTypes::Table)
+            .expr_as(Expr::col(SalesChargeTypes::Id).count(), Alias::new("count"))
+            .and_where(Expr::col(SalesChargeTypes::Id).eq(created.id.to_string()));
 
-        assert!(matches!(update_result, Err(Error::DieselError(_))));
+        let count = service.db_adapter.query_one::<i64>(&count_stmt).await.unwrap();
+        assert_eq!(count, 0);
     }
 }

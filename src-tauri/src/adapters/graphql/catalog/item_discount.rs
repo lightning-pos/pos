@@ -1,4 +1,4 @@
-use juniper::FieldResult;
+use juniper::{graphql_object, FieldResult};
 
 use crate::{
     core::{
@@ -19,46 +19,41 @@ use crate::{
     AppState,
 };
 
-#[derive(juniper::GraphQLObject)]
-#[graphql(description = "A relationship between an item and a discount")]
-pub struct ItemDiscountObject {
-    pub item_id: DbUuid,
-    pub discount_id: DbUuid,
-}
+#[graphql_object(context = AppState)]
+impl ItemDiscount {
+    pub fn item_id(&self) -> DbUuid {
+        self.item_id
+    }
 
-impl From<ItemDiscount> for ItemDiscountObject {
-    fn from(item_discount: ItemDiscount) -> Self {
-        Self {
-            item_id: item_discount.item_id,
-            discount_id: item_discount.discount_id,
-        }
+    pub fn discount_id(&self) -> DbUuid {
+        self.discount_id
     }
 }
 
 // Query resolvers
 pub struct ItemDiscountQuery;
 
-#[juniper::graphql_object(context = AppState)]
+#[graphql_object(context = AppState)]
 impl ItemDiscountQuery {
     #[graphql(description = "Get all discounts for an item")]
-    pub fn item_discounts(
+    pub async fn item_discounts(
         context: &AppState,
         item_id: DbUuid,
-    ) -> FieldResult<Vec<ItemDiscountObject>> {
-        let mut service = context.service.lock().unwrap();
-        let cmd = GetItemDiscountsCommand { item_id };
-        let item_discounts = cmd.exec(&mut service)?;
-        Ok(item_discounts.into_iter().map(Into::into).collect())
+    ) -> FieldResult<Vec<ItemDiscount>> {
+        let mut service = context.service.lock().await;
+        let cmd: GetItemDiscountsCommand = GetItemDiscountsCommand { item_id };
+        let item_discounts = cmd.exec(&mut service).await?;
+        Ok(item_discounts)
     }
 
     #[graphql(description = "Get all items for a discount")]
-    pub fn discount_items(
+    pub async fn discount_items(
         context: &AppState,
         discount_id: DbUuid,
-    ) -> FieldResult<Vec<ItemDiscountObject>> {
-        let mut service = context.service.lock().unwrap();
+    ) -> FieldResult<Vec<ItemDiscount>> {
+        let mut service = context.service.lock().await;
         let cmd = GetDiscountItemsCommand { discount_id };
-        let discount_items = cmd.exec(&mut service)?;
+        let discount_items = cmd.exec(&mut service).await?;
         Ok(discount_items.into_iter().map(Into::into).collect())
     }
 }
@@ -66,14 +61,14 @@ impl ItemDiscountQuery {
 // Mutation resolvers
 pub struct ItemDiscountMutation;
 
-#[juniper::graphql_object(context = AppState)]
+#[graphql_object(context = AppState)]
 impl ItemDiscountMutation {
     #[graphql(description = "Add a discount to an item")]
-    pub fn add_item_discount(
+    pub async fn add_item_discount(
         context: &AppState,
         item_discount: ItemDiscountNewInput,
-    ) -> FieldResult<ItemDiscountObject> {
-        let mut service = context.service.lock().unwrap();
+    ) -> FieldResult<ItemDiscount> {
+        let mut service = context.service.lock().await;
 
         // Verify that the item exists
         let get_item_cmd = UpdateItemCommand {
@@ -85,35 +80,34 @@ impl ItemDiscountMutation {
                 state: None,
                 price: None,
                 category_id: None,
-                updated_at: None,
             },
         };
-        get_item_cmd.exec(&mut service)?;
+        get_item_cmd.exec(&mut service).await?;
 
         // Verify that the discount exists
         let get_discount_cmd = GetDiscountCommand {
             id: item_discount.discount_id,
         };
-        get_discount_cmd.exec(&mut service)?;
+        get_discount_cmd.exec(&mut service).await?;
 
         // Add the relationship
         let cmd = AddItemDiscountCommand { item_discount };
-        let item_discount = cmd.exec(&mut service)?;
+        let item_discount = cmd.exec(&mut service).await?;
         Ok(item_discount.into())
     }
 
     #[graphql(description = "Remove a discount from an item")]
-    pub fn remove_item_discount(
+    pub async fn remove_item_discount(
         context: &AppState,
         item_id: DbUuid,
         discount_id: DbUuid,
     ) -> FieldResult<bool> {
-        let mut service = context.service.lock().unwrap();
+        let mut service = context.service.lock().await;
         let cmd = RemoveItemDiscountCommand {
             item_id,
             discount_id,
         };
-        let deleted_count = cmd.exec(&mut service)?;
+        let deleted_count = cmd.exec(&mut service).await?;
         Ok(deleted_count > 0)
     }
 }

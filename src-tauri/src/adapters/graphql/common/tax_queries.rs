@@ -1,45 +1,80 @@
-use diesel::{dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Order, Query, Func};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::common::tax_model::Tax, types::db_uuid::DbUuid},
-    schema::taxes,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::common::tax_model::{Tax, Taxes},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
-pub fn taxes(first: Option<i32>, offset: Option<i32>, context: &AppState) -> FieldResult<Vec<Tax>> {
-    let mut service = context.service.lock().unwrap();
+pub async fn taxes(first: Option<i32>, offset: Option<i32>, context: &AppState) -> FieldResult<Vec<Tax>> {
+    let service = context.service.lock().await;
 
-    let mut query = taxes::table.order(taxes::created_at.desc()).into_boxed();
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let mut query = query_builder
+        .from(Taxes::Table)
+        .columns([
+            Taxes::Id,
+            Taxes::Name,
+            Taxes::Rate,
+            Taxes::Description,
+            Taxes::CreatedAt,
+            Taxes::UpdatedAt,
+        ])
+        .order_by(Taxes::CreatedAt, Order::Desc);
 
     // Apply pagination if parameters are provided
     if let Some(limit) = first {
-        query = query.limit(limit as i64);
+        query = query.limit(limit as u64);
     }
     if let Some(off) = offset {
-        query = query.offset(off as i64);
+        query = query.offset(off as u64);
     }
 
-    let result = query
-        .select(Tax::as_select())
-        .load::<Tax>(&mut service.conn)?;
+    // Execute the query
+    let result = service.db_adapter.query_many::<Tax>(&query).await?;
 
     Ok(result)
 }
 
-pub fn tax(id: DbUuid, context: &AppState) -> FieldResult<Tax> {
-    let mut service = context.service.lock().unwrap();
-    let result = taxes::table
-        .find(id)
-        .select(Tax::as_select())
-        .get_result::<Tax>(&mut service.conn)?;
+pub async fn tax(id: DbUuid, context: &AppState) -> FieldResult<Tax> {
+    let service = context.service.lock().await;
+
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(Taxes::Table)
+        .columns([
+            Taxes::Id,
+            Taxes::Name,
+            Taxes::Rate,
+            Taxes::Description,
+            Taxes::CreatedAt,
+            Taxes::UpdatedAt,
+        ])
+        .and_where(Expr::col(Taxes::Id).eq(id.to_string()));
+
+    // Execute the query
+    let result = service.db_adapter.query_one::<Tax>(&query).await?;
+
     Ok(result)
 }
 
-pub fn total_taxes(context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let result: i64 = taxes::table
-        .select(count(taxes::id))
-        .get_result(&mut service.conn)?;
+pub async fn total_taxes(context: &AppState) -> FieldResult<i32> {
+    let service = context.service.lock().await;
+
+    // Build the count query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(Taxes::Table)
+        .expr_as(Func::count(Expr::col(Taxes::Id)), Alias::new("count"));
+
+    // Execute the query
+    let result = service.db_adapter.query_one::<i64>(&query).await?;
+
     Ok(result as i32)
 }

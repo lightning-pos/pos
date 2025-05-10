@@ -9,14 +9,14 @@ use crate::{
     AppState,
 };
 
-pub fn sales_order_payments(
+pub async fn sales_order_payments(
     context: &AppState,
     order_id: DbUuid,
 ) -> FieldResult<Vec<SalesOrderPayment>> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
 
     let cmd = GetSalesOrderPaymentsCommand { order_id };
-    let result = cmd.exec(&mut service)?;
+    let result = cmd.exec(&mut service).await?;
 
     Ok(result)
 }

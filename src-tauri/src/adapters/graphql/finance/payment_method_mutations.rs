@@ -16,14 +16,14 @@ use crate::{
     AppState,
 };
 
-pub fn create_payment_method(
+pub async fn create_payment_method(
     name: String,
     code: String,
     description: Option<String>,
     state: Option<PaymentMethodState>,
     context: &AppState,
 ) -> FieldResult<PaymentMethod> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
     let command = CreatePaymentMethodCommand {
         payment_method: PaymentMethodNewInput {
             name,
@@ -32,11 +32,11 @@ pub fn create_payment_method(
             state,
         },
     };
-    let result = command.exec(&mut service)?;
+    let result = command.exec(&mut service).await?;
     Ok(result)
 }
 
-pub fn update_payment_method(
+pub async fn update_payment_method(
     id: DbUuid,
     name: Option<String>,
     code: Option<String>,
@@ -44,7 +44,7 @@ pub fn update_payment_method(
     state: Option<PaymentMethodState>,
     context: &AppState,
 ) -> FieldResult<PaymentMethod> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
     let command = UpdatePaymentMethodCommand {
         payment_method: PaymentMethodUpdateInput {
             id,
@@ -54,14 +54,14 @@ pub fn update_payment_method(
             state,
         },
     };
-    let result = command.exec(&mut service)?;
+    let result = command.exec(&mut service).await?;
     Ok(result)
 }
 
-pub fn delete_payment_method(id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
-    let mut service = context.service.lock().unwrap();
+pub async fn delete_payment_method(id: DbUuid, context: &AppState) -> FieldResult<DbUuid> {
+    let mut service = context.service.lock().await;
     let command = DeletePaymentMethodCommand { id };
-    let _ = command.exec(&mut service)?;
+    let _ = command.exec(&mut service).await?;
     // Return the id of the deleted payment method
     Ok(id)
 }

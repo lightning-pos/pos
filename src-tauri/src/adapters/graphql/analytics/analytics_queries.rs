@@ -1,21 +1,24 @@
 use bigdecimal::BigDecimal;
 use chrono::{Duration, Utc};
-use diesel::{
-    dsl::{count, sum},
-    query_dsl::methods::{FilterDsl, SelectDsl},
-    ExpressionMethods, RunQueryDsl,
-};
+use sea_query::{Alias, Expr, Func, Query};
 use juniper::FieldResult;
 
 use crate::{
-    schema::{customers, items, sales_orders},
+    adapters::outgoing::database::DatabaseAdapter,
+    core::models::{
+        catalog::item_model::Items,
+        sales::{
+            customer_model::Customers,
+            sales_order_model::SalesOrders,
+        },
+    },
     AppState,
 };
 
 use super::analytics_overview_model::AnalyticsOverview;
 
-pub fn analytics_overview(days: Option<i32>, context: &AppState) -> FieldResult<AnalyticsOverview> {
-    let mut service = context.service.lock().unwrap();
+pub async fn analytics_overview(days: Option<i32>, context: &AppState) -> FieldResult<AnalyticsOverview> {
+    let service = context.service.lock().await;
 
     // Calculate the start date based on the days parameter
     let start_date = match days {
@@ -24,31 +27,39 @@ pub fn analytics_overview(days: Option<i32>, context: &AppState) -> FieldResult<
     };
 
     // Get total sales with date filter
-    let total_sales = sales_orders::table
-        .select(sum(sales_orders::total_amount))
-        .filter(sales_orders::created_at.ge(start_date.naive_utc()))
-        .first::<Option<BigDecimal>>(&mut service.conn)
-        .unwrap()
-        .unwrap_or_default();
+    let mut total_sales_query = Query::select();
+    let total_sales_stmt = total_sales_query
+        .from(SalesOrders::Table)
+        .expr_as(Func::sum(Expr::col(SalesOrders::TotalAmount)), Alias::new("total_sales"))
+        .and_where(Expr::col(SalesOrders::CreatedAt).gte(start_date.naive_utc().to_string()));
+
+    let total_sales_result = service.db_adapter.query_optional::<BigDecimal>(&total_sales_stmt).await?;
+    let total_sales = total_sales_result.unwrap_or_default();
 
     // Get total orders with date filter
-    let total_orders = sales_orders::table
-        .select(count(sales_orders::id))
-        .filter(sales_orders::created_at.ge(start_date.naive_utc()))
-        .first::<i64>(&mut service.conn)
-        .unwrap();
+    let mut total_orders_query = Query::select();
+    let total_orders_stmt = total_orders_query
+        .from(SalesOrders::Table)
+        .expr_as(Func::count(Expr::col(SalesOrders::Id)), Alias::new("total_orders"))
+        .and_where(Expr::col(SalesOrders::CreatedAt).gte(start_date.naive_utc().to_string()));
+
+    let total_orders = service.db_adapter.query_one::<i64>(&total_orders_stmt).await?;
 
     // Get total customers (not filtered by date since it's current inventory)
-    let total_customers = customers::table
-        .select(count(customers::id))
-        .first::<i64>(&mut service.conn)
-        .unwrap();
+    let mut total_customers_query = Query::select();
+    let total_customers_stmt = total_customers_query
+        .from(Customers::Table)
+        .expr_as(Func::count(Expr::col(Customers::Id)), Alias::new("total_customers"));
+
+    let total_customers = service.db_adapter.query_one::<i64>(&total_customers_stmt).await?;
 
     // Get total products (not filtered by date since it's current inventory)
-    let total_products = items::table
-        .select(count(items::id))
-        .first::<i64>(&mut service.conn)
-        .unwrap();
+    let mut total_products_query = Query::select();
+    let total_products_stmt = total_products_query
+        .from(Items::Table)
+        .expr_as(Func::count(Expr::col(Items::Id)), Alias::new("total_products"));
+
+    let total_products = service.db_adapter.query_one::<i64>(&total_products_stmt).await?;
 
     Ok(AnalyticsOverview {
         total_sales: total_sales.into(),

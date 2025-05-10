@@ -1,13 +1,16 @@
 use chrono::NaiveDateTime;
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query};
 use juniper::{graphql_object, FieldResult};
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
-        models::common::{tax_group_model::TaxGroup, tax_model::Tax},
+        models::common::{
+            tax_group_model::{TaxGroup, TaxGroupTaxes},
+            tax_model::{Tax, Taxes},
+        },
         types::db_uuid::DbUuid,
     },
-    schema::{tax_group_taxes, taxes},
     AppState,
 };
 
@@ -33,18 +36,41 @@ impl TaxGroup {
         self.updated_at
     }
 
-    pub fn taxes(&self, context: &AppState) -> FieldResult<Vec<Tax>> {
-        let mut service = context.service.lock().unwrap();
+    pub async fn taxes(&self, context: &AppState) -> FieldResult<Vec<Tax>> {
+        let service = context.service.lock().await;
 
-        let tax_ids = tax_group_taxes::table
-            .filter(tax_group_taxes::tax_group_id.eq(self.id))
-            .select(tax_group_taxes::tax_id)
-            .load::<DbUuid>(&mut service.conn)?;
+        // First, get the tax IDs for this tax group
+        let mut tax_ids_query_builder = Query::select();
+        let tax_ids_query = tax_ids_query_builder
+            .from(TaxGroupTaxes::Table)
+            .column(TaxGroupTaxes::TaxId)
+            .and_where(Expr::col(TaxGroupTaxes::TaxGroupId).eq(self.id.to_string()));
 
-        let result = taxes::table
-            .filter(taxes::id.eq_any(tax_ids))
-            .select(Tax::as_select())
-            .load::<Tax>(&mut service.conn)?;
+        let tax_ids = service.db_adapter.query_many::<DbUuid>(&tax_ids_query).await?;
+
+        // If no tax IDs found, return empty vector
+        if tax_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Convert tax IDs to strings for the IN clause
+        let tax_id_strings: Vec<String> = tax_ids.iter().map(|id| id.to_string()).collect();
+
+        // Then get the taxes with those IDs
+        let mut taxes_query_builder = Query::select();
+        let taxes_query = taxes_query_builder
+            .from(Taxes::Table)
+            .columns([
+                Taxes::Id,
+                Taxes::Name,
+                Taxes::Rate,
+                Taxes::Description,
+                Taxes::CreatedAt,
+                Taxes::UpdatedAt,
+            ])
+            .and_where(Expr::col(Taxes::Id).is_in(tax_id_strings));
+
+        let result = service.db_adapter.query_many::<Tax>(&taxes_query).await?;
 
         Ok(result)
     }

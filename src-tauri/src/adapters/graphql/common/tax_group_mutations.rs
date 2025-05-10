@@ -15,48 +15,48 @@ use crate::{
     AppState,
 };
 
-pub fn create_tax_group(input: TaxGroupNewInput, context: &AppState) -> FieldResult<TaxGroup> {
-    let mut service = context.service.lock().unwrap();
-    let res = CreateTaxGroupCommand { tax_group: input }.exec(&mut service)?;
+pub async fn create_tax_group(input: TaxGroupNewInput, context: &AppState) -> FieldResult<TaxGroup> {
+    let mut service = context.service.lock().await;
+    let res = CreateTaxGroupCommand { tax_group: input }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn update_tax_group(input: TaxGroupUpdateInput, context: &AppState) -> FieldResult<TaxGroup> {
-    let mut service = context.service.lock().unwrap();
-    let res = UpdateTaxGroupCommand { tax_group: input }.exec(&mut service)?;
+pub async fn update_tax_group(input: TaxGroupUpdateInput, context: &AppState) -> FieldResult<TaxGroup> {
+    let mut service = context.service.lock().await;
+    let res = UpdateTaxGroupCommand { tax_group: input }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn delete_tax_group(id: DbUuid, context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let res = DeleteTaxGroupCommand { id }.exec(&mut service)?;
+pub async fn delete_tax_group(id: DbUuid, context: &AppState) -> FieldResult<i32> {
+    let mut service = context.service.lock().await;
+    let res = DeleteTaxGroupCommand { id }.exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn assign_tax_to_group(
+pub async fn assign_tax_to_group(
     tax_group_id: DbUuid,
     tax_id: DbUuid,
     context: &AppState,
 ) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
     let res = AssignTaxToGroupCommand {
         tax_group_id,
         tax_id,
     }
-    .exec(&mut service)?;
+    .exec(&mut service).await?;
     Ok(res)
 }
 
-pub fn remove_tax_from_group(
+pub async fn remove_tax_from_group(
     tax_group_id: DbUuid,
     tax_id: DbUuid,
     context: &AppState,
 ) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
+    let mut service = context.service.lock().await;
     let res = RemoveTaxFromGroupCommand {
         tax_group_id,
         tax_id,
     }
-    .exec(&mut service)?;
+    .exec(&mut service).await?;
     Ok(res)
 }

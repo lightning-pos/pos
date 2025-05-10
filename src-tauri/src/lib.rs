@@ -1,29 +1,21 @@
 pub mod adapters;
 pub mod core;
 pub mod error;
-pub mod schema;
 
 use core::commands::app_service::AppService;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 pub struct AppState {
     pub service: Mutex<AppService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub async fn run() {
     // Initialize the database path
     let db_path = "minnal.db";
 
-    // Create the app service
-    let mut app_service = AppService::new(db_path);
-
-    // Initialize libsql_db synchronously using a blocking runtime
-    tokio::runtime::Runtime::new().unwrap().block_on(async {
-        if let Err(e) = app_service.init_libsql_db(db_path).await {
-            eprintln!("Failed to initialize libsql_db: {}", e);
-        }
-    });
+    // Create the app service - it will automatically use Turso if credentials are available
+    let app_service = AppService::new(db_path).await;
 
     // Create the app state with the service
     let app_state = AppState {

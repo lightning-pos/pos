@@ -28,15 +28,10 @@
 //! - The adjustment can be positive or negative
 
 use chrono::NaiveDateTime;
-use diesel::{
-    prelude::{AsChangeset, Insertable, Queryable},
-    Associations, Selectable,
-};
 use juniper::GraphQLInputObject;
+use lightning_macros::{LibsqlFromRow, SeaQueryCrud, SeaQueryModel};
 
-use crate::core::models::catalog::item_model::Item;
-use crate::core::types::{db_uuid::DbUuid, money::Money};
-use crate::schema::item_variants;
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
 
 /// Represents a specific variant of an item with its own SKU and price adjustment.
 ///
@@ -53,9 +48,7 @@ use crate::schema::item_variants;
 /// # Relationships
 /// - Belongs to one Item
 /// - Has many VariantValues through ItemVariantValues
-#[derive(Debug, Clone, Queryable, Selectable, Insertable, Associations)]
-#[diesel(table_name = item_variants)]
-#[diesel(belongs_to(Item, foreign_key = item_id))]
+#[derive(Debug, SeaQueryModel, SeaQueryCrud, LibsqlFromRow)]
 pub struct ItemVariant {
     pub id: DbUuid,
     pub item_id: DbUuid,
@@ -94,8 +87,7 @@ pub struct ItemVariantNewInput {
 /// - `sku`: Optional SKU update (Option<Option<String>>)
 /// - `price_adjustment`: Optional price adjustment update
 /// - `is_default`: Whether to set this as the default variant
-#[derive(Debug, Clone, AsChangeset, GraphQLInputObject)]
-#[diesel(table_name = item_variants)]
+#[derive(Debug, Clone, GraphQLInputObject)]
 pub struct ItemVariantUpdateInput {
     pub id: DbUuid,
     pub sku: Option<Option<String>>,

@@ -1,41 +1,68 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Expr, Query};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::catalog::item_group_model::ItemGroup, types::db_uuid::DbUuid},
-    schema::item_categories,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::catalog::item_group_model::{ItemCategories, ItemCategory},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
-pub fn item_categories(
+pub async fn item_categories(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
-) -> FieldResult<Vec<ItemGroup>> {
-    let mut service = context.service.lock().unwrap();
+) -> FieldResult<Vec<ItemCategory>> {
+    let service = context.service.lock().await;
 
-    let mut query = item_categories::table.into_boxed();
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(ItemCategories::Table)
+        .columns([
+            ItemCategories::Id,
+            ItemCategories::Name,
+            ItemCategories::Description,
+            ItemCategories::State,
+            ItemCategories::CreatedAt,
+            ItemCategories::UpdatedAt,
+        ]);
 
     // Apply pagination if parameters are provided
     if let Some(limit) = first {
-        query = query.limit(limit as i64);
+        query.limit(limit as u64);
     }
     if let Some(off) = offset {
-        query = query.offset(off as i64);
+        query.offset(off as u64);
     }
 
-    let result = query
-        .select(ItemGroup::as_select())
-        .load::<ItemGroup>(&mut service.conn)?;
+    // Execute the query
+    let result = service.db_adapter.query_many::<ItemCategory>(&&query).await?;
 
     Ok(result)
 }
 
-pub fn items_category(id: DbUuid, context: &AppState) -> FieldResult<ItemGroup> {
-    let mut service = context.service.lock().unwrap();
-    let result = item_categories::table
-        .filter(item_categories::id.eq(id))
-        .select(ItemGroup::as_select())
-        .get_result(&mut service.conn)?;
+pub async fn items_category(id: DbUuid, context: &AppState) -> FieldResult<ItemCategory> {
+    let service = context.service.lock().await;
+
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(ItemCategories::Table)
+        .columns([
+            ItemCategories::Id,
+            ItemCategories::Name,
+            ItemCategories::Description,
+            ItemCategories::State,
+            ItemCategories::CreatedAt,
+            ItemCategories::UpdatedAt,
+        ])
+        .and_where(Expr::col(ItemCategories::Id).eq(id.to_string()));
+
+    // Execute the query
+    let result = service.db_adapter.query_one::<ItemCategory>(&query).await?;
+
     Ok(result)
 }

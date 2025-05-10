@@ -1,14 +1,10 @@
-use crate::{
-    core::types::{db_uuid::DbUuid, money::Money},
-    schema::discounts,
-};
+use crate::{adapters::outgoing::database::{FromLibsqlValue, FromRow}, core::{db::SeaQueryCrudTrait, types::{db_uuid::DbUuid, money::Money}}};
 use chrono::NaiveDateTime;
-use diesel::prelude::{AsChangeset, Insertable, Queryable, Selectable};
-use diesel_derive_enum::DbEnum;
+use derive_more::Display;
 use juniper::{GraphQLEnum, GraphQLInputObject};
+use lightning_macros::{LibsqlEnum, LibsqlFromRow, SeaQueryCrud, SeaQueryEnum, SeaQueryModel};
 
-#[derive(Debug, Queryable, Selectable, Insertable)]
-#[diesel(table_name = discounts)]
+#[derive(Debug, SeaQueryModel, LibsqlFromRow, SeaQueryCrud)]
 pub struct Discount {
     pub id: DbUuid,
     pub name: String,
@@ -48,33 +44,16 @@ pub struct DiscountUpdateInput {
     pub end_date: Option<Option<NaiveDateTime>>,
 }
 
-#[derive(Debug, Clone, AsChangeset)]
-#[diesel(table_name = discounts)]
-pub struct DiscountUpdateChangeset {
-    pub id: DbUuid,
-    pub name: Option<String>,
-    pub description: Option<Option<String>>,
-    pub discount_type: Option<DiscountType>,
-    pub value: Option<Money>,
-    pub scope: Option<DiscountScope>,
-    pub state: Option<DiscountState>,
-    pub start_date: Option<Option<NaiveDateTime>>,
-    pub end_date: Option<Option<NaiveDateTime>>,
-    pub updated_at: NaiveDateTime, // Automatically set in command
-}
-
 // Using DbEnum derive for mapping Rust enums to database enum types
 // Make sure these enum types are created in the database via migrations
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
-#[DbValueStyle = "snake_case"]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum DiscountType {
     Percentage,
     FixedAmount,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
-#[DbValueStyle = "snake_case"]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum DiscountScope {
     AllItems,
     SpecificItems, // Added for item-specific discounts
@@ -82,8 +61,7 @@ pub enum DiscountScope {
                    // SpecificCategories,
 }
 
-#[derive(Debug, Clone, Copy, DbEnum, GraphQLEnum, PartialEq, Eq)]
-#[DbValueStyle = "snake_case"]
+#[derive(Debug, Clone, Copy, GraphQLEnum, PartialEq, Eq, Display, SeaQueryEnum, LibsqlEnum)]
 pub enum DiscountState {
     Active,
     Inactive,

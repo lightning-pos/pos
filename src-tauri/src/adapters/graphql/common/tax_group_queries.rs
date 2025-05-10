@@ -1,49 +1,82 @@
-use diesel::{dsl::count, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use sea_query::{Alias, Expr, Order, Query, Func};
 use juniper::FieldResult;
 
 use crate::{
-    core::{models::common::tax_group_model::TaxGroup, types::db_uuid::DbUuid},
-    schema::tax_groups,
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        models::common::tax_group_model::{TaxGroup, TaxGroups},
+        types::db_uuid::DbUuid,
+    },
     AppState,
 };
 
-pub fn tax_groups(
+pub async fn tax_groups(
     first: Option<i32>,
     offset: Option<i32>,
     context: &AppState,
 ) -> FieldResult<Vec<TaxGroup>> {
-    let mut service = context.service.lock().unwrap();
+    let service = context.service.lock().await;
 
-    let mut query = tax_groups::table.order(tax_groups::created_at.desc()).into_boxed();
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let mut query = query_builder
+        .from(TaxGroups::Table)
+        .columns([
+            TaxGroups::Id,
+            TaxGroups::Name,
+            TaxGroups::Description,
+            TaxGroups::CreatedAt,
+            TaxGroups::UpdatedAt,
+        ])
+        .order_by(TaxGroups::CreatedAt, Order::Desc);
 
     // Apply pagination if parameters are provided
     if let Some(limit) = first {
-        query = query.limit(limit as i64);
+        query = query.limit(limit as u64);
     }
     if let Some(off) = offset {
-        query = query.offset(off as i64);
+        query = query.offset(off as u64);
     }
 
-    let result = query
-        .select(TaxGroup::as_select())
-        .load::<TaxGroup>(&mut service.conn)?;
+    // Execute the query
+    let result = service.db_adapter.query_many::<TaxGroup>(&query).await?;
 
     Ok(result)
 }
 
-pub fn tax_group(id: DbUuid, context: &AppState) -> FieldResult<TaxGroup> {
-    let mut service = context.service.lock().unwrap();
-    let result = tax_groups::table
-        .find(id)
-        .select(TaxGroup::as_select())
-        .get_result::<TaxGroup>(&mut service.conn)?;
+pub async fn tax_group(id: DbUuid, context: &AppState) -> FieldResult<TaxGroup> {
+    let service = context.service.lock().await;
+
+    // Build the query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(TaxGroups::Table)
+        .columns([
+            TaxGroups::Id,
+            TaxGroups::Name,
+            TaxGroups::Description,
+            TaxGroups::CreatedAt,
+            TaxGroups::UpdatedAt,
+        ])
+        .and_where(Expr::col(TaxGroups::Id).eq(id.to_string()));
+
+    // Execute the query
+    let result = service.db_adapter.query_one::<TaxGroup>(&query).await?;
+
     Ok(result)
 }
 
-pub fn total_tax_groups(context: &AppState) -> FieldResult<i32> {
-    let mut service = context.service.lock().unwrap();
-    let result: i64 = tax_groups::table
-        .select(count(tax_groups::id))
-        .get_result(&mut service.conn)?;
+pub async fn total_tax_groups(context: &AppState) -> FieldResult<i32> {
+    let service = context.service.lock().await;
+
+    // Build the count query with SeaQuery
+    let mut query_builder = Query::select();
+    let query = query_builder
+        .from(TaxGroups::Table)
+        .expr_as(Func::count(Expr::col(TaxGroups::Id)), Alias::new("count"));
+
+    // Execute the query
+    let result = service.db_adapter.query_one::<i64>(&query).await?;
+
     Ok(result as i32)
 }

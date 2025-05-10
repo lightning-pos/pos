@@ -16,8 +16,8 @@ pub enum Error {
     // External Errors
     GraphQLError(juniper::GraphQLError),
     ParseError(juniper::ParseError),
-    DieselError(diesel::result::Error),
     SerdeJsonError(serde_json::Error),
+    SeaQueryError(sea_query::error::Error),
     TauriError(tauri::Error),
     UuidError(uuid::Error),
     LibsqlError(libsql::Error),

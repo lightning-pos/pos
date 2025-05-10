@@ -1,19 +1,21 @@
 use chrono::NaiveDateTime;
-use juniper::graphql_object;
-use juniper::FieldResult;
+use sea_query::{Expr, Query};
+use juniper::{graphql_object, FieldResult};
 
 use crate::{
+    adapters::outgoing::database::DatabaseAdapter,
     core::{
         models::{
-            finance::cost_center_model::CostCenter,
-            purchases::{expense_model::Expense, purchase_category_model::PurchaseCategory},
+            finance::cost_center_model::{CostCenter, CostCenters},
+            purchases::{
+                expense_model::Expense,
+                purchase_category_model::{PurchaseCategory, PurchaseCategories},
+            },
         },
         types::{db_uuid::DbUuid, money::Money},
     },
-    schema::{cost_centers, purchase_categories},
     AppState,
 };
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 
 #[graphql_object(context = AppState)]
 impl Expense {
@@ -53,20 +55,45 @@ impl Expense {
         self.updated_at
     }
 
-    pub fn category(&self, context: &AppState) -> FieldResult<PurchaseCategory> {
-        let mut service = context.service.lock().unwrap();
-        let category = purchase_categories::table
-            .filter(purchase_categories::id.eq(&self.category_id))
-            .first(&mut service.conn)?;
+    pub async fn category(&self, context: &AppState) -> FieldResult<PurchaseCategory> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
+            .from(PurchaseCategories::Table)
+            .columns([
+                PurchaseCategories::Id,
+                PurchaseCategories::Name,
+                PurchaseCategories::Description,
+                PurchaseCategories::State,
+                PurchaseCategories::CreatedAt,
+                PurchaseCategories::UpdatedAt,
+            ])
+            .and_where(Expr::col(PurchaseCategories::Id).eq(self.category_id.to_string()));
+
+        let category = service.db_adapter.query_one::<PurchaseCategory>(&query).await?;
 
         Ok(category)
     }
 
-    pub fn cost_center(&self, context: &AppState) -> FieldResult<CostCenter> {
-        let mut service = context.service.lock().unwrap();
-        let cost_center = cost_centers::table
-            .filter(cost_centers::id.eq(&self.cost_center_id))
-            .first(&mut service.conn)?;
+    pub async fn cost_center(&self, context: &AppState) -> FieldResult<CostCenter> {
+        let service = context.service.lock().await;
+
+        let mut query = Query::select();
+        let query = query
+            .from(CostCenters::Table)
+            .columns([
+                CostCenters::Id,
+                CostCenters::Name,
+                CostCenters::Code,
+                CostCenters::Description,
+                CostCenters::State,
+                CostCenters::CreatedAt,
+                CostCenters::UpdatedAt,
+            ])
+            .and_where(Expr::col(CostCenters::Id).eq(self.cost_center_id.to_string()));
+
+        let cost_center = service.db_adapter.query_one::<CostCenter>(&query).await?;
 
         Ok(cost_center)
     }
