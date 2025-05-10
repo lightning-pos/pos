@@ -19,13 +19,15 @@ pub trait FromLibsqlValue: Sized + Send {
 
 /// LibSQLAdapter implements the DatabaseAdapter trait for LibSQL
 pub struct LibSqlAdapter {
+    db: libsql::Database,
     conn: Arc<Mutex<libsql::Connection>>,
 }
 
 impl LibSqlAdapter {
     /// Create a new LibSQLAdapter with the given connection
-    pub fn new(conn: libsql::Connection) -> Self {
+    pub fn new(db: libsql::Database, conn: libsql::Connection) -> Self {
         Self {
+            db,
             conn: Arc::new(Mutex::new(conn))
         }
     }
@@ -158,6 +160,8 @@ impl DatabaseAdapter for LibSqlAdapter {
         let mut rows = stmt.query(()).await
             .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))?;
 
+        let _ = self.db.sync().await;
+
         // Get the first row
         let row = rows.next().await
             .map_err(|e| Error::DatabaseError(format!("Failed to get next row: {}", e)))?;
@@ -175,7 +179,11 @@ impl DatabaseAdapter for LibSqlAdapter {
         let sql = query.to_string(SqliteQueryBuilder);
 
         // Execute the query and return the number of affected rows
-        self.execute(&sql).await
+        let result = self.execute(&sql).await;
+
+        let _ = self.db.sync().await;
+
+        result
     }
 
     async fn update_one<T>(&self, query: &UpdateStatement) -> Result<T>
@@ -219,7 +227,11 @@ impl DatabaseAdapter for LibSqlAdapter {
         let sql = query.to_string(SqliteQueryBuilder);
 
         // Execute the query and return the number of affected rows
-        self.execute(&sql).await
+        let result = self.execute(&sql).await;
+
+        let _ = self.db.sync().await;
+
+        result
     }
 
     async fn upsert<T>(&self, query: &InsertStatement) -> Result<T>
@@ -244,6 +256,8 @@ impl DatabaseAdapter for LibSqlAdapter {
         let mut rows = stmt.query(()).await
             .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))?;
 
+        let _ = self.db.sync().await;
+
         // Get the first row
         let row = rows.next().await
             .map_err(|e| Error::DatabaseError(format!("Failed to get next row: {}", e)))?;
@@ -251,7 +265,6 @@ impl DatabaseAdapter for LibSqlAdapter {
         // Check if we got a row
         match row {
             Some(row) => {
-                // Convert the row to the model type using the FromRow trait
                 T::from_row(&row)
             },
             None => Err(Error::DatabaseError("Failed to retrieve upserted row".to_string())),
@@ -263,7 +276,11 @@ impl DatabaseAdapter for LibSqlAdapter {
         let sql = query.to_string(SqliteQueryBuilder);
 
         // Execute the query and return the number of affected rows
-        self.execute(&sql).await
+        let result = self.execute(&sql).await;
+
+        let _ = self.db.sync().await;
+
+        result
     }
 
     async fn transaction<F, R>(&self, f: F) -> Result<R>

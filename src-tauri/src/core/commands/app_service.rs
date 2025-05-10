@@ -29,7 +29,7 @@ impl AppService {
 
         Self::apply_migrations(&conn).await;
 
-        let db_adapter = LibSqlAdapter::new(conn);
+        let db_adapter = LibSqlAdapter::new(db, conn);
 
         Self {
             db_adapter,
@@ -49,7 +49,7 @@ impl AppService {
 
         Self::apply_migrations(&conn).await;
 
-        let db_adapter = LibSqlAdapter::new(conn);
+        let db_adapter = LibSqlAdapter::new(db, conn);
 
         Self {
             db_adapter,
