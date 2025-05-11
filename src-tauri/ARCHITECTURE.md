@@ -2,73 +2,154 @@
 
 ## Overview
 
-The backend of our POS system is built using Rust with a hexagonal architecture pattern and implements a variation of Command Query Responsibility Segregation (CQRS) pattern. This document outlines the core architectural decisions and patterns used in the project.
+The backend of Lightning POS is implemented in Rust, following a hexagonal (ports and adapters) architecture with a clear separation of concerns. The system leverages a Command Query Responsibility Segregation (CQRS) pattern, strict type safety, and automation for database interaction. This document describes the current architectural approach, key patterns, and best practices.
 
-## CQRS Implementation
+---
 
-Our CQRS implementation separates read and write operations to optimize for different use cases while maintaining a clean and maintainable codebase.
+## Architectural Layers
 
-### Command Side (Write Operations)
+### 1. Domain Layer
+- **Location:** `src/core/models`, `src/core/types`, `src/core/errors`
+- **Purpose:** Contains all core business logic, domain models, custom value types (e.g., `Money`, `DbUuid`), and domain-specific errors.
+- **Practice:** Models are immutable and strictly typed. All business rules are enforced here.
 
-Commands represent intentions to change the system state. They are handled by dedicated command handlers located in `src-tauri/src/core/commands`. This is where all write operations and state mutations are processed.
+### 2. Application Layer
+- **Location:** `src/core/commands` (write/command side)
+- **Purpose:** Handles all state-changing operations (commands). Each command module is responsible for a specific domain (e.g., `auth`, `catalog`, `finance`).
+- **Practice:** Commands are invoked by adapters and always operate through the domain models.
 
-```rust
-// Actual project structure
+### 3. Infrastructure & Adapter Layer
+- **Location:** `src/adapters/graphql` (read/query side), `src/core/db`, `src/core/repositories`, `src/core/utils`
+- **Purpose:** Implements ports for persistence, external services, and exposes GraphQL for queries. Infrastructure code is kept isolated from business logic.
+
+---
+
+## CQRS Pattern
+
+- **Command Side (Write):**
+  - Modules in `src/core/commands` handle all mutations and state changes.
+  - Each command is explicit and validated at the domain level.
+
+- **Query Side (Read):**
+  - Queries are exposed via GraphQL resolvers in `src/adapters/graphql`.
+  - Queries fetch and return data, with no side effects.
+
+**Directory Example:**
+```text
 src-tauri/src/
 ├── core/
-│   ├── commands/    # All write operations are handled here
-│   │   ├── order/   # Order-related commands
-│   │   ├── inventory/
-│   │   └── payment/
-```
-
-### Query Side (Read Operations)
-
-Queries are responsible for reading and returning data. They are implemented using GraphQL and located in `src-tauri/src/adapters/graphql`. This provides a flexible and efficient way to fetch data with exactly the fields needed.
-
-```rust
-// Actual project structure
-src-tauri/src/
+│   ├── commands/      # Write operations (CQRS Command)
+│   ├── models/        # Domain models
+│   ├── types/         # Custom types (e.g., Money, DbUuid)
+│   ├── repositories/  # Persistence interfaces
+│   └── db/            # Database logic and migrations
 ├── adapters/
-│   └── graphql/     # All read operations via GraphQL
+│   └── graphql/       # Read operations (CQRS Query)
 ```
 
-### Domain Models
+---
 
-Our domain models are centralized in `src-tauri/src/core/models`. These models represent the core business entities and are used by both commands and queries.
+## SeaQuery Macro Automation
 
-```rust
-// Actual project structure
-src-tauri/src/
-├── core/
-│   ├── models/      # Centralized domain models
-│   │   ├── order.rs
-│   │   ├── product.rs
-│   │   └── transaction.rs
-```
+- **Purpose:** Eliminate boilerplate for database identifiers and type conversions.
+- **Macros Used:**
+  - `SeaQueryModel`: Auto-generates SeaQuery identifier enums for models.
+  - `SeaQueryEnum`: Enables enums to be used directly in SeaQuery expressions.
+  - `SeaQueryType`: Supports newtype wrappers (e.g., `DbUuid`, `Money`) for SeaQuery.
+- **Location:** `crates/lightning-macros/src/macros/`
+- **Benefit:** Ensures type safety, reduces manual code, and keeps DB interaction consistent.
 
-## Core Components
+---
 
-### Domain Layer
+## Schema and Migration Process
 
-Contains the core business logic and domain models:
+- **Single Source of Truth:**
+  - Domain models in `src/core/models` define the schema.
+  - All schema changes begin by updating these models.
+- **Migrations:**
+  - Managed in `src/core/db/migrations.rs` and `/migrations` directory.
+  - Use embedded SQL migrations for performance and testability.
+- **Change Flow:**
+  1. Update domain model in `models/`.
+  2. Add/modify migration in `/migrations`.
+  3. Update commands, queries, and types as needed.
 
-```rust
+---
+
+## Type Safety & Immutability
+
+- All models and types are strictly typed.
+- UUIDs are generated using `Uuid::now_v7().into()` for time-based ordering.
+- Newtypes (e.g., `DbUuid`, `Money`) enforce domain constraints at compile time.
+- Errors are domain-specific and use custom error types.
+
+---
+
+## Testing Strategy
+
+- **Unit Tests:**
+  - Located in the same file as the code, in `#[cfg(test)] mod tests`.
+  - Each test uses an isolated in-memory SQLite database (`AppService::new(":memory:")`).
+
+- **Integration & E2E:**
+  - Playwright-based E2E tests run against the real backend with in-memory DB.
+  - Tests are organized for isolation and determinism.
+
+- **Performance:**
+  - Embedded SQL migrations and in-memory DBs enable fast, repeatable test runs.
+
+---
+
+## Event Sourcing & Audit Logging
+
+- The architecture is designed to support event sourcing for audit logging. (If not yet implemented, add a note: "Planned for future implementation.")
+- All state changes are routed through commands, making it straightforward to add event emission.
+
+---
+
+## Schema Change Process
+
+1. Update the domain model in `src/core/models`.
+2. Create or update a migration in `/migrations`.
+3. Update command/query handlers and types as needed.
+4. Run tests to verify correctness.
+
+---
+
+## Best Practices & Conventions
+
+- Use snake_case for DB field names, PascalCase for Rust types, and UPPERCASE for constants.
+- Maintain strict separation between domain, application, and infrastructure code.
+- Prefer immutability and pure functions in the domain layer.
+- Use derive macros for all database model and enum types.
+- All database access goes through repository interfaces.
+
+---
+
+## Example Directory Structure
+
+```text
 src-tauri/
-├── core/
-│   ├── models/      # Domain entities
-│   ├── types/       # Custom types
-│   └── errors/      # Domain-specific errors
+├── src/
+│   ├── core/
+│   │   ├── commands/
+│   │   ├── models/
+│   │   ├── types/
+│   │   ├── repositories/
+│   │   └── db/
+│   ├── adapters/
+│   │   └── graphql/
+│   └── main.rs
+├── crates/
+│   └── lightning-macros/
+│       └── src/macros/
+│           ├── sea_query_model.rs
+│           ├── sea_query_enum.rs
+│           └── sea_query_type.rs
+├── migrations/
 ```
 
-### Infrastructure Layer
+---
 
-Handles external concerns and implements the ports defined in the application layer:
-
-```rust
-src-tauri/
-├── infrastructure/
-│   ├── adapters/      # External service adapters
-│   └── repositories/  # Data storage implementations
-```
+This architecture ensures maintainability, extensibility, and high developer productivity while enforcing business invariants and type safety at every layer.
 

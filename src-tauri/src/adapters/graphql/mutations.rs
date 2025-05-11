@@ -3,7 +3,7 @@ use juniper::{graphql_object, FieldResult};
 use crate::{
     adapters::graphql::catalog::variants::{item_variant_mutations, variant_type_mutations, variant_value_mutations},
     core::{
-        models::{
+        commands::auth_commands::LoginResponse, models::{
             auth::user_model::{User, UserNewInput, UserUpdateInput},
             catalog::{
                 discount_model::{Discount, DiscountNewInput, DiscountUpdateInput},
@@ -39,8 +39,7 @@ use crate::{
                 },
                 sales_order_model::{SalesOrder, SalesOrderNewInput},
             },
-        },
-        types::db_uuid::DbUuid,
+        }, types::db_uuid::DbUuid
     },
     AppState,
 };
@@ -49,9 +48,8 @@ use super::Mutation;
 
 #[graphql_object(context = AppState)]
 impl Mutation {
-    async fn login(username: String, password: String, context: &AppState) -> FieldResult<bool> {
-        super::auth::auth_mutations::login(username, password, context).await?;
-        Ok(true)
+    async fn login(username: String, password: String, context: &AppState) -> FieldResult<LoginResponse> {
+        super::auth::auth_mutations::login(username, password, context).await
     }
 
     async fn logout(context: &AppState) -> FieldResult<bool> {

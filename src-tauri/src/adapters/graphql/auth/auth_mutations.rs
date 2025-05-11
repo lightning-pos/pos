@@ -1,13 +1,12 @@
 use crate::{
     core::commands::{
-        auth::auth_commands::{LoginCommand, LogoutCommand},
-        Command,
+        auth::auth_commands::{LoginCommand, LogoutCommand, LoginResponse}, Command
     },
     AppState,
 };
 use juniper::FieldResult;
 
-pub async fn login(username: String, password: String, context: &AppState) -> FieldResult<()> {
+pub async fn login(username: String, password: String, context: &AppState) -> FieldResult<LoginResponse> {
     let cmd = LoginCommand { username, password };
     let mut service = context.service.lock().await;
     let res = cmd.exec(&mut service).await?;

@@ -7,6 +7,8 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub enum Error {
     // Database Errors
     NotFoundError,
+    AuthenticationError,
+    AuthorizationError,
     ForeignKeyConstraintError,
     UniqueConstraintError,
     HasChildrenError,

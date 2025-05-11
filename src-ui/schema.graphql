@@ -542,8 +542,13 @@ type ItemVariant {
   finalPrice: Money!
 }
 
+type LoginResponse {
+  tursoUrl: String!
+  tursoToken: String!
+}
+
 type Mutation {
-  login(username: String!, password: String!): Boolean!
+  login(username: String!, password: String!): LoginResponse!
   logout: Boolean!
   addUser(user: UserNewInput!): User!
   updateUser(user: UserUpdateInput!): User!

@@ -1,30 +1,57 @@
+use juniper::{GraphQLInputObject, GraphQLObject};
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
+
 use crate::{
-    adapters::outgoing::database::DatabaseAdapter,
-    core::{
-        commands::{app_service::AppService, Command},
-        models::auth::user_model::{self, User},
-    },
-    error::{Error, Result},
+    adapters::outgoing::database::DatabaseAdapter, core::{commands::{app_service::AppService, Command}, models::auth::user_model::{self, User}}, error::{Error, Result}
 };
 
+#[derive(Debug, Serialize, GraphQLInputObject)]
 pub struct LoginCommand {
     pub username: String,
     pub password: String,
 }
 
+#[derive(Debug, Deserialize, GraphQLObject)]
+pub struct LoginResponse {
+    turso_url: String,
+    turso_token: String,
+}
+
 pub struct LogoutCommand;
 
 impl Command for LoginCommand {
-    type Output = ();
+    type Output = LoginResponse;
 
     async fn exec(&self, service: &mut AppService) -> Result<Self::Output> {
+        let client = Client::new();
+
+        // TODO: Make the IAM service URL configurable
+        let response = client
+            .post("http://localhost:7001/users/login")
+            .json(&LoginCommand { username: self.username.clone(), password: self.password.clone() })
+            .send()
+            .await
+            .map_err(|e| format!("Failed to connect to IAM service: {}", e))?;
+
+        // Check if the request was successful
+        if !response.status().is_success() {
+            return Err(Error::AuthenticationError);
+        }
+
+        // Parse the response
+        let login_response = response
+            .json::<LoginResponse>()
+            .await
+            .map_err(|e| format!("Failed to parse IAM service response: {}", e))?;
+
         let check_query = user_model::queries::find_by_username(&self.username);
         let user = service.db_adapter.query_optional::<User>(&check_query).await?;
 
         match user {
             Some(user) => {
                 service.state.current_user = Some(user.id);
-                Ok(())
+                Ok(login_response)
             }
             None => Err(Error::NotFoundError)
         }
@@ -62,8 +89,8 @@ mod tests {
         let mut service = setup_service().await;
         let add_user_command = AddUserCommand {
             user: UserNewInput {
-                username: "testuser".to_string(),
-                pin_hash: "password".to_string(),
+                username: "test".to_string(),
+                pin_hash: "test".to_string(),
                 full_name: "Test User".to_string(),
                 state: UserState::Active,
                 last_login_at: None,
@@ -75,12 +102,11 @@ mod tests {
         let user = result.unwrap();
 
         let login_command = LoginCommand {
-            username: "testuser".to_string(),
-            password: "password".to_string(),
+            username: "test".to_string(),
+            password: "test".to_string(),
         };
 
         let result = login_command.exec(&mut service).await;
-        println!("result: {:#?}", result);
         assert!(result.is_ok());
         assert!(service.state.current_user.is_some());
         assert_eq!(service.state.current_user.unwrap(), user.id);
@@ -91,7 +117,7 @@ mod tests {
             password: "password".to_string(),
         };
         let result = invalid_login.exec(&mut service).await;
-        assert!(matches!(result, Err(Error::NotFoundError)));
+        assert!(matches!(result, Err(Error::AuthenticationError)));
     }
 
     #[tokio::test]
