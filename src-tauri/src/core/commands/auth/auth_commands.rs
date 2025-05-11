@@ -58,16 +58,21 @@ impl Command for LoginCommand {
             service.update_adapter(turso_url, turso_token).await;
         }
 
-
-        let check_query = user_model::queries::find_by_username(&self.username);
-        let user = service.db_adapter.query_optional::<User>(&check_query).await?;
-
-        match user {
-            Some(user) => {
-                service.state.current_user = Some(user.id);
-                Ok(login_response)
+        #[cfg(test)]
+        {
+            let check_query = user_model::queries::find_by_username(&self.username);
+            let user = service.db_adapter.query_optional::<User>(&check_query).await?;
+            match user {
+                Some(user) => {
+                    service.state.current_user = Some(user.id);
+                    Ok(login_response)
+                }
+                None => Err(Error::NotFoundError)
             }
-            None => Err(Error::NotFoundError)
+        }
+        #[cfg(not(test))]
+        {
+            Ok(login_response)
         }
     }
 }

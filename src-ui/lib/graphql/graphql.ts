@@ -357,6 +357,12 @@ export type ItemVariantUpdateInput = {
   updatedAt?: InputMaybe<Scalars['LocalDateTime']['input']>;
 };
 
+export type LoginResponse = {
+  __typename?: 'LoginResponse';
+  tursoToken: Scalars['String']['output'];
+  tursoUrl: Scalars['String']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   addItemDiscount: ItemDiscount;
@@ -403,7 +409,7 @@ export type Mutation = {
   deleteUser: Scalars['Int']['output'];
   deleteVariantType: Scalars['Int']['output'];
   deleteVariantValue: Scalars['Int']['output'];
-  login: Scalars['Boolean']['output'];
+  login: LoginResponse;
   logout: Scalars['Boolean']['output'];
   removeItemDiscount: Scalars['Boolean']['output'];
   removeTaxFromGroup: Scalars['Int']['output'];
@@ -2337,6 +2343,14 @@ export type DeleteSupplierMutationVariables = Exact<{
 
 export type DeleteSupplierMutation = { __typename?: 'Mutation', deleteSupplier: number };
 
+export type LoginMutationVariables = Exact<{
+  username: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+}>;
+
+
+export type LoginMutation = { __typename?: 'Mutation', login: { __typename?: 'LoginResponse', tursoUrl: string, tursoToken: string } };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -3964,3 +3978,11 @@ export const DeleteSupplierDocument = new TypedDocumentString(`
   deleteSupplier(id: $id)
 }
     `) as unknown as TypedDocumentString<DeleteSupplierMutation, DeleteSupplierMutationVariables>;
+export const LoginDocument = new TypedDocumentString(`
+    mutation login($username: String!, $password: String!) {
+  login(username: $username, password: $password) {
+    tursoUrl
+    tursoToken
+  }
+}
+    `) as unknown as TypedDocumentString<LoginMutation, LoginMutationVariables>;
