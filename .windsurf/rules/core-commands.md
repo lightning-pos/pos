@@ -1,8 +1,8 @@
 ---
-description: 
+trigger: glob
 globs: src-tauri/src/core/commands/**/*.rs
-alwaysApply: false
 ---
+
 # Core Commands: Implementation & Testing
 
 We use command pattern to only mutate any data in our system. This rule provides concise guidelines for implementing and testing commands in the Rust backend, following the Command pattern.

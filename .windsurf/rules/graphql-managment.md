@@ -1,7 +1,7 @@
 ---
+trigger: model_decision
 description: 
 globs: src-tauri/src/adapters/**/*.rs,src-ui/app/**/*.gql
-alwaysApply: false
 ---
 
 # Graphql Management

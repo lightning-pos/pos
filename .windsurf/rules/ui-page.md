@@ -1,8 +1,8 @@
 ---
-description: 
+trigger: glob
 globs: src-ui/app/**/*.tsx
-alwaysApply: false
 ---
+
 # UI Page Structure and Organization
 
 This rule provides guidelines for structuring UI pages and components in the src-ui app directory.

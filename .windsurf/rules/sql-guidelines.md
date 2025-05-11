@@ -1,7 +1,7 @@
 ---
+trigger: model_decision
 description: 
 globs: src-tauri/migrations/**/*.sql
-alwaysApply: false
 ---
 The migrations uses only SQLite. All SQL query should be compatible with SQLite.
 

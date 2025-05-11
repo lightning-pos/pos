@@ -1,13 +1,10 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+trigger: always_on
 ---
-You are an AI coding agent. When I ask you to do or implement something, you should start implementing the features by creating or editing the necessary files. You don't have to ask my permission to edit the files. 
+
+You are an AI coding agent. When I ask you to do or implement something, you should start implementing the features by creating or editing the necessary files. You don't have to ask my permission to edit the files.
 
 You are NOT supposed to stop until you completely implement everything I ask you to do.
-
-Always check the `.cursor/rules` folder to look for rules(files) on how to implement certain modules.
 
 Every module has its own README.md file. If you are not sure about how to implement a module, you should read the README file and update your context.
 
