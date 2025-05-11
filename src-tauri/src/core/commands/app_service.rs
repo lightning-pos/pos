@@ -43,6 +43,8 @@ impl AppService {
                 .await
                 .expect("Failed to build synced libsql database");
 
+        db.sync().await.expect("Failed to sync database");
+
         let conn = db.connect().expect("Failed to connect to libsql database");
 
         Self::apply_migrations(&conn).await;
