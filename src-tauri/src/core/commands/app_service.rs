@@ -6,6 +6,7 @@ use crate::{
 };
 
 pub struct AppService<DB: DatabaseAdapter = LibSqlAdapter> {
+    pub conn_path: String,
     pub db_adapter: DB,
     pub state: SessionState,
 }
@@ -17,10 +18,27 @@ pub struct SessionState {
 impl AppService {
     pub async fn new(conn_path: &str) -> Self {
         let state = SessionState { current_user: None };
-        let turso_url = std::env::var("TURSO_URL").expect("Failed to get TURSO_URL");
-        let turso_token = std::env::var("TURSO_TOKEN").expect("Failed to get TURSO_TOKEN");
 
-        let db = libsql::Builder::new_synced_database(conn_path, turso_url, turso_token)
+        // Temporary in memory database until user logins
+        let db = libsql::Builder::new_local(conn_path)
+            .build()
+            .await
+            .expect("Failed to build synced libsql database");
+
+        let conn = db.connect().expect("Failed to connect to libsql database");
+
+        let db_adapter = LibSqlAdapter::new(db, conn);
+
+        Self {
+            conn_path: conn_path.to_string(),
+            db_adapter,
+            state,
+        }
+    }
+
+    // Update the database adapter with the synced database once the user logins
+    pub async fn update_adapter(&mut self, turso_url: String, turso_token: String) {
+        let db = libsql::Builder::new_synced_database(self.conn_path.clone(), turso_url, turso_token)
                 .build()
                 .await
                 .expect("Failed to build synced libsql database");
@@ -29,14 +47,8 @@ impl AppService {
 
         Self::apply_migrations(&conn).await;
 
-        let db_adapter = LibSqlAdapter::new(db, conn);
-
-        Self {
-            db_adapter,
-            state,
-        }
+        self.db_adapter = LibSqlAdapter::new(db, conn);
     }
-
 
     #[cfg(test)]
     pub async fn new_test(conn_path: &str) -> Self {
@@ -52,6 +64,7 @@ impl AppService {
         let db_adapter = LibSqlAdapter::new(db, conn);
 
         Self {
+            conn_path: conn_path.to_string(),
             db_adapter,
             state: SessionState { current_user: None },
         }

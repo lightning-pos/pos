@@ -40,7 +40,7 @@ sea-query = { version = "0.32.3", features = [
     "with-chrono",
     "thread-safe",
 ] }
-reqwest = "0.12.15"
+reqwest = { version = "0.12.15" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

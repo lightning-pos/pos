@@ -3,7 +3,12 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    adapters::outgoing::database::DatabaseAdapter, core::{commands::{app_service::AppService, Command}, models::auth::user_model::{self, User}}, error::{Error, Result}
+    adapters::outgoing::database::DatabaseAdapter,
+    core::{
+        commands::{app_service::AppService, Command},
+        models::auth::user_model::{self, User},
+    },
+    error::{Error, Result},
 };
 
 #[derive(Debug, Serialize, GraphQLInputObject)]
@@ -41,9 +46,18 @@ impl Command for LoginCommand {
 
         // Parse the response
         let login_response = response
-            .json::<LoginResponse>()
-            .await
-            .map_err(|e| format!("Failed to parse IAM service response: {}", e))?;
+        .json::<LoginResponse>()
+        .await
+        .map_err(|e| format!("Failed to parse IAM service response: {}", e))?;
+
+
+        #[cfg(not(test))]
+        {
+            let turso_url = login_response.turso_url.clone();
+            let turso_token = login_response.turso_token.clone();
+            service.update_adapter(turso_url, turso_token).await;
+        }
+
 
         let check_query = user_model::queries::find_by_username(&self.username);
         let user = service.db_adapter.query_optional::<User>(&check_query).await?;

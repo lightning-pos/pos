@@ -160,7 +160,10 @@ impl DatabaseAdapter for LibSqlAdapter {
         let mut rows = stmt.query(()).await
             .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))?;
 
-        let _ = self.db.sync().await;
+        let sync_res = self.db.sync().await;
+        if sync_res.is_err() {
+            eprintln!("Failed to sync database: {}", sync_res.unwrap_err());
+        }
 
         // Get the first row
         let row = rows.next().await
@@ -181,7 +184,10 @@ impl DatabaseAdapter for LibSqlAdapter {
         // Execute the query and return the number of affected rows
         let result = self.execute(&sql).await;
 
-        let _ = self.db.sync().await;
+        let sync_res = self.db.sync().await;
+        if sync_res.is_err() {
+            eprintln!("Failed to sync database: {}", sync_res.unwrap_err());
+        }
 
         result
     }
@@ -229,7 +235,10 @@ impl DatabaseAdapter for LibSqlAdapter {
         // Execute the query and return the number of affected rows
         let result = self.execute(&sql).await;
 
-        let _ = self.db.sync().await;
+        let sync_res = self.db.sync().await;
+        if sync_res.is_err() {
+            eprintln!("Failed to sync database: {}", sync_res.unwrap_err());
+        }
 
         result
     }
@@ -256,7 +265,10 @@ impl DatabaseAdapter for LibSqlAdapter {
         let mut rows = stmt.query(()).await
             .map_err(|e| Error::DatabaseError(format!("Failed to execute query: {}", e)))?;
 
-        let _ = self.db.sync().await;
+        let sync_res = self.db.sync().await;
+        if sync_res.is_err() {
+            eprintln!("Failed to sync database: {}", sync_res.unwrap_err());
+        }
 
         // Get the first row
         let row = rows.next().await
@@ -278,7 +290,10 @@ impl DatabaseAdapter for LibSqlAdapter {
         // Execute the query and return the number of affected rows
         let result = self.execute(&sql).await;
 
-        let _ = self.db.sync().await;
+        let sync_res = self.db.sync().await;
+        if sync_res.is_err() {
+            eprintln!("Failed to sync database: {}", sync_res.unwrap_err());
+        }
 
         result
     }
