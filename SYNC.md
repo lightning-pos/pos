@@ -7,15 +7,16 @@ This document outlines the implementation of offline-first capabilities with clo
 This is a tracking checklist for implementation progress. Check off items as they are completed:
 
 - [ ] **Basic Offline-First Setup**
-  - [ ] Set up Turso account and database
-  - [ ] Integrate libSQL client
-  - [ ] Implement basic sync functionality
+  - [x] Set up Turso account and database
+  - [x] Integrate libSQL client
+  - [x] Implement basic sync functionality
   - [ ] Add sync status UI components
 
 - [ ] **Shop Identity and Cloud Database Mapping**
   - [ ] Implement shop identity establishment
   - [ ] Create cloud database provisioning
   - [ ] Add persistent shop identity across restarts
+  - [ ] Add support for multiple instances for single shop
   - [ ] Implement authentication and verification
   - [ ] Add recovery procedures
 
