@@ -38,7 +38,7 @@ impl AppService {
 
     // Update the database adapter with the synced database once the user logins
     pub async fn update_adapter(&mut self, turso_url: String, turso_token: String) {
-        let db = libsql::Builder::new_synced_database(self.conn_path.clone(), turso_url, turso_token)
+        let db = libsql::Builder::new_remote_replica(self.conn_path.clone(), turso_url, turso_token)
                 .build()
                 .await
                 .expect("Failed to build synced libsql database");

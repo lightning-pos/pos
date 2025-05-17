@@ -6,7 +6,7 @@ use crate::{
     adapters::outgoing::database::DatabaseAdapter,
     core::{
         commands::{app_service::AppService, Command},
-        models::auth::user_model::{self, User},
+        models::auth::user_model::{self, User}, repositories::user_repository,
     },
     error::{Error, Result},
 };
@@ -46,9 +46,9 @@ impl Command for LoginCommand {
 
         // Parse the response
         let login_response = response
-        .json::<LoginResponse>()
-        .await
-        .map_err(|e| format!("Failed to parse IAM service response: {}", e))?;
+            .json::<LoginResponse>()
+            .await
+            .map_err(|e| format!("Failed to parse IAM service response: {}", e))?;
 
 
         #[cfg(not(test))]
@@ -60,8 +60,7 @@ impl Command for LoginCommand {
 
         #[cfg(test)]
         {
-            let check_query = user_model::queries::find_by_username(&self.username);
-            let user = service.db_adapter.query_optional::<User>(&check_query).await?;
+            let user = user_repository::get_user_by_username(service, &self.username).await?;
             match user {
                 Some(user) => {
                     service.state.current_user = Some(user.id);
