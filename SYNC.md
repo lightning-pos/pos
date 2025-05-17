@@ -2,6 +2,27 @@
 
 This document outlines the implementation of offline-first capabilities with cloud synchronization for the Lightning POS system, including support for multi-shop deployments.
 
+## Implementation Overview
+
+### Sync Implementation
+We use turso's remote replica feature to implement the sync functionality.
+- Reads happen locally on the local database.
+- Writes happen remotely on libsql server by default.
+- No offline writes for now. If a user has multiple devices, and one device updates to new schema, the other devices will not be able to write until they are also updated.
+- Future: Offline Writes
+  - Libsql's Offline Writes
+  - Local Transaction Queue
+
+### Migration Support
+TODO: Say we have 3 schema versions V1, V2, V3. And server is in V3. Implementation is TBD.
+
+Scenarios:
+- V1 -> V3 (cumulative migration)
+- V2 -> V3 (one step migration)
+
+Tentative Approach:
+- If server is in V2, and client is in V1, and the transaction queue has data, the commands should be first transformed to V2, and then pushed to the server.
+
 ## Implementation Checklist
 
 This is a tracking checklist for implementation progress. Check off items as they are completed:
